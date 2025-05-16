@@ -826,7 +826,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 書き込むためのアドレスを取得
 	materialResourceA->Map(0, nullptr, reinterpret_cast<void**>(&materialDataA));
 	// 今回は赤を書き込んでみる
-	*materialDataA = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+	*materialDataA = Vector4{ 1.0f, 1.0f, 1.0f, 1.0f };
 
 	// WVP用のリソースを作る。Matrix4x4　1つ分のサイズを用意する
 	ID3D12Resource* wvpResourceA = CreateBufferResource(device, sizeof(Matrix4x4));
@@ -846,7 +846,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 書き込むためのアドレスを取得
 	materialResourceB->Map(0, nullptr, reinterpret_cast<void**>(&materialDataB));
 	// 今回は赤を書き込んでみる
-	*materialDataB = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+	*materialDataB = Vector4{ 1.0f, 1.0f, 1.0f, 1.0f };
 
 	// WVP用のリソースを作る。Matrix4x4　1つ分のサイズを用意する
 	ID3D12Resource* wvpResourceB = CreateBufferResource(device, sizeof(Matrix4x4));
