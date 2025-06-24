@@ -1,11 +1,13 @@
 #include "Object3d.hlsli"
 
 struct Material {
-    float4 color : color;
+    float4 color;
     int enableLighting;
 };
 
 ConstantBuffer<Material> gMaterial : register(b0);
+
+ConstantBuffer<DirectionalLight> gDirectionalLight : register(b1);
 
 Texture2D<float4> gTexture : register(t0);
 SamplerState gSampler : register(s0);
@@ -25,7 +27,5 @@ PixelShaderOutput main(VertexShaderOutput input) {
     } else { // Lightingしない場合。前回までと同じ演算
         output.color = gMaterial.color * textureColor;
     }
-    
-    output.color = gMaterial.color * textureColor;
     return output;
 }

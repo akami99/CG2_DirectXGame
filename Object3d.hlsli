@@ -1,3 +1,4 @@
+// This file dont using japanese comments to avoid encording issues. 
 
 struct VertexShaderOutput {
     float4 position : SV_Position;
@@ -6,9 +7,8 @@ struct VertexShaderOutput {
 };
 
 struct DirectionalLight {
-    float4 color; //!< ライトの色
-    float3 direction; //!< ライトの向き(正規化する)
-    float intensity; //!< 輝度
-    float3 padding; // float3 + float = 16バイトになるよう調整
+    float4 color;
+    float3 direction;
+    float _padding_dummy;
+    float intensity;
 };
-ConstantBuffer<DirectionalLight> gDirectionalLight : register(b1);
