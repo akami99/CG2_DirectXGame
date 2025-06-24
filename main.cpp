@@ -826,27 +826,104 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//緯度と経度の分割数
 	uint32_t kSubdivision = 16;
 
-	uint32_t latIndex = 16;
-	uint32_t lonIndex = 16;
+	uint32_t numLatVertices = kSubdivision + 1; // 0からkSubdivisionまでのlatIndexに対応
+	uint32_t numLonVertices = kSubdivision + 1; // 0からkSubdivisionまでのlonIndexに対応
+	uint32_t totalUniqueVertexCount = numLatVertices * numLonVertices;
 
+	// 実際に頂点リソースを作る
+	ID3D12Resource* vertexResource = CreateBufferResource(device, sizeof(VertexData) * totalUniqueVertexCount);
+	// 頂点リソースにデータを書き込む
+	VertexData* vertexData = nullptr;
+	// 書き込むためのアドレスを取得
+	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
+	
 	//経度分割1つ分の角度 φd
 	const float kLonEvery = pi * 2.0f / static_cast<float>(kSubdivision);
 	//緯度分割1つ分の角度 θd
 	const float kLatEvery = pi / static_cast<float>(kSubdivision);
 
-	//頂点数を計算する
-	uint32_t vertexCount = latIndex * lonIndex * 6; // 6頂点で１つの四角形を構成する
+	// ユニークな頂点を生成して格納 (ループの範囲と書き込み先を変更)
+	uint32_t currentVertexIndex = 0;
+	for (uint32_t latIndex = 0; latIndex < numLatVertices; ++latIndex) { // 0 から kSubdivision まで
+		float lat = -pi / 2.0f + kLatEvery * latIndex; // θ
+		for (uint32_t lonIndex = 0; lonIndex < numLonVertices; ++lonIndex) { // 0 から kSubdivision まで
+			float lon = lonIndex * kLonEvery; // φ
 
-	// 実際に頂点リソースを作る
-	ID3D12Resource* vertexResource = CreateBufferResource(device, sizeof(VertexData) * vertexCount);
+			Vector4 pos;
+			Vector2 uv;
+			Vector3 normal;
+
+			pos.x = cosf(lat) * cosf(lon);
+			pos.y = sinf(lat);
+			pos.z = cosf(lat) * sinf(lon);
+			pos.w = 1.0f;
+
+			uv.x = static_cast<float>(lonIndex) / static_cast<float>(kSubdivision);
+			// v座標は、下から上へ(0から1)にマッピングすることが多いので、latIndexをそのまま使う
+			// または上から下へ(0から1)にマッピングするなら 1.0f - ... を使う
+			uv.y = 1.0f - static_cast<float>(latIndex) / static_cast<float>(kSubdivision);
+
+			normal = Vector3(pos.x, pos.y, pos.z); // 球の場合、位置を正規化したものが法線になることが多い
+
+			// 計算したユニークな頂点データを直接格納
+			vertexData[currentVertexIndex].position = pos;
+			vertexData[currentVertexIndex].texcoord = uv;
+			vertexData[currentVertexIndex].normal = normal;
+			currentVertexIndex++;
+		}
+	}
+
+	// インデックスバッファのリソースとビューを作成
+    // 各四角形は2つの三角形で6インデックス
+    // 四角形の数は (緯度方向セグメント数) * (経度方向セグメント数)
+	uint32_t totalIndexCount = kSubdivision * kSubdivision * 6;
+	ID3D12Resource* indexResource = CreateBufferResource(device, sizeof(uint32_t) * totalIndexCount);
+	uint32_t* indexData = nullptr;
+	indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexData));
+
+	uint32_t currentIndex = 0; // インデックスバッファに書き込む位置
+
+	// インデックスデータを生成 (四角形を構成するループ)
+    // latIndex と lonIndex は kSubdivision - 1 までループする (次の行/列を参照するため)
+	for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex) {
+		for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
+			// 現在の四角形の4つの角のユニークな頂点インデックスを計算
+			// (latIndex, lonIndex)
+			// v1 --- v3
+			// |      |
+			// v0 --- v2
+			uint32_t v0 = (latIndex + 1) * numLonVertices + lonIndex;
+			uint32_t v1 = latIndex * numLonVertices + lonIndex;
+			uint32_t v2 = (latIndex + 1)* numLonVertices + (lonIndex + 1);
+			uint32_t v3 = latIndex* numLonVertices + (lonIndex + 1);
+
+			// 1つ目の三角形 (v0, v1, v2) - 反時計回り
+			indexData[currentIndex++] = v0; // 左下
+			indexData[currentIndex++] = v2; // 右下
+			indexData[currentIndex++] = v1; // 左上
+
+			// 2つ目の三角形 (v1, v3, v2) - 反時計回り
+			indexData[currentIndex++] = v1; // 左上
+			indexData[currentIndex++] = v2; // 右下
+			indexData[currentIndex++] = v3; // 右上
+		}
+	}
+
+	// インデックスバッファビューの作成
+	D3D12_INDEX_BUFFER_VIEW indexBufferView{};
+	indexBufferView.BufferLocation = indexResource->GetGPUVirtualAddress();
+	indexBufferView.SizeInBytes = sizeof(uint32_t) * totalIndexCount;
+	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+
 	// 頂点バッファビューを作成する
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
 	// リソースの先頭アドレスから使う
 	vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress();
 	// 使用するリソースのサイズは頂点6つ分のサイズ
-	vertexBufferView.SizeInBytes = sizeof(VertexData) * vertexCount;
+	vertexBufferView.SizeInBytes = sizeof(VertexData) * totalUniqueVertexCount;
 	// １頂点当たりのサイズ
 	vertexBufferView.StrideInBytes = sizeof(VertexData);
+
 
 	// Sprite用の頂点リソースを作る
 	ID3D12Resource* vertexResourceSprite = CreateBufferResource(device, sizeof(VertexData) * 6);
@@ -858,12 +935,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	vertexBufferViewSprite.SizeInBytes = sizeof(VertexData) * 6;
 	// １頂点当たりのサイズ
 	vertexBufferViewSprite.StrideInBytes = sizeof(VertexData);
-
-
-	// 頂点リソースにデータを書き込む
-	VertexData* vertexData = nullptr;
-	// 書き込むためのアドレスを取得
-	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
 
 
 	// スプライト
@@ -1175,80 +1246,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			transform.rotate.y += 0.01f;
 
-			// 緯度の方向に分割
-			for (latIndex = 0; latIndex < kSubdivision; ++latIndex) {
-				float lat = -pi / 2.0f + kLatEvery * latIndex; // θ
-				// 経度の方向に分割
-				for (lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
-					float lon = lonIndex * kLonEvery; // φ
-					uint32_t start = (latIndex * kSubdivision + lonIndex) * 6;
-					float u = static_cast<float>(lonIndex) / static_cast<float>(kSubdivision);
-					float v = 1.0f - static_cast<float>(latIndex) / static_cast<float>(kSubdivision);
-
-					// 各グリッドの4つの頂点をあらかじめ計算しておく
-					Vector4 p0Pos, p1Pos, p2Pos, p3Pos;
-					Vector2 p0UV, p1UV, p2UV, p3UV;
-					Vector3 p0Normal, p1Normal, p2Normal, p3Normal;
-
-					// P0: (lat, lon)
-					p0Pos.x = cosf(lat) * cosf(lon);
-					p0Pos.y = sinf(lat);
-					p0Pos.z = cosf(lat) * sinf(lon);
-					p0Pos.w = 1.0f;
-					p0UV = Vector2(u, v);
-					p0Normal = Vector3(p0Pos.x, p0Pos.y, p0Pos.z);
-
-					// P1: (lat + kLatEvery, lon)
-					u = static_cast<float>(lonIndex) / static_cast<float>(kSubdivision);
-					p1Pos.x = cosf(lat + kLatEvery) * cosf(lon);
-					p1Pos.y = sinf(lat + kLatEvery);
-					p1Pos.z = cosf(lat + kLatEvery) * sinf(lon);
-					p1Pos.w = 1.0f;
-					p1UV = Vector2(u, v - 1.0f / static_cast<float>(kSubdivision));
-					p1Normal = Vector3(p1Pos.x, p1Pos.y, p1Pos.z);
-
-					// P2: (lat, lon + kLonEvery)
-					p2Pos.x = cosf(lat) * cosf(lon + kLonEvery);
-					p2Pos.y = sinf(lat);
-					p2Pos.z = cosf(lat) * sinf(lon + kLonEvery);
-					p2Pos.w = 1.0f;
-					p2UV = Vector2(u + 1.0f / static_cast<float>(kSubdivision), v);
-					p2Normal = Vector3(p2Pos.x, p2Pos.y, p2Pos.z);
-
-					// P3: (lat + kLatEvery, lon + kLonEvery)
-					p3Pos.x = cosf(lat + kLatEvery) * cosf(lon + kLonEvery);
-					p3Pos.y = sinf(lat + kLatEvery);
-					p3Pos.z = cosf(lat + kLatEvery) * sinf(lon + kLonEvery);
-					p3Pos.w = 1.0f;
-					p3UV = Vector2(u + 1.0f / static_cast<float>(kSubdivision), v - 1.0f / static_cast<float>(kSubdivision));
-					p3Normal = Vector3(p3Pos.x, p3Pos.y, p3Pos.z);
-
-
-					// 6つの頂点を設定
-					// 1つ目の三角形 (P0, P1, P2)
-					vertexData[start].position = p0Pos;
-					vertexData[start].texcoord = p0UV;
-					vertexData[start].normal = p0Normal;
-					vertexData[start + 1].position = p1Pos;
-					vertexData[start + 1].texcoord = p1UV;
-					vertexData[start + 1].normal = p1Normal;
-					vertexData[start + 2].position = p2Pos;
-					vertexData[start + 2].texcoord = p2UV;
-					vertexData[start + 2].normal = p2Normal;
-
-					// 2つ目の三角形 (P2, P1, P3) // 頂点の順序に注意（時計回り/反時計回り）
-					vertexData[start + 3].position = p2Pos;
-					vertexData[start + 3].texcoord = p2UV;
-					vertexData[start + 3].normal = p2Normal;
-					vertexData[start + 4].position = p1Pos;
-					vertexData[start + 4].texcoord = p1UV;
-					vertexData[start + 4].normal = p1Normal;
-					vertexData[start + 5].position = p3Pos;
-					vertexData[start + 5].texcoord = p3UV;
-					vertexData[start + 5].normal = p3Normal;
-				}
-			}
-
 			// カメラの更新
 			cameraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
 			viewMatrix = Inverse(cameraMatrix);
@@ -1312,6 +1309,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			// RootSignatureを設定。PSOに設定しているけど別途設定が必要
 			commandList->SetGraphicsRootSignature(rootSignature);
 			commandList->SetPipelineState(graphicsPipelineState);   // PSOを設定
+
+			commandList->IASetIndexBuffer(&indexBufferView); // IBVを設定
+
 			commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // VBVを設定
 			// 形状を設定。PSOに設定しているものとはまた別。同じものを設定すると考えておけばいい
 			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -1326,7 +1326,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			commandList->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetGPUVirtualAddress()); // directionalLightResourceはライトのCBV
 
 			// 描画！（DrawCall/ドローコール）。３頂点で１つのインスタンス。インスタンスについては今後
-			commandList->DrawInstanced(vertexCount, 1, 0, 0);
+			commandList->DrawIndexedInstanced(totalIndexCount, 1, 0, 0, 0); // 引数を totalIndexCount に変更
 
 			// スプライト
 			commandList->IASetIndexBuffer(&indexBufferViewSprite); // IBVを設定
@@ -1415,6 +1415,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	directionalLightResource->Release();
 
 	vertexResource->Release();
+	indexResource->Release();
+
 	vertexResourceSprite->Release();
 	indexResourceSprite->Release();
 
