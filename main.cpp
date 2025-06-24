@@ -745,7 +745,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	inputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
 	inputElementDescs[0].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA; // ★明示的に指定
 	inputElementDescs[0].InstanceDataStepRate = 0; // デフォルト値だが明示するとより分かりやすい
-	
+
 	inputElementDescs[1].SemanticName = "TEXCOORD";
 	inputElementDescs[1].SemanticIndex = 0;
 	inputElementDescs[1].Format = DXGI_FORMAT_R32G32_FLOAT;
@@ -864,7 +864,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	VertexData* vertexData = nullptr;
 	// 書き込むためのアドレスを取得
 	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
-	
+
 
 	// スプライト
 	VertexData* vertexDataSprite = nullptr;
@@ -1108,6 +1108,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	transformationMatrixDataSprite->WVP = worldViewProjectionMatrixSprite; // World-View-Projection行列をWVPメンバーに入れる
 	transformationMatrixDataSprite->World = worldMatrixSprite;           // 純粋なワールド行列をWorldメンバーに入れる
 
+	//スプライトの表示
+	bool showSprite = true;
+
 	MSG msg{};
 	// ウィンドウのxボタンが押されるまでループ
 	while (msg.message != WM_QUIT) {
@@ -1125,22 +1128,30 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			//ImGui::ShowDemoWindow();
 			ImGui::Begin("Settings");
 			// デバッグウィンドウ
-			ImGui::DragFloat3("CameraTranslate", &cameraTransform.translate.x, 0.01f);
-			ImGui::DragFloat3("CameraRotate", &cameraTransform.rotate.x, 0.01f);
+			ImGui::Text("Camera");
+
+			ImGui::DragFloat3("cameraTranslate", &cameraTransform.translate.x, 0.01f);
+			ImGui::DragFloat3("cameraRotate", &cameraTransform.rotate.x, 0.01f);
 
 			ImGui::Separator();
+			ImGui::Text("Material");
 
-			ImGui::ColorEdit4("material", &materialData->color.x);
-
-			ImGui::SliderFloat3("translateSprite", &transformSprite.translate.x, 0.0f, 1000.0f);
-
+			ImGui::ColorEdit4("color", &materialData->color.x);
 			ImGui::Checkbox("useMonsterBall", &useMonsterBall);
 
+			ImGui::Separator();
+			ImGui::Text("Sprite");
+
+			ImGui::SliderFloat3("translateSprite", &transformSprite.translate.x, 0.0f, 1000.0f);
+			ImGui::ColorEdit4("colorSprite", &materialDataSprite->color.x);
+			ImGui::Checkbox("showSprite", &showSprite);
+
+			ImGui::Separator();
 			ImGui::Text("Light");
 
-			ImGui::ColorEdit4("color", &directionalLightData->color.x);
-			ImGui::DragFloat3("direction", &directionalLightData->direction.x, 0.01f);
-			ImGui::DragFloat("intensity", &directionalLightData->intensity, 0.01f);
+			ImGui::ColorEdit4("colorLight", &directionalLightData->color.x);
+			ImGui::DragFloat3("directionLight", &directionalLightData->direction.x, 0.01f);
+			ImGui::DragFloat("intensityLight", &directionalLightData->intensity, 0.01f);
 			ImGui::CheckboxFlags("enableLighting", reinterpret_cast<uint32_t*>(&materialData->enableLighting), 1 << 0);
 
 			ImGui::End();
@@ -1180,7 +1191,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 					p1Pos.w = 1.0f;
 					p1UV = Vector2(u, v - 1.0f / static_cast<float>(kSubdivision));
 					p1Normal = Vector3(p1Pos.x, p1Pos.y, p1Pos.z);
-					
+
 					// P2: (lat, lon + kLonEvery)
 					p2Pos.x = cosf(lat) * cosf(lon + kLonEvery);
 					p2Pos.y = sinf(lat);
@@ -1188,7 +1199,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 					p2Pos.w = 1.0f;
 					p2UV = Vector2(u + 1.0f / static_cast<float>(kSubdivision), v);
 					p2Normal = Vector3(p2Pos.x, p2Pos.y, p2Pos.z);
-					
+
 					// P3: (lat + kLatEvery, lon + kLonEvery)
 					p3Pos.x = cosf(lat + kLatEvery) * cosf(lon + kLonEvery);
 					p3Pos.y = sinf(lat + kLatEvery);
@@ -1196,7 +1207,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 					p3Pos.w = 1.0f;
 					p3UV = Vector2(u + 1.0f / static_cast<float>(kSubdivision), v - 1.0f / static_cast<float>(kSubdivision));
 					p3Normal = Vector3(p3Pos.x, p3Pos.y, p3Pos.z);
-					
+
 
 					// 6つの頂点を設定
 					// 1つ目の三角形 (P0, P1, P2)
@@ -1312,7 +1323,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU1);
 
 			// 描画！（DrawCall/ドローコール）
-			commandList->DrawInstanced(6, 1, 0, 0);
+			if (showSprite) {
+				commandList->DrawInstanced(6, 1, 0, 0);
+			}
+
 
 			//ここまで-ImGui_ImplDX12_Init()--------------------------------------------------------------------------------------
 
