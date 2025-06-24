@@ -72,7 +72,8 @@ struct Transform {
 struct Material {
 	Vector4 color;
 	int32_t enableLighting;
-	float _padding[3]; // 16バイトのアライメントを確保するためのパディング
+	float padding[3]; // 16バイトのアライメントを確保するためのパディング
+	Matrix4x4 uvTransform;
 };// マテリアルの構造体。Vector4(16)+int32_t(4)=20バイト + float*3(12)=32バイト
 
 struct DirectionalLight {
@@ -995,6 +996,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 色の書き込み
 	materialData->color = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 	materialData->enableLighting = true;
+	materialData->uvTransform = MakeIdentity4x4();
 
 	// sprite
 	// マテリアル用のリソースを作る。
@@ -1007,6 +1009,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 色の書き込み
 	materialDataSprite->color = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 	materialDataSprite->enableLighting = false;
+	materialDataSprite->uvTransform = MakeIdentity4x4();
 
 	// 平行光源
 	// データを書き込む
@@ -1047,6 +1050,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//スプライト
 	Transform transformSprite{ {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
 
+	// UVTransform用の変数を用意
+	Transform uvTransformSprite{ 
+		{1.0f, 1.0f, 1.0f}, 
+		{0.0f, 0.0f, 0.0f}, 
+		{0.0f, 0.0f, 0.0f} 
+	};
+
+	Matrix4x4 uvTransformMatrix = MakeAffineMatrix(uvTransformSprite.scale, uvTransformSprite.rotate, uvTransformSprite.translate);
+	materialDataSprite->uvTransform = uvTransformMatrix;
 
 	// ビューポート
 	D3D12_VIEWPORT viewport{};
@@ -1240,6 +1252,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui::DragFloat("intensityLight", &directionalLightData->intensity, 0.01f);
 			ImGui::CheckboxFlags("enableLighting", reinterpret_cast<uint32_t*>(&materialData->enableLighting), 1 << 0);
 
+			ImGui::Separator();
+			ImGui::Text("UV");
+
+			ImGui::DragFloat2("uvTranslate", &uvTransformSprite.translate.x, 0.01f, -10.0f, 10.0f);
+			ImGui::DragFloat2("uvScale", &uvTransformSprite.scale.x, 0.01f, -10.0f, 10.0f);
+			ImGui::SliderAngle("uvRotate", &uvTransformSprite.rotate.z);
+
 			ImGui::End();
 
 			// ゲームの処理-----------------------------------------------------------------------------------
@@ -1258,6 +1277,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			wvpData->World = worldMatrix;
 
 			// スプライト
+			uvTransformMatrix = MakeAffineMatrix(uvTransformSprite.scale, uvTransformSprite.rotate, uvTransformSprite.translate);
+			materialDataSprite->uvTransform = uvTransformMatrix;
+
 			worldMatrixSprite = MakeAffineMatrix(transformSprite.scale, transformSprite.rotate, transformSprite.translate);
 			worldViewProjectionMatrixSprite = Multiply(worldMatrixSprite, Multiply(viewMatrixSprite, projectionMatrixSprite));
 			transformationMatrixDataSprite->WVP = worldViewProjectionMatrixSprite;
