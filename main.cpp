@@ -100,27 +100,6 @@ struct ModelData {
 };
 
 
-
-//class ResourcesObject {
-//public:
-//	ResourcesObject(ID3D12Resource* resources)
-//		:resources_(resources) {}
-//	~ResourcesObject() {
-//		if (resources_) {
-//			resources_->Release();
-//			resources_ = nullptr;
-//		}
-//	}
-//	ID3D12Resource* Get() {
-//		return resources_;
-//	}
-//
-//private:
-//	ID3D12Resource* resources_;
-//};
-
-
-
 // 単位行列の作成
 Matrix4x4 MakeIdentity4x4();
 
@@ -298,9 +277,6 @@ Microsoft::WRL::ComPtr<IDxcBlob> CompileShader(
 	assert(SUCCEEDED(hr));
 	// 成功したログを出す
 	Log(ConvertString(std::format(L"CompileSucceded, path:{}, profile:{}\n", filePath, profile)));
-	// もう使わないリソースを開放
-	shaderSource->Release();
-	shaderResult->Release();
 	// 実行用のバイナリを返却
 	return shaderBlob;
 }
@@ -728,8 +704,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		filter.DenyList.pSeverityList = severities;
 		// 指定したメッセージの表示を抑制する
 		infoQueue->PushStorageFilter(&filter);
-		// 解放
-		infoQueue->Release();
 	}
 #endif
 
@@ -1265,10 +1239,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 実行が完了したので、allcatorとcommandListをresetして次のコマンドを積めるようにする
 	commandAllocator->Reset();
 	commandList->Reset(commandAllocator.Get(), nullptr);
-
-	// ここまできたら転送は終わっているので、intermediateResourceはReleaseしても良い
-	intermediateResource1->Release();
-	intermediateResource2->Release();
 
 
 	// metaDataを基にSRVの設定
