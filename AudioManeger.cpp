@@ -5,17 +5,20 @@
 AudioManager::PlayingVoice::~PlayingVoice() {
     if (pVoice) {
         pVoice->DestroyVoice(); // ボイスを破棄
+        pVoice = nullptr;
     }
     if (pCallback) {
         delete pCallback; // コールバックオブジェクトを解放
+        pCallback = nullptr;
     }
 }
 
 // PlayingVoice 構造体のムーブコンストラクタの実装
 AudioManager::PlayingVoice::PlayingVoice(PlayingVoice&& other) noexcept
-    : pVoice(other.pVoice), pCallback(other.pCallback) {
+    : pVoice(other.pVoice), pCallback(other.pCallback), isFinished(other.isFinished.load()) {
     other.pVoice = nullptr;
     other.pCallback = nullptr;
+    other.isFinished = false;
 }
 
 // PlayingVoice 構造体のムーブ代入演算子の実装
@@ -28,22 +31,14 @@ AudioManager::PlayingVoice& AudioManager::PlayingVoice::operator=(PlayingVoice&&
         // other のリソースをこのオブジェクトに移動
         pVoice = other.pVoice;
         pCallback = other.pCallback;
+        isFinished = other.isFinished.load();
 
         // other のリソースを無効化
         other.pVoice = nullptr;
         other.pCallback = nullptr;
+        other.isFinished = false;
     }
     return *this;
-}
-
-// InternalVoiceCallback クラスのコンストラクタの実装
-AudioManager::InternalVoiceCallback::InternalVoiceCallback(AudioManager* manager, std::list<PlayingVoice>::iterator it)
-    : audioManager(manager), voiceIterator(it) {}
-
-// InternalVoiceCallback クラスの OnBufferEnd メソッドの実装
-void STDMETHODCALLTYPE AudioManager::InternalVoiceCallback::OnBufferEnd(void* pBufferContext) {
-    // AudioManagerのクリーンアップ関数を呼び出す
-    audioManager->NotifyVoiceEnd(voiceIterator);
 }
 
 // AudioManager のコンストラクタの実装
@@ -63,14 +58,12 @@ bool AudioManager::Initialize() {
     // XAudio2 オブジェクトの生成
     hr = XAudio2Create(&xAudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);
     if (FAILED(hr)) {
-        assert(0 && "Failed to create XAudio2 object!");
         return false;
     }
 
     // マスターボイスの生成
     hr = xAudio2->CreateMasteringVoice(&masterVoice);
     if (FAILED(hr)) {
-        assert(0 && "Failed to create mastering voice!");
         Shutdown(); // 失敗したらXAudio2も解放
         return false;
     }
@@ -79,9 +72,12 @@ bool AudioManager::Initialize() {
 
 // XAudio2 エンジンをシャットダウンする
 void AudioManager::Shutdown() {
+    // ミューテックスでロック
+    std::lock_guard<std::mutex> lock(playingVoicesMutex);
+
     // すべての再生中ボイスを停止・解放
     // playingVoices リストの各要素のデストラクタが pVoice と pCallback を解放します。
-    // そのため、ここではリストをクリアするだけで十分です。
+    // そのため、ここではリストをクリアするだけで十分
     playingVoices.clear();
 
     // マスターボイスの解放
@@ -103,7 +99,6 @@ void AudioManager::Shutdown() {
 bool AudioManager::LoadSound(const std::string& name, const std::string& filePath) {
     // 既に同じ名前のサウンドがロードされているかチェック
     if (sounds.count(name)) {
-        assert(0 && "Sound with this name already exists!");
         return false;
     }
 
@@ -119,66 +114,64 @@ bool AudioManager::LoadSound(const std::string& name, const std::string& filePat
 // ロードしたサウンドを名前で取得する
 Sound* AudioManager::GetSound(const std::string& name) {
     auto it = sounds.find(name);
-    if (it != sounds.end()) {
-        return &(it->second);
-    }
-    return nullptr; // 見つからなかった場合
+    return (it != sounds.end()) ? &(it->second) : nullptr;
 }
 
 // 名前を指定してサウンドを再生する
 void AudioManager::PlaySound(const std::string& name) {
     Sound* sound = GetSound(name);
     if (!sound) {
-        assert(0 && "Sound not found for playback!");
         return;
     }
+
+    // ミューテックスでロック
+    std::lock_guard<std::mutex> lock(playingVoicesMutex);
 
     IXAudio2SourceVoice* pSourceVoice = nullptr;
 
-    // コールバックインスタンスの作成と PlayingVoice のリストへの追加
-    // まずリストに空の PlayingVoice 要素を追加し、そのイテレータを取得
+    // 新しいPlayingVoiceを作成
     playingVoices.emplace_back();
-    auto it = std::prev(playingVoices.end());
+    PlayingVoice& newVoice = playingVoices.back();
 
-    // InternalVoiceCallback オブジェクトを動的に生成
-    InternalVoiceCallback* callback = new InternalVoiceCallback(this, it);
+    // コールバックを作成（PlayingVoiceの終了フラグを渡す）
+    newVoice.pCallback = new InternalVoiceCallback(&newVoice.isFinished);
 
-    // SourceVoice を作成し、コールバックを設定
-    HRESULT hr = xAudio2->CreateSourceVoice(&pSourceVoice, &sound->GetWaveFormatEx(), 0, XAUDIO2_DEFAULT_FREQ_RATIO, callback);
+    // SourceVoice を作成
+    HRESULT hr = xAudio2->CreateSourceVoice(&newVoice.pVoice, &sound->GetWaveFormatEx(),
+        0, XAUDIO2_DEFAULT_FREQ_RATIO, newVoice.pCallback);
     if (FAILED(hr)) {
-        assert(0 && "Failed to create source voice!");
-        // エラー時はリストに追加した PlayingVoice を削除。デストラクタが pVoice と callback を解放します。
-        playingVoices.erase(it);
+        playingVoices.pop_back(); // 失敗時は削除
         return;
     }
 
-    // PlayingVoice 構造体にボイスとコールバックを設定
-    it->pVoice = pSourceVoice;
-    it->pCallback = callback;
-
+    // バッファを送信
     XAUDIO2_BUFFER buf{};
     buf.pAudioData = sound->GetBuffer();
     buf.AudioBytes = sound->GetBufferSize();
     buf.Flags = XAUDIO2_END_OF_STREAM;
 
-    hr = pSourceVoice->SubmitSourceBuffer(&buf);
+    hr = newVoice.pVoice->SubmitSourceBuffer(&buf);
     if (FAILED(hr)) {
-        assert(0 && "Failed to submit source buffer!");
-        playingVoices.erase(it); // エラー時はリストから削除
+        playingVoices.pop_back();
         return;
     }
 
-    hr = pSourceVoice->Start(0);
+    hr = newVoice.pVoice->Start(0);
     if (FAILED(hr)) {
-        assert(0 && "Failed to start source voice!");
-        playingVoices.erase(it); // エラー時はリストから削除
+        playingVoices.pop_back();
         return;
     }
 }
 
-// コールバックから呼ばれる、ボイスをリストから削除するメソッド
-void AudioManager::NotifyVoiceEnd(std::list<PlayingVoice>::iterator voiceIterator) {
-    // voiceIterator が指す PlayingVoice オブジェクトをリストから削除します。
-    // PlayingVoice のデストラクタが、関連付けられた IXAudio2SourceVoice と InternalVoiceCallback を解放します。
-    playingVoices.erase(voiceIterator);
+// 終了したボイスのクリーンアップ
+void AudioManager::CleanupFinishedVoices() {
+    std::lock_guard<std::mutex> lock(playingVoicesMutex);
+
+    // 終了フラグが立っているボイスを削除
+    auto it = std::remove_if(playingVoices.begin(), playingVoices.end(),
+        [](const PlayingVoice& voice) {
+            return voice.isFinished.load();
+        });
+
+    playingVoices.erase(it, playingVoices.end());
 }

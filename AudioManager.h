@@ -4,14 +4,17 @@
 #include <wrl/client.h>        // Microsoft::WRL::ComPtr のために必要
 #include <map>                 // std::map のために必要
 #include <string>              // std::string のために必要
-#include <list>                // 再生中のボイスを管理するために使用
 #include "Sound.h"             // Sound クラスの定義をインクルード
+#include <mutex>               // スレッドセーフな操作のために必要
+#include <atomic>              // スレッドセーフなフラグのために必要
+#include <vector>              // 再生中のボイスを管理するために使用
 
 // XAudio2 ライブラリをリンク
 #pragma comment(lib, "xaudio2.lib")
 
 class AudioManager {
 private:
+    std::mutex playingVoicesMutex;  // playingVoicesリストを保護するミューテックス
     Microsoft::WRL::ComPtr<IXAudio2> xAudio2;          // XAudio2 エンジンオブジェクト
     IXAudio2MasteringVoice* masterVoice;               // マスターボイス
     std::map<std::string, Sound> sounds;               // ロードされたサウンドを管理するマップ
@@ -20,9 +23,10 @@ private:
     struct PlayingVoice {
         IXAudio2SourceVoice* pVoice;
         IXAudio2VoiceCallback* pCallback; // コールバックオブジェクトも管理
+        std::atomic<bool> isFinished; // 再生終了フラグ
 
         // コンストラクタ
-        PlayingVoice() : pVoice(nullptr), pCallback(nullptr) {}
+        PlayingVoice() : pVoice(nullptr), pCallback(nullptr), isFinished(false) {}
 
         // デストラクタでボイスとコールバックを解放
         ~PlayingVoice();
@@ -35,21 +39,22 @@ private:
         PlayingVoice(const PlayingVoice&) = delete;
         PlayingVoice& operator=(const PlayingVoice&) = delete;
     };
-    std::list<PlayingVoice> playingVoices; // 再生中のボイスリスト
+    std::vector<PlayingVoice> playingVoices; // vectorに変更（イテレータ無効化を避ける）
 
     // コールバッククラスの定義（AudioManagerの内部クラスとして定義）
     class InternalVoiceCallback : public IXAudio2VoiceCallback {
     public:
-        // コールバックが所属するAudioManagerインスタンスへのポインタ
-        AudioManager* audioManager;
-        // このコールバックに関連付けられたボイスのリストイテレータ
-        std::list<PlayingVoice>::iterator voiceIterator;
-
+        std::atomic<bool>* finishedFlag; // 対応するPlayingVoiceの終了フラグ
+        
         // コンストラクタ
-        InternalVoiceCallback(AudioManager* manager, std::list<PlayingVoice>::iterator it);
+        InternalVoiceCallback(std::atomic<bool>* flag) : finishedFlag(flag) {}
 
-        // OnBufferEnd コールバックの実装
-        void STDMETHODCALLTYPE OnBufferEnd(void* pBufferContext) override;
+        // 軽量なフラグ設定のみ
+        void STDMETHODCALLTYPE OnBufferEnd(void* pBufferContext) override {
+            if (finishedFlag) {
+                finishedFlag->store(true);
+            }
+        }
 
         // 他のコールバックメソッドは空実装
         void STDMETHODCALLTYPE OnStreamEnd() override {}
@@ -59,9 +64,6 @@ private:
         void STDMETHODCALLTYPE OnLoopEnd(void* pBufferContext) override {}
         void STDMETHODCALLTYPE OnVoiceError(void* pBufferContext, HRESULT Error) override {}
     };
-
-    // コールバックから呼ばれる、ボイスをリストから削除するメソッド
-    void NotifyVoiceEnd(std::list<PlayingVoice>::iterator voiceIterator);
 
 public:
     // コンストラクタ
@@ -91,7 +93,6 @@ public:
     // @param name 再生したいサウンドの名前
     void PlaySound(const std::string& name);
 
-    //// 特定のサウンドをアンロードする
-    //// @param name アンロードしたいサウンドの名前
-    //void UnloadSound(const std::string& name);
+    // 再生終了したボイスを手動でクリーンアップ
+    void CleanupFinishedVoices();
 };

@@ -46,10 +46,6 @@ public:
     // 音声データを解放する
     void Unload();
 
-    //// 音声データを再生する
-    //// IXAudio2* は AudioManager から渡される必要がある
-    //void Play(Microsoft::WRL::ComPtr<IXAudio2> xAudio2) const;
-
     // ゲッター
     const WAVEFORMATEX& GetWaveFormatEx() const;
     BYTE* GetBuffer() const;

@@ -942,16 +942,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	hr = device->CreateGraphicsPipelineState(&graphicsPipelineStateDesc, IID_PPV_ARGS(&graphicsPipelineState));
 	assert(SUCCEEDED(hr));
 
-
-	//// 円の頂点位置を計算する
-	//const float pi = std::numbers::pi_v<float>;
-	////緯度と経度の分割数
-	//uint32_t kSubdivision = 16;
-
-	//uint32_t numLatVertices = kSubdivision + 1; // 0からkSubdivisionまでのlatIndexに対応
-	//uint32_t numLonVertices = kSubdivision + 1; // 0からkSubdivisionまでのlonIndexに対応
-	//uint32_t totalUniqueVertexCount = numLatVertices * numLonVertices;
-
 	// モデル読み込み
 	ModelData modelData = LoadObjFile("resources", "plane.obj");
 
@@ -963,85 +953,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 書き込むためのアドレスを取得
 	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData)); // 書き込むためのアドレスを取得
 	std::memcpy(vertexData, modelData.vertices.data(), sizeof(VertexData)* modelData.vertices.size());// 頂点データをリソースにコピー
-
-
-	////経度分割1つ分の角度 φd
-	//const float kLonEvery = pi * 2.0f / static_cast<float>(kSubdivision);
-	////緯度分割1つ分の角度 θd
-	//const float kLatEvery = pi / static_cast<float>(kSubdivision);
-
-	//// ユニークな頂点を生成して格納 (ループの範囲と書き込み先を変更)
-	//uint32_t currentVertexIndex = 0;
-	//for (uint32_t latIndex = 0; latIndex < numLatVertices; ++latIndex) { // 0 から kSubdivision まで
-	//	float lat = -pi / 2.0f + kLatEvery * latIndex; // θ
-	//	for (uint32_t lonIndex = 0; lonIndex < numLonVertices; ++lonIndex) { // 0 から kSubdivision まで
-	//		float lon = lonIndex * kLonEvery; // φ
-
-	//		Vector4 pos;
-	//		Vector2 uv;
-	//		Vector3 normal;
-
-	//		pos.x = cosf(lat) * cosf(lon);
-	//		pos.y = sinf(lat);
-	//		pos.z = cosf(lat) * sinf(lon);
-	//		pos.w = 1.0f;
-
-	//		uv.x = static_cast<float>(lonIndex) / static_cast<float>(kSubdivision);
-	//		// v座標は、下から上へ(0から1)にマッピングすることが多いので、latIndexをそのまま使う
-	//		// または上から下へ(0から1)にマッピングするなら 1.0f - ... を使う
-	//		uv.y = 1.0f - static_cast<float>(latIndex) / static_cast<float>(kSubdivision);
-
-	//		normal = Vector3(pos.x, pos.y, pos.z); // 球の場合、位置を正規化したものが法線になることが多い
-
-	//		// 計算したユニークな頂点データを直接格納
-	//		vertexData[currentVertexIndex].position = pos;
-	//		vertexData[currentVertexIndex].texcoord = uv;
-	//		vertexData[currentVertexIndex].normal = normal;
-	//		currentVertexIndex++;
-	//	}
-	//}
-
-	//// インデックスバッファのリソースとビューを作成
- //   // 各四角形は2つの三角形で6インデックス
- //   // 四角形の数は (緯度方向セグメント数) * (経度方向セグメント数)
-	//uint32_t totalIndexCount = kSubdivision * kSubdivision * 6;
-	//ID3D12Resource* indexResource = CreateBufferResource(device, sizeof(uint32_t) * totalIndexCount);
-	//uint32_t* indexData = nullptr;
-	//indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexData));
-
-	//uint32_t currentIndex = 0; // インデックスバッファに書き込む位置
-
-	//// インデックスデータを生成 (四角形を構成するループ)
- //   // latIndex と lonIndex は kSubdivision - 1 までループする (次の行/列を参照するため)
-	//for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex) {
-	//	for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
-	//		// 現在の四角形の4つの角のユニークな頂点インデックスを計算
-	//		// (latIndex, lonIndex)
-	//		// v1 --- v3
-	//		// |      |
-	//		// v0 --- v2
-	//		uint32_t v0 = (latIndex + 1) * numLonVertices + lonIndex;
-	//		uint32_t v1 = latIndex * numLonVertices + lonIndex;
-	//		uint32_t v2 = (latIndex + 1)* numLonVertices + (lonIndex + 1);
-	//		uint32_t v3 = latIndex* numLonVertices + (lonIndex + 1);
-
-	//		// 1つ目の三角形 (v0, v1, v2) - 反時計回り
-	//		indexData[currentIndex++] = v0; // 左下
-	//		indexData[currentIndex++] = v2; // 右下
-	//		indexData[currentIndex++] = v1; // 左上
-
-	//		// 2つ目の三角形 (v1, v3, v2) - 反時計回り
-	//		indexData[currentIndex++] = v1; // 左上
-	//		indexData[currentIndex++] = v2; // 右下
-	//		indexData[currentIndex++] = v3; // 右上
-	//	}
-	//}
-
-	//// インデックスバッファビューの作成
-	//D3D12_INDEX_BUFFER_VIEW indexBufferView{};
-	//indexBufferView.BufferLocation = indexResource->GetGPUVirtualAddress();
-	//indexBufferView.SizeInBytes = sizeof(uint32_t) * totalIndexCount;
-	//indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 
 	// 頂点バッファビューを作成する
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
@@ -1403,7 +1314,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui::End();
 
 			// ゲームの処理-----------------------------------------------------------------------------------
-
+			audioManager.CleanupFinishedVoices(); // 完了した音声のクリーンアップ
+			
 			transform.rotate.y += 0.01f;
 
 			// カメラの更新
