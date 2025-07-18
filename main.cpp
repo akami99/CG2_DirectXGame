@@ -22,6 +22,7 @@
 #include <wrl.h>
 #include <dinput.h>
 #include "AudioManager.h"
+#include "KeyboardManager.h"
 
 #include "externals/DirectXTex/DirectXTex.h"
 #include "externals/DirectXTex/d3dx12.h"
@@ -931,25 +932,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	assert(SUCCEEDED(hr));
 
 	// DirectInputの初期化
-	IDirectInput8* directInput = nullptr;
-	hr = DirectInput8Create( 
-		wc.hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, 
-		reinterpret_cast<void**>(&directInput), nullptr);
-	assert(SUCCEEDED(hr));
-
-	// キーボードデバイスの生成
-	IDirectInputDevice8* keyboard = nullptr;
-	hr = directInput->CreateDevice(GUID_SysKeyboard, &keyboard, NULL);
-	assert(SUCCEEDED(hr));
-
-	// 入力データ形式のセット
-	hr = keyboard->SetDataFormat(&c_dfDIKeyboard); // 標準形式
-	assert(SUCCEEDED(hr));
-
-	// 排他制御のレベルのセット
-	hr = keyboard->SetCooperativeLevel(
-		hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
-	assert(SUCCEEDED(hr));
+	KeyboardManager* keyboardManager = new KeyboardManager(hwnd, wc.hInstance);
 
 	// 3. 描画初期化処理 (IMGUI)
 	// ImGuiの初期化。詳細はさして重要ではないので省略する。
@@ -1277,12 +1260,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui_ImplWin32_NewFrame();
 			ImGui::NewFrame();
 
-			// キーボード情報の取得開始
-			keyboard->Acquire();
-			// 全キーの入力状態を取得する
-			BYTE key[256] = {};
-			keyboard->GetDeviceState(sizeof(key), key);
-
 			// 開発用UIの処理。実際に開発用のUIを出す場合はここをゲーム固有の処理に置き換える
 			//ImGui::ShowDemoWindow();
 			ImGui::Begin("Settings");
@@ -1332,11 +1309,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui::End();
 
 			// ゲームの処理-----------------------------------------------------------------------------------
+			// KeyboardManagerを更新
+			keyboardManager->Update();
 			
 			// キーボードの入力処理テスト(サウンド再生)
-			if (key[DIK_SPACE] & 0x80) { // スペースキーが押されているか
+			if (keyboardManager->IsTriggered(DIK_SPACE)) { // スペースキーが押されているか
 				// サウンドの再生
 				audioManager.PlaySound("alarm1");
+			}
+			if (keyboardManager->IsKeyDown(DIK_A)) { // Aキーが押されている間は左に回転
+				transform.rotate.y -= 0.02f; 
+			}
+			if (keyboardManager->IsReleased(DIK_R)) { // Rキーが離されたら回転をリセット
+				transform.rotate.y = 0.0f; 
 			}
 			audioManager.CleanupFinishedVoices(); // 完了した音声のクリーンアップ
 			
@@ -1498,6 +1483,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 解放処理
 	CloseHandle(fenceEvent);
 	CloseWindow(hwnd);
+
+	if (keyboardManager) {
+		delete keyboardManager;
+		keyboardManager = nullptr;
+	}
 
 
 	// ImGuiの終了処理。詳細はさして重要ではないので開設は省略する。
