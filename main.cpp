@@ -930,6 +930,27 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	hr = device->CreateGraphicsPipelineState(&graphicsPipelineStateDesc, IID_PPV_ARGS(&graphicsPipelineState));
 	assert(SUCCEEDED(hr));
 
+	// DirectInputの初期化
+	IDirectInput8* directInput = nullptr;
+	hr = DirectInput8Create( 
+		wc.hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, 
+		reinterpret_cast<void**>(&directInput), nullptr);
+	assert(SUCCEEDED(hr));
+
+	// キーボードデバイスの生成
+	IDirectInputDevice8* keyboard = nullptr;
+	hr = directInput->CreateDevice(GUID_SysKeyboard, &keyboard, NULL);
+	assert(SUCCEEDED(hr));
+
+	// 入力データ形式のセット
+	hr = keyboard->SetDataFormat(&c_dfDIKeyboard); // 標準形式
+	assert(SUCCEEDED(hr));
+
+	// 排他制御のレベルのセット
+	hr = keyboard->SetCooperativeLevel(
+		hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
+	assert(SUCCEEDED(hr));
+
 	// 3. 描画初期化処理 (IMGUI)
 	// ImGuiの初期化。詳細はさして重要ではないので省略する。
 	// こういうもんである
@@ -1242,16 +1263,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	MSG msg{};
 	// ウィンドウのxボタンが押されるまでループ
+	// 1. ウィンドウメッセージ処理
 	while (msg.message != WM_QUIT) {
 		// Windowにメッセージが来てたら最優先で処理させる
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		} else {
+			// 2. DIrectX更新処理
+			
 			// フレームの開始を告げる
 			ImGui_ImplDX12_NewFrame();
 			ImGui_ImplWin32_NewFrame();
 			ImGui::NewFrame();
+
+			// キーボード情報の取得開始
+			keyboard->Acquire();
+			// 全キーの入力状態を取得する
+			BYTE key[256] = {};
+			keyboard->GetDeviceState(sizeof(key), key);
 
 			// 開発用UIの処理。実際に開発用のUIを出す場合はここをゲーム固有の処理に置き換える
 			//ImGui::ShowDemoWindow();
@@ -1302,6 +1332,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui::End();
 
 			// ゲームの処理-----------------------------------------------------------------------------------
+			
+			// キーボードの入力処理テスト(サウンド再生)
+			if (key[DIK_SPACE] & 0x80) { // スペースキーが押されているか
+				// サウンドの再生
+				audioManager.PlaySound("alarm1");
+			}
 			audioManager.CleanupFinishedVoices(); // 完了した音声のクリーンアップ
 			
 			transform.rotate.y += 0.01f;
@@ -1312,7 +1348,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			// 三角形
 			worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
-			viewMatrix = Inverse(cameraMatrix);
 			worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
 			wvpData->WVP = worldViewProjectionMatrix;
 			wvpData->World = worldMatrix;
@@ -1330,6 +1365,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			// ImGuiの内部コマンドを生成する
 			ImGui::Render();
+
+			// 3. グラフィックコマンド
 
 			// 描画の処理-------------------------------------------------------------------------------------
 
@@ -1423,6 +1460,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			// コマンドリストの内容を確定させる。すべてのコマンドを積んでからCloseすること
 			hr = commandList->Close();
 			assert(SUCCEEDED(hr));
+
+			// 4. 画面入れ替え
 
 			// GPUにコマンドリストの実行を行わせる
 			Microsoft::WRL::ComPtr<ID3D12CommandList> commandLists[] = { commandList };
