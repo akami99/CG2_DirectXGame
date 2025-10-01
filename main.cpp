@@ -833,16 +833,86 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	inputLayoutDesc.NumElements = _countof(inputElementDescs);
 
 	// BlendState
-	D3D12_BLEND_DESC blendDesc{};
+	enum BlendMode {
+		//!< ブレンド無し
+		kBlendModeNone,
+		//!< 通常aブレンド。デフォルト。Src * SrcA + Dest * (1 - SrcA)
+		kBlendModeNormal,
+		//!< 加算。Src * SrcA + Dest * 1
+		kBlendModeAdd,
+		//!< 減算。Dest * 1 - Src * SrcA
+		kBlendModeSubtract,
+		//!< 乗算。Src * 0 + Dest * SrcA
+		kBlendModeMultiply,
+		//!< スクリーン。Src * (1 - DestA) + Dest * 1
+		kBlendModeScreen,
+		//!< 利用してはいけない
+		kCountOfBlendMode,
+	};
+
+	int currentBlendMode = kBlendModeNormal;
+
+	// BlendStateの設定を配列で用意しておく
+	D3D12_BLEND_DESC blendDescs[kCountOfBlendMode] = {};
+	// ブレンド無し
 	// すべての色要素を書き込む
-	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-	blendDesc.RenderTarget[0].BlendEnable = TRUE;
-	blendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA; // ソースのアルファ値
-	blendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
-	blendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA; // 1.0f - ソースのアルファ値
-	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
-	blendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
-	blendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
+	blendDescs[kBlendModeNone].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDescs[kBlendModeNone].RenderTarget[0].BlendEnable = FALSE;
+
+	// 通常のアルファブレンド
+	// すべての色要素を書き込む
+	blendDescs[kBlendModeNormal].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDescs[kBlendModeNormal].RenderTarget[0].BlendEnable = TRUE;
+	blendDescs[kBlendModeNormal].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA; // ソースのアルファ値
+	blendDescs[kBlendModeNormal].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeNormal].RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA; // 1.0f - ソースのアルファ値
+	blendDescs[kBlendModeNormal].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
+	blendDescs[kBlendModeNormal].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeNormal].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
+
+	// 加算ブレンド
+	// すべての色要素を書き込む
+	blendDescs[kBlendModeAdd].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDescs[kBlendModeAdd].RenderTarget[0].BlendEnable = TRUE;
+	blendDescs[kBlendModeAdd].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA; // ソースのアルファ値
+	blendDescs[kBlendModeAdd].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeAdd].RenderTarget[0].DestBlend = D3D12_BLEND_ONE; // デストのアルファ値
+	blendDescs[kBlendModeAdd].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
+	blendDescs[kBlendModeAdd].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeAdd].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
+
+	// 減算ブレンド
+	// すべての色要素を書き込む
+	blendDescs[kBlendModeSubtract].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDescs[kBlendModeSubtract].RenderTarget[0].BlendEnable = TRUE;
+	blendDescs[kBlendModeSubtract].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA; // ソースのアルファ値
+	blendDescs[kBlendModeSubtract].RenderTarget[0].BlendOp = D3D12_BLEND_OP_REV_SUBTRACT; // 減算
+	blendDescs[kBlendModeSubtract].RenderTarget[0].DestBlend = D3D12_BLEND_ONE; // デストのアルファ値
+	blendDescs[kBlendModeSubtract].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
+	blendDescs[kBlendModeSubtract].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeSubtract].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
+
+	// 乗算ブレンド
+	// すべての色要素を書き込む
+	blendDescs[kBlendModeMultiply].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDescs[kBlendModeMultiply].RenderTarget[0].BlendEnable = TRUE;
+	blendDescs[kBlendModeMultiply].RenderTarget[0].SrcBlend = D3D12_BLEND_ZERO; // 0.0f
+	blendDescs[kBlendModeMultiply].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeMultiply].RenderTarget[0].DestBlend = D3D12_BLEND_SRC_COLOR; // ソースカラー値
+	blendDescs[kBlendModeMultiply].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
+	blendDescs[kBlendModeMultiply].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeMultiply].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
+
+	// スクリーンブレンド
+	// すべての色要素を書き込む
+	blendDescs[kBlendModeScreen].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDescs[kBlendModeScreen].RenderTarget[0].BlendEnable = TRUE;
+	blendDescs[kBlendModeScreen].RenderTarget[0].SrcBlend = D3D12_BLEND_INV_DEST_COLOR; // デストカラー値
+	blendDescs[kBlendModeScreen].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeScreen].RenderTarget[0].DestBlend = D3D12_BLEND_ONE; // ソースアルファ値
+	blendDescs[kBlendModeScreen].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
+	blendDescs[kBlendModeScreen].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeScreen].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
 
 	// RasterizerState
 	D3D12_RASTERIZER_DESC rasterizerDesc{};
@@ -867,28 +937,48 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 
 	// PSOを生成する
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{};
-	graphicsPipelineStateDesc.pRootSignature = rootSignature.Get(); // RootSignature
-	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc; // InputLayout
-	graphicsPipelineStateDesc.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() }; // VertexShader
-	graphicsPipelineStateDesc.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() }; // PixelShader
-	graphicsPipelineStateDesc.BlendState = blendDesc; // BlendState
-	graphicsPipelineStateDesc.RasterizerState = rasterizerDesc; // RasterizerState
+	// ベースのPSO設定
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDescBase{};
+
+	// **共通設定**を一度だけセット
+	psoDescBase.pRootSignature = rootSignature.Get(); // RootSignature
+	psoDescBase.InputLayout = inputLayoutDesc; // InputLayout
+	psoDescBase.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() }; // VertexShader
+	psoDescBase.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() }; // PixelShader
+	psoDescBase.RasterizerState = rasterizerDesc; // RasterizerState
 	// 書き込むRTVの情報
-	graphicsPipelineStateDesc.NumRenderTargets = 1;
-	graphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	graphicsPipelineStateDesc.SampleDesc.Count = 1;
+	psoDescBase.NumRenderTargets = 1;
+	psoDescBase.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	psoDescBase.SampleDesc.Count = 1;
 	// DepthStencilの設定
-	graphicsPipelineStateDesc.DepthStencilState = depthStencilDesc;
-	graphicsPipelineStateDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	psoDescBase.DepthStencilState = depthStencilDesc;
+	psoDescBase.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	// 利用するトポロジ（形状）のタイプ。三角形
-	graphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDescBase.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	// どのように画面に色を打ち込むかの設定（気にしなくていい）
-	graphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-    // PSO生成
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> graphicsPipelineState = nullptr;
-	hr = device->CreateGraphicsPipelineState(&graphicsPipelineStateDesc, IID_PPV_ARGS(&graphicsPipelineState));
-	assert(SUCCEEDED(hr));
+	psoDescBase.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+
+	// ループで各ブレンドモードのPSOを生成
+
+	// 外部で宣言（クラスのメンバー変数など）
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> pPsoArray[kCountOfBlendMode];
+
+	for (int i = 0; i < kCountOfBlendMode; ++i) {
+		if (i == kCountOfBlendMode) {
+			continue;
+		};
+
+		// 設定をベースからコピー
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = psoDescBase;
+
+		// ブレンド設定だけを、現在のインデックス(i)に対応するものに切り替える
+		psoDesc.BlendState = blendDescs[i];
+
+		// PSO生成
+		// 結果を配列 m_pPsoArray[i] に格納
+		hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pPsoArray[i]));
+		assert(SUCCEEDED(hr));
+	}
 
 	// DirectInputの初期化
 	KeyboardManager* p_keyboardManager = new KeyboardManager(hwnd, wc.hInstance);
@@ -1240,6 +1330,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui::SliderAngle("rotate.z", &transform.rotate.z);
 
 			ImGui::ColorEdit4("color", &materialData->color.x);
+
+			ImGui::Combo("BlendMode", &currentBlendMode, "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
+
 			ImGui::Checkbox("useMonsterBall", &useMonsterBall);
 
 			ImGui::Separator();
@@ -1356,7 +1449,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			commandList->RSSetScissorRects(1, &scissorRect);    // Scissorを設定
 			// RootSignatureを設定。PSOに設定しているけど別途設定が必要
 			commandList->SetGraphicsRootSignature(rootSignature.Get());
-			commandList->SetPipelineState(graphicsPipelineState.Get());   // PSOを設定
+			
+			if (currentBlendMode >= 0 && currentBlendMode < kCountOfBlendMode) {
+				// PSOを設定
+				commandList->SetPipelineState(pPsoArray[currentBlendMode].Get());
+			} else {
+				// 不正な値の場合
+				commandList->SetPipelineState(pPsoArray[kBlendModeNormal].Get());
+			}
 
 			//commandList->IASetIndexBuffer(&indexBufferView); // IBVを設定
 
