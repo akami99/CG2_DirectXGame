@@ -66,13 +66,30 @@ void WindowWrapper::Initialize() {
 	// ウィンドウを表示する
 	ShowWindow(hwnd_, SW_SHOW);
 }
-// 更新
-void WindowWrapper::Update() {
-}
 
 // 終了
 void WindowWrapper::Finalize() {
 	// ウィンドウ破棄
 	CloseWindow(hwnd_);
 	CoUninitialize();
+}
+
+// メッセージ処理
+bool WindowWrapper::ProcessMessage() {
+	// メッセージがあるかどうかをチェックする
+	MSG msg{};
+
+	// メッセージがある場合は取り出して処理する
+	if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+		// 閉じるボタンが押されたら終了
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+
+	// 終了メッセージが来ていたらtrueを返す
+	if (msg.message == WM_QUIT) {
+		return true;
+	}
+
+	return false;
 }
