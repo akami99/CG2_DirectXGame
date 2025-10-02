@@ -149,6 +149,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </ClCompile>
     <ClCompile Include="MatrixGenerators.cpp" />
     <ClCompile Include="Sound.cpp" />
+    <ClCompile Include="WindowWrapper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Object3d.PS.hlsl">
@@ -182,6 +183,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="MatrixGenerators.h" />
     <ClInclude Include="Sound.h" />
     <ClInclude Include="EngineMath.h" />
+    <ClInclude Include="WindowWrapper.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="externals\imgui\LICENSE.txt" />

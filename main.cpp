@@ -1,4 +1,4 @@
-#include <Windows.h>
+//#include <Windows.h>
 #include <cstdint>
 #include <string>
 #include <format>
@@ -17,11 +17,12 @@
 #include <DirectXMath.h>
 #include <iostream>
 #include <sstream>
-#include <wrl.h>
-#include "ApplicationConfig.h"
+//#include <wrl.h>
 #include "EngineMath.h"
 #include "EngineMathFunctions.h"
 #include "MatrixGenerators.h"
+#include "ApplicationConfig.h"
+#include "WindowWrapper.h"
 #include "AudioManager.h"
 #include "Input.h"
 #include "DebugCamera.h"
@@ -34,7 +35,7 @@
 #include "externals/imgui/imgui_impl_win32.h"
 
 
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+//extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 
 #pragma comment(lib, "d3d12.lib") // .lidはヘッダに書いてはいけない
@@ -144,29 +145,6 @@ static LONG WINAPI ExportDump(EXCEPTION_POINTERS* exception) {
 	return EXCEPTION_EXECUTE_HANDLER;
 }
 
-// ウィンドウサイズを表す構造体にクライアント領域を入れる
-RECT wrc = { 0, 0, kClientWidth, kClientHeight };
-
-
-// ウィンドウプロシージャ
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg,
-	WPARAM wparam, LPARAM lparam) {
-	if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam)) {
-		return true;
-	}
-
-	// メッセージに応じてゲーム固有の処理を行う
-	switch (msg) {
-		// ウィンドウが破棄された
-	case WM_DESTROY:
-		// OSに対して、アプリの終了を伝える
-		PostQuitMessage(0);
-		return 0;
-	}
-
-	// 標準のメッセージ処理を行う
-	return DefWindowProc(hwnd, msg, wparam, lparam);
-}
 
 
 // Shaderをコンパイルする関数
@@ -532,38 +510,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	std::ofstream logStream(logFilePath);
 
 	// 1. WindowsAPIの初期化
-	WNDCLASS wc{};
-	// ウィンドウプロシージャ
-	wc.lpfnWndProc = WindowProc;
-	// ウィンドウクラス名(なんでも良い)
-	wc.lpszClassName = L"CG2WindowClass";
-	// インスタンスハンドル
-	wc.hInstance = GetModuleHandle(nullptr);
-	// カーソル
-	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
 
-	// ウィンドウクラスを登録する
-	RegisterClass(&wc);
+	// ポインタ
+	WindowWrapper* window = nullptr;
 
-	// クライアント領域を元に実際のサイズにwrcを変更してもらう
-	AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);
-
-	// ウィンドウの生成
-	HWND hwnd = CreateWindow(
-		wc.lpszClassName,        // 利用するクラス名
-		L"CG2",                  // タイトルバーの文字（なんでも良い）
-		WS_OVERLAPPEDWINDOW,     // よく見るウィンドウスタイル
-		CW_USEDEFAULT,           // 表示X座標（Windowsに任せる）
-		CW_USEDEFAULT,           // 表示Y座標（WindowsOSに任せる）
-		wrc.right - wrc.left,    // ウィンドウ横幅
-		wrc.bottom - wrc.top,    // ウィンドウ縦幅
-		nullptr,                 // 親ウィンドウハンドル
-		nullptr,                 // メニューハンドル
-		wc.hInstance,            // インスタンスハンドル
-		nullptr);                // オプション
-
-	// ウィンドウを表示する
-	ShowWindow(hwnd, SW_SHOW);
+	// WindowWrapperの生成と初期化
+	window = new WindowWrapper();
+	window->Initialize();
 
 	// 2. DirectXの初期化
 #ifdef _DEBUG
@@ -1544,12 +1497,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// 解放処理
 	CloseHandle(fenceEvent);
-	CloseWindow(hwnd);
 
 	if (input) {
 		delete input;
 		input = nullptr;
 	}
+
+	// WindowsAPI解放
+	delete window;
 
 
 	// ImGuiの終了処理。詳細はさして重要ではないので開設は省略する。
