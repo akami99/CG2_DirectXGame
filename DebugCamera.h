@@ -1,7 +1,7 @@
 #pragma once
 #include "EngineMath.h"
 #include "MatrixGenerators.h"
-#include "KeyboardManager.h"
+#include "input.h"
 
 /// <summary>
 /// デバッグカメラ
@@ -41,7 +41,7 @@ public:
 	/// <summary>
 	/// 更新
 	/// </summary>
-	void Update(KeyboardManager& keyboardManager);
+	void Update(Input& input);
 
 	// getter
 	const Matrix4x4& GetViewMatrix() const {

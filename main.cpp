@@ -879,8 +879,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	assert(SUCCEEDED(hr));
 
 	// DirectInputの初期化
-	Input* p_keyboardManager = new Input();
-	p_keyboardManager->Initialize(wc.hInstance, hwnd);
+	Input* input = new Input();
+	input->Initialize(wc.hInstance, hwnd);
 
 	// DebugCameraの初期化
 	DebugCamera debugCamera;
@@ -1261,18 +1261,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui::End();
 
 			// ゲームの処理-----------------------------------------------------------------------------------
-			// KeyboardManagerを更新
-			p_keyboardManager->Update();
+			// inputを更新
+			input->Update();
 			
 			// キーボードの入力処理テスト(サウンド再生)
-			if (p_keyboardManager->IsTriggered(DIK_SPACE)) { // スペースキーが押されているか
+			if (input->IsKeyTriggered(DIK_SPACE)) { // スペースキーが押されているか
 				// サウンドの再生
 				audioManager.PlaySound("alarm1");
 			}
-			if (p_keyboardManager->IsKeyDown(DIK_Z)) { // Aキーが押されている間は左に回転
+			if (input->IsKeyDown(DIK_Z)) { // Zキーが押されている間は左に回転
 				transform.rotate.y -= 0.02f; 
 			}
-			if (p_keyboardManager->IsReleased(DIK_X)) { // Rキーが離されたら回転をリセット
+			if (input->IsKeyDown(DIK_C)) { // Cキーが押されている間は右に回転
+				transform.rotate.y += 0.02f;
+			}
+			if (input->IsKeyReleased(DIK_X)) { // Rキーが離されたら回転をリセット
 				transform.rotate.y = 0.0f; 
 			}
 			audioManager.CleanupFinishedVoices(); // 完了した音声のクリーンアップ
@@ -1280,7 +1283,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			//transform.rotate.y += 0.01f;
 
 			// カメラの更新
-			debugCamera.Update(*p_keyboardManager);
+			debugCamera.Update(*input);
 			currentViewMatrix = debugCamera.GetViewMatrix();
 
 			// 三角形
@@ -1436,9 +1439,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	CloseHandle(fenceEvent);
 	CloseWindow(hwnd);
 
-	if (p_keyboardManager) {
-		delete p_keyboardManager;
-		p_keyboardManager = nullptr;
+	if (input) {
+		delete input;
+		input = nullptr;
 	}
 
 

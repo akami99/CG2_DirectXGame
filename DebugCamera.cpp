@@ -29,9 +29,9 @@ void DebugCamera::Initialize() {
 	orbitDistance_ = 50.0f; // オービット距離の初期値
 }
 
-void DebugCamera::Update(KeyboardManager& keyboardManager) {
+void DebugCamera::Update(Input& input) {
 	// TABキー入力でモードを切り替える
-	if (keyboardManager.IsTriggered(DIK_TAB)) {
+	if (input.IsKeyTriggered(DIK_TAB)) {
 		isOrbitMode_ = !isOrbitMode_;
 		// モード切り替え時にカメラの状態をリセットまたは調整することもできるが、
 		// まずはシンプルな切り替えから
@@ -70,14 +70,14 @@ void DebugCamera::Update(KeyboardManager& keyboardManager) {
 		
 		// ピボット回転モード用の回転差分計算
 		Vector3 deltaRotationEuler = { 0.0f, 0.0f, 0.0f };
-		if (keyboardManager.IsKeyDown(DIK_W) && keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		if (input.IsKeyDown(DIK_W) && input.IsKeyDown(DIK_LSHIFT)) {
 			deltaRotationEuler.x += rotateSpeed; // ピボット回転：Wで上方向に移動 (ピッチ角度増加)
-		} else if (keyboardManager.IsKeyDown(DIK_S) && keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		} else if (input.IsKeyDown(DIK_S) && input.IsKeyDown(DIK_LSHIFT)) {
 			deltaRotationEuler.x -= rotateSpeed; // ピボット回転：Sで下方向に移動 (ピッチ角度減少)
 		}
-		if (keyboardManager.IsKeyDown(DIK_A) && keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		if (input.IsKeyDown(DIK_A) && input.IsKeyDown(DIK_LSHIFT)) {
 			deltaRotationEuler.y += rotateSpeed; // ピボット回転：Aで左方向に移動 (ヨー角度増加)
-		} else if (keyboardManager.IsKeyDown(DIK_D) && keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		} else if (input.IsKeyDown(DIK_D) && input.IsKeyDown(DIK_LSHIFT)) {
 			deltaRotationEuler.y -= rotateSpeed; // ピボット回転：Dで右方向に移動 (ヨー角度減少)
 		}
 
@@ -141,19 +141,19 @@ void DebugCamera::Update(KeyboardManager& keyboardManager) {
 		Vector3 localMove = { 0.0f, 0.0f, 0.0f }; // ローカル移動ベクトルを初期化
 
 		// キーボード入力に応じてローカル移動ベクトルを設定
-		if (keyboardManager.IsKeyDown(DIK_W) && !keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		if (input.IsKeyDown(DIK_W) && !input.IsKeyDown(DIK_LSHIFT)) {
 			localMove.z += moveSpeed; // 前方へ移動 (カメラのローカルZ軸方向)
-		} else if (keyboardManager.IsKeyDown(DIK_S) && !keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		} else if (input.IsKeyDown(DIK_S) && !input.IsKeyDown(DIK_LSHIFT)) {
 			localMove.z -= moveSpeed; // 後方へ移動 (カメラのローカルZ軸方向)
 		}
-		if (keyboardManager.IsKeyDown(DIK_A) && !keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		if (input.IsKeyDown(DIK_A) && !input.IsKeyDown(DIK_LSHIFT)) {
 			localMove.x -= moveSpeed; // 左へ移動 (カメラのローカルX軸方向)
-		} else if (keyboardManager.IsKeyDown(DIK_D) && !keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		} else if (input.IsKeyDown(DIK_D) && !input.IsKeyDown(DIK_LSHIFT)) {
 			localMove.x += moveSpeed; // 右へ移動 (カメラのローカルX軸方向)
 		}
-		if (keyboardManager.IsKeyDown(DIK_R)) {
+		if (input.IsKeyDown(DIK_R)) {
 			localMove.y += moveSpeed; // 上へ移動 (カメラのローカルY軸方向)
-		} else if (keyboardManager.IsKeyDown(DIK_F)) {
+		} else if (input.IsKeyDown(DIK_F)) {
 			localMove.y -= moveSpeed; // 下へ移動 (カメラのローカルY軸方向)
 		}
 
@@ -176,14 +176,14 @@ void DebugCamera::Update(KeyboardManager& keyboardManager) {
 
 		// 一人称視点モード用の回転差分計算
 		Vector3 deltaRotationEuler = { 0.0f, 0.0f, 0.0f };
-		if (keyboardManager.IsKeyDown(DIK_W) && keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		if (input.IsKeyDown(DIK_W) && input.IsKeyDown(DIK_LSHIFT)) {
 			deltaRotationEuler.x -= rotateSpeed; // 一人称視点：Wで下を向く (ピッチ角度減少)
-		} else if (keyboardManager.IsKeyDown(DIK_S) && keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		} else if (input.IsKeyDown(DIK_S) && input.IsKeyDown(DIK_LSHIFT)) {
 			deltaRotationEuler.x += rotateSpeed; // 一人称視点：Sで上を向く (ピッチ角度増加)
 		}
-		if (keyboardManager.IsKeyDown(DIK_A) && keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		if (input.IsKeyDown(DIK_A) && input.IsKeyDown(DIK_LSHIFT)) {
 			deltaRotationEuler.y -= rotateSpeed; // 一人称視点：Aで右を向く (ヨー角度減少)
-		} else if (keyboardManager.IsKeyDown(DIK_D) && keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		} else if (input.IsKeyDown(DIK_D) && input.IsKeyDown(DIK_LSHIFT)) {
 			deltaRotationEuler.y += rotateSpeed; // 一人称視点：Dで左を向く (ヨー角度増加)
 		}
 
@@ -203,23 +203,23 @@ void DebugCamera::Update(KeyboardManager& keyboardManager) {
 		Vector3 localMove = { 0.0f, 0.0f, 0.0f };
 
 		// 前後移動
-		if (keyboardManager.IsKeyDown(DIK_W) && !keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		if (input.IsKeyDown(DIK_W) && !input.IsKeyDown(DIK_LSHIFT)) {
 			localMove.z += moveSpeed; // 前方へ移動
-		} else if (keyboardManager.IsKeyDown(DIK_S) && !keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		} else if (input.IsKeyDown(DIK_S) && !input.IsKeyDown(DIK_LSHIFT)) {
 			localMove.z -= moveSpeed; // 後方へ移動
 		}
 
 		// 左右移動
-		if (keyboardManager.IsKeyDown(DIK_A) && !keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		if (input.IsKeyDown(DIK_A) && !input.IsKeyDown(DIK_LSHIFT)) {
 			localMove.x -= moveSpeed; // 左へ移動
-		} else if (keyboardManager.IsKeyDown(DIK_D) && !keyboardManager.IsKeyDown(DIK_LSHIFT)) {
+		} else if (input.IsKeyDown(DIK_D) && !input.IsKeyDown(DIK_LSHIFT)) {
 			localMove.x += moveSpeed; // 右へ移動
 		}
 
 		// 上下移動
-		if (keyboardManager.IsKeyDown(DIK_R)) {
+		if (input.IsKeyDown(DIK_R)) {
 			localMove.y += moveSpeed; // 上へ移動
-		} else if (keyboardManager.IsKeyDown(DIK_F)) {
+		} else if (input.IsKeyDown(DIK_F)) {
 			localMove.y -= moveSpeed; // 下へ移動
 		}
 

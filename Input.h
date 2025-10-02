@@ -11,39 +11,47 @@ using namespace Microsoft::WRL; // ComPtrを使うために必要
 class Input {
 public:
 	// namespace省略のためにComPtrをusing宣言
-	template <class T > using ComPtr = Microsoft::WRL::ComPtr<T>;
+	template <class T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 private:
-    //IDirectInput8* m_pDirectInput;     // DirectInputオブジェクト
-    ComPtr<IDirectInputDevice8> keyboard_;        // DirectInputキーボードデバイス
-    BYTE                m_currentKeyState[256]; // 現在のキー状態
-    BYTE                m_previousKeyState[256]; // 前回のキー状態
-    HWND                m_hWnd;             // ウィンドウハンドル
+	ComPtr<IDirectInput8> directInput_;    // DirectInputオブジェクト
+	ComPtr<IDirectInputDevice8> keyboard_; // DirectInputキーボードデバイス
+	BYTE key_[256];                        // 現在のキー状態
+	BYTE preKey_[256];                     // 前回のキー状態
 
 public:
-    // 初期化
-    // ウィンドウハンドルとHINSTANCEを引数として受け取る
-    void Initialize(HINSTANCE hInstance, HWND hWnd);
+	// 初期化
+	// ウィンドウハンドルとHINSTANCEを引数として受け取る
+	void Initialize(HINSTANCE hInstance, HWND hWnd);
 
-    // デストラクタ
-    // DirectInputオブジェクトとキーボードデバイスを解放する
-    ~Input();
+	// デストラクタ
+	// デバイスの取得を解除
+	~Input();
 
-    // キーボードの状態を更新するメソッド (毎フレーム呼び出す)
-    void Update();
+	// キーボードの状態を更新するメソッド (毎フレーム呼び出す)
+	void Update();
 
-    // 指定されたキーが押されているか (押しっぱなしも含む)
-    bool IsKeyDown(int dikCode) const {
-        return (m_currentKeyState[dikCode] & 0x80) ? true : false;
-    }
+	/// <summary>
+	/// キーの押下をチェック
+	/// </summary>
+	/// <param name="keyNumber">キー番号</param>
+	/// <returns>押されているか (押しっぱなしも含む)</returns>
+	bool IsKeyDown(BYTE keyNumber);
 
-    // 指定されたキーが押された瞬間か (トリガー)
-    bool IsTriggered(int dikCode) const {
-        return (!(m_previousKeyState[dikCode] & 0x80) && (m_currentKeyState[dikCode] & 0x80));
-    }
+	// 指定されたキーが押された瞬間か (トリガー)
 
-    // 指定されたキーが離された瞬間か
-    bool IsReleased(int dikCode) const {
-        return ((m_previousKeyState[dikCode] & 0x80) && !(m_currentKeyState[dikCode] & 0x80));
-    }
+	/// <summary>
+	/// キーのトリガーをチェック
+	/// </summary>
+	/// <param name="keyNumber">キー番号</param>
+	/// <returns>トリガーか</returns>
+	bool IsKeyTriggered(BYTE keyNumber);
+
+	// 指定されたキーが離された瞬間か
+	/// <summary>
+	/// キーが離された瞬間かをチェック
+	/// </summary>
+	/// <param name="keyNumber">キー番号</param>
+	/// <returns>離された瞬間か</returns>
+	bool IsKeyReleased(BYTE keyNumber);
 };
