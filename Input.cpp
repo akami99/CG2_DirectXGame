@@ -55,7 +55,7 @@ Input::~Input() {
 	}
 }
 
-// キーボードの状態を更新するメソッド (毎フレーム呼び出す)
+// キーボードの状態を更新する関数 (毎フレーム呼び出す)
 void Input::Update() {
 	// 前回の状態を現在の状態として保存
 	memcpy(m_previousKeyState, m_currentKeyState, sizeof(m_previousKeyState));
