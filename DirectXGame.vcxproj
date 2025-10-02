@@ -134,6 +134,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   <ItemGroup>
     <ClCompile Include="AudioManeger.cpp" />
     <ClCompile Include="DebugCamera.cpp" />
+    <ClCompile Include="DirectXBase.cpp" />
     <ClCompile Include="EngineMathFunctions.cpp" />
     <ClCompile Include="externals\imgui\imgui.cpp" />
     <ClCompile Include="externals\imgui\imgui_demo.cpp" />
@@ -170,6 +171,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationConfig.h" />
     <ClInclude Include="AudioManager.h" />
     <ClInclude Include="DebugCamera.h" />
+    <ClInclude Include="DirectXBase.h" />
     <ClInclude Include="EngineMathFunctions.h" />
     <ClInclude Include="externals\imgui\imconfig.h" />
     <ClInclude Include="externals\imgui\imgui.h" />
