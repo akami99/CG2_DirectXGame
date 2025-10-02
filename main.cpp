@@ -1,5 +1,3 @@
-#define DIRECTIONINPUT_VERSION      0x0800 // 方向入力のバージョンを定義。0x0800は8.0.0を表す
-
 #include <Windows.h>
 #include <cstdint>
 #include <string>
@@ -20,13 +18,12 @@
 #include <iostream>
 #include <sstream>
 #include <wrl.h>
-#include <dinput.h>
 #include "ApplicationConfig.h"
 #include "EngineMath.h"
 #include "EngineMathFunctions.h"
 #include "MatrixGenerators.h"
 #include "AudioManager.h"
-#include "KeyboardManager.h"
+#include "Input.h"
 #include "DebugCamera.h"
 
 #include "externals/DirectXTex/DirectXTex.h"
@@ -46,8 +43,6 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "dxcompiler.lib")
 #pragma comment(lib, "DirectXTex.lib")
-#pragma comment(lib, "dinput8.lib") // DirectInputのライブラリ
-#pragma comment(lib, "dxguid.lib") // DirectInputのGUIDを使うためのライブラリ
 
 struct VertexData {
 	Vector4 position;
@@ -884,7 +879,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	assert(SUCCEEDED(hr));
 
 	// DirectInputの初期化
-	KeyboardManager* p_keyboardManager = new KeyboardManager(hwnd, wc.hInstance);
+	Input* p_keyboardManager = new Input();
+	p_keyboardManager->Initialize(wc.hInstance, hwnd);
 
 	// DebugCameraの初期化
 	DebugCamera debugCamera;
