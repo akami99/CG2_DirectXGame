@@ -10,11 +10,11 @@ public: // 定数
 
 private: // メンバ変数
 	// ウィンドウハンドル
-	HWND hwnd = nullptr;
+	HWND hwnd_ = nullptr;
 	// ウィンドウクラスの設定
-	WNDCLASS wc{};
+	WNDCLASS wc_{};
 
-public: // 静的メンバ変数
+public: // 静的メンバ関数
 	static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
 public: // メンバ関数
@@ -22,14 +22,16 @@ public: // メンバ関数
 	void Initialize();
 	// 更新
 	void Update();
+	// 終了
+	void Finalize();
 
 	// hwndのgetter
 	HWND GetHwnd() const {
-		return hwnd;
+		return hwnd_;
 	}
 	// hinstanceのgetter
 	HINSTANCE GetHinstance() const {
-		return wc.hInstance;
+		return wc_.hInstance;
 	}
 
 };

@@ -5,6 +5,8 @@
 #include <Windows.h> // HWNDのために必要
 #include <wrl.h>   // Microsoft::WRL::ComPtrのために必要
 
+#include "WindowWrapper.h" // WindowWrapperのヘッダーファイル
+
 using namespace Microsoft::WRL; // ComPtrを使うために必要
 
 // キーボード入力を管理するクラス
@@ -13,16 +15,19 @@ public:
 	// namespace省略のためにComPtrをusing宣言
 	template <class T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 
-private:
+private: // メンバ変数
 	ComPtr<IDirectInput8> directInput_;    // DirectInputオブジェクト
 	ComPtr<IDirectInputDevice8> keyboard_; // DirectInputキーボードデバイス
 	BYTE key_[256];                        // 現在のキー状態
 	BYTE preKey_[256];                     // 前回のキー状態
 
-public:
+	// WindowsAPI
+	WindowWrapper* window_ = nullptr;
+
+public: // メンバ関数
 	// 初期化
 	// ウィンドウハンドルとHINSTANCEを引数として受け取る
-	void Initialize(HINSTANCE hInstance, HWND hWnd);
+	void Initialize(WindowWrapper* window);
 
 	// デストラクタ
 	// デバイスの取得を解除

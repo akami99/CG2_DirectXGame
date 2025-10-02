@@ -929,7 +929,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// DirectInputの初期化
 	Input* input = new Input();
-	input->Initialize(window->GetHinstance(), window->GetHwnd());
+	input->Initialize(window);
 
 	// DebugCameraの初期化
 	DebugCamera debugCamera;
@@ -1502,19 +1502,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		input = nullptr;
 	}
 
-	// WindowsAPI解放
-	delete window;
-
-
 	// ImGuiの終了処理。詳細はさして重要ではないので開設は省略する。
 	// こういうもんである。初期化と逆順に行う
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
 
+	// WindowsAPIの終了処理
+	window->Finalize();
 
-	// COMの終了処理
-	CoUninitialize();
+	// WindowsAPI解放
+	delete window;
+	window = nullptr;
 
 	return 0;
 }

@@ -7,15 +7,18 @@
 
 // 初期化
 // ウィンドウハンドルとHINSTANCEを引数として受け取る
-void Input::Initialize(HINSTANCE hInstance, HWND hWnd) {
+void Input::Initialize(WindowWrapper* window) {
 	ZeroMemory(key_, sizeof(key_));
 	ZeroMemory(preKey_, sizeof(preKey_));
 
+	// 借りてきたウィンドウの情報をメンバ変数にセット
+	window_ = window;
+	
 	// DirectInputの初期化
 	HRESULT result;
 
 	result = DirectInput8Create(
-		hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8,
+		window->GetHinstance(), DIRECTINPUT_VERSION, IID_IDirectInput8,
 		(void**)&directInput_, nullptr);
 	assert(SUCCEEDED(result));
 
@@ -29,7 +32,7 @@ void Input::Initialize(HINSTANCE hInstance, HWND hWnd) {
 
 	// 排他制御のレベルのセット
 	result = keyboard_->SetCooperativeLevel(
-		hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
+		window->GetHwnd(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
 	assert(SUCCEEDED(result));
 
 	// デバイスの取得開始 (Acquire)
