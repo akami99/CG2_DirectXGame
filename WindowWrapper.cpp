@@ -69,5 +69,4 @@ void WindowWrapper::Initialize() {
 }
 // 更新
 void WindowWrapper::Update() {
-
 }
