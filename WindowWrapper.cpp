@@ -31,7 +31,6 @@ LRESULT CALLBACK WindowWrapper::WindowProc(HWND hwnd, UINT msg,
 void WindowWrapper::Initialize() {
 	HRESULT hr = CoInitializeEx(0, COINIT_MULTITHREADED);
 
-	WNDCLASS wc{};
 	// ウィンドウプロシージャ
 	wc.lpfnWndProc = WindowProc;
 	// ウィンドウクラス名
@@ -51,7 +50,7 @@ void WindowWrapper::Initialize() {
 	AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);
 
 	// ウィンドウの生成
-	HWND hwnd = CreateWindow(
+	hwnd = CreateWindow(
 		wc.lpszClassName,        // 利用するクラス名
 		L"CG2",                  // タイトルバーの文字（なんでも良い）
 		WS_OVERLAPPEDWINDOW,     // よく見るウィンドウスタイル
