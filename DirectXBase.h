@@ -80,6 +80,10 @@ public: // メンバ関数
 
 	// 初期化
 	void Initialize(WindowWrapper* window);
+	// 描画前処理
+	void PreDraw();
+	// 描画後処理
+	void PostDraw();
 
 #pragma region ゲッター
 
