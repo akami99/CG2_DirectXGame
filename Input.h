@@ -18,8 +18,8 @@ public:
 private: // メンバ変数
 	ComPtr<IDirectInput8> directInput_;    // DirectInputオブジェクト
 	ComPtr<IDirectInputDevice8> keyboard_; // DirectInputキーボードデバイス
-	BYTE key_[256];                        // 現在のキー状態
-	BYTE preKey_[256];                     // 前回のキー状態
+	BYTE key_[256] = {};                        // 現在のキー状態
+	BYTE preKey_[256] = {};                     // 前回のキー状態
 
 	// WindowsAPI
 	WindowWrapper* window_ = nullptr;

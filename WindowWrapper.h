@@ -3,8 +3,8 @@
 
 // WindowsAPI
 class WindowWrapper {
-public: // 定数
-	// クライアント領域のサイズ
+public: // 静的定数
+	// クライアント領域のサイズ(速度が最速だが、変更機能を追加したい場合はゲッタにする)
 	static const int32_t kClientWidth = 1280;
 	static const int32_t kClientHeight = 720;
 
