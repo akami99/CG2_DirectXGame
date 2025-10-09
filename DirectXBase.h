@@ -5,6 +5,7 @@
 #include <dxcapi.h>
 #include <wrl.h>
 #include <array>
+#include <chrono>
 
 #include "WindowWrapper.h"
 
@@ -140,7 +141,7 @@ public: // メンバ関数
 
 private: // メンバ関数
 #pragma region privateメンバ関数
-
+	
 	// デバイスの初期化
 	void InitializeDevice();
 	// コマンド関連の初期化
@@ -166,9 +167,20 @@ private: // メンバ関数
 	// ImGuiの初期化
 	void InitializeImGui();
 
+#pragma region 60FPS固定用
+
+	// FPS固定初期化
+	void InitializeFixFPS();
+	// FPS固定更新(待機処理のVSync待ちの直後に行う)
+	void UpdateFixFPS();
+	// 記録時間
+	std::chrono::steady_clock::time_point reference_;
+
+#pragma endregion 60FPS固定用
+
 #pragma endregion privateメンバ関数
 
-public: // publicヘルパー関数
+public: // ヘルパー関数
 #pragma region publicヘルパー関数
 
 	// コマンドリストの実行と待機

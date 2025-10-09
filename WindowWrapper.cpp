@@ -4,6 +4,8 @@
 
 #include "externals/imgui/imgui.h"
 
+#pragma comment(lib, "winmm.lib")
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // ウィンドウプロシージャ
@@ -29,6 +31,9 @@ LRESULT CALLBACK WindowWrapper::WindowProc(HWND hwnd, UINT msg,
 
 // 初期化
 void WindowWrapper::Initialize() {
+	// システムタイマーの分解能を上げる
+	timeBeginPeriod(1);
+
 	HRESULT hr = CoInitializeEx(0, COINIT_MULTITHREADED);
 
 	// ウィンドウプロシージャ

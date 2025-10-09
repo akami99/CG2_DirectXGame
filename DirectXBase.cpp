@@ -1,5 +1,6 @@
 #include <cassert>
 #include <format>
+#include <thread>
 
 #include "DirectXBase.h"
 #include "Logger.h"
@@ -22,6 +23,9 @@ using namespace StringUtility;
 
 // 初期化
 void DirectXBase::Initialize(WindowWrapper* window) {
+	// FPS固定初期化
+	InitializeFixFPS();
+
 	// NULLポインタチェック
 	assert(window);
 
@@ -154,6 +158,9 @@ void DirectXBase::PostDraw() {
 
 	// コマンドリストの実行と完了まで待つ
 	ExecuteInitialCommandAndSync();
+
+	// FPS固定用の更新
+	UpdateFixFPS();
 
 	// GPUとOSに画面の交換を行うよう通知する
 	swapChain_->Present(1, 0);
@@ -543,6 +550,39 @@ void DirectXBase::InitializeImGui() {
 	// フォントを設定する場合はここに追加
 }
 
+#pragma region 60FPS固定用
+
+void DirectXBase::InitializeFixFPS() {
+	// 現在時刻を記録する
+	reference_ = std::chrono::steady_clock::now();
+}
+
+void DirectXBase::UpdateFixFPS() {
+	// 1/60秒の時間
+	const std::chrono::microseconds kMinTime(uint64_t(1000000.0f / 60.0f));
+
+	// 1/60秒よりわずかに短い時間
+	const std::chrono::microseconds kMinCheckTime(uint64_t(1000000.0f / 65.0f));
+
+	// 現在時刻を取得する
+	std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+	// 前回記録からの経過時間を取得する
+	std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - reference_);
+
+	// 1/60秒(より短い時間)たっていない場合
+	if (elapsed < kMinCheckTime) {
+		// 1/60秒経過するまで微小なスリープを繰り返す
+		while (std::chrono::steady_clock::now() - reference_ < kMinTime) {
+			// 1マイクロ秒スリープ
+			std::this_thread::sleep_for(std::chrono::microseconds(1));
+		}
+	}
+	// 現在の時間を記録する
+	reference_ = std::chrono::steady_clock::now();
+}
+
+#pragma endregion 60FPS固定用
+
 #pragma endregion privateメンバ関数
 
 #pragma region publicヘルパー関数
@@ -580,8 +620,6 @@ void DirectXBase::ExecuteInitialCommandAndSync() {
 	// 次のフレーム用のコマンドリストを準備
 	hr = commandAllocator_->Reset();
 	assert(SUCCEEDED(hr));
-	//hr = commandList_->Reset(commandAllocator_.Get(), nullptr);
-	//assert(SUCCEEDED(hr));
 
 	// 中間リソースの解放
 	intermediateResources_.clear();
