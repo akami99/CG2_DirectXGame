@@ -87,8 +87,8 @@ static LONG WINAPI ExportDump(EXCEPTION_POINTERS* exception) {
 	SYSTEMTIME time;
 	GetLocalTime(&time);
 	wchar_t filePath[MAX_PATH] = { 0 };
-	CreateDirectory(L"./Dumps", nullptr);
-	StringCchPrintfW(filePath, MAX_PATH, L"./Dumps/%04d-%02d%02d-%02d%02d%02d.dmp", time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond);
+	CreateDirectory(L"./../generated/dumps", nullptr);
+	StringCchPrintfW(filePath, MAX_PATH, L"./../generated/dumps/%04d-%02d%02d-%02d%02d%02d.dmp", time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond);
 	HANDLE dumpFileHandle = CreateFile(filePath, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ, 0, CREATE_ALWAYS, 0, 0);
 	// processId（このexeのID）とクラッシュ（例外）の発生したthreadIdを取得
 	DWORD processId = GetCurrentProcessId();
@@ -221,7 +221,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	D3DResourceLeakChecker leakCheck; // リソースリークチェック用のオブジェクト
 
 	// ログのディレクトリを用意
-	std::filesystem::create_directory("logs");
+	std::filesystem::create_directory("../generated/logs");
 
 	// 現在時刻を取得（UTC時刻）
 	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
@@ -233,7 +233,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// formatを使って年月日_時分秒の文字列に変換
 	std::string dateString = std::format("{:%Y%m%d_%H%M%S}", localTime);
 	// 時刻を使ってファイル名を決定
-	std::string logFilePath = std::string("logs/") + dateString + ".log";
+	std::string logFilePath = std::string("../generated/logs/") + dateString + ".log";
 	// ファイルを作って書き込み準備
 	std::ofstream logStream(logFilePath);
 
