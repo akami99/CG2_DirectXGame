@@ -1,0 +1,25 @@
+﻿  AudioManeger.cpp
+  D3DResourceLeakChecker.cpp
+  DebugCamera.cpp
+  DX12Context.cpp
+  MathUtils.cpp
+  imgui.cpp
+  imgui_demo.cpp
+  imgui_draw.cpp
+  imgui_impl_dx12.cpp
+  imgui_impl_win32.cpp
+  imgui_tables.cpp
+  imgui_widgets.cpp
+  Input.cpp
+  Logger.cpp
+  main.cpp
+  MatrixGenerators.cpp
+  Sound.cpp
+  StringUtility.cpp
+  Win32Window.cpp
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\dinput.h: DIRECTINPUT_VERSION undefined. Defaulting to version 0x0800
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\dinput.h: DIRECTINPUT_VERSION undefined. Defaulting to version 0x0800
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\dinput.h: DIRECTINPUT_VERSION undefined. Defaulting to version 0x0800
+  DirectXGame.vcxproj -> C:\CG2\DirectXGame\x64\Debug\DirectXGame.exe
+          1 個のファイルをコピーしました。
+          1 個のファイルをコピーしました。

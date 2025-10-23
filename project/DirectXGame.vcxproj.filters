@@ -1,0 +1,264 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Externals">
+      <UniqueIdentifier>{5beb0312-ab4f-4cd6-beb3-436eb62bfb57}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Externals\ImGui">
+      <UniqueIdentifier>{68c51fea-3581-4988-9c66-1aa2196113de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine">
+      <UniqueIdentifier>{8aa6d229-9980-4e03-944b-03515f4db89e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Audio">
+      <UniqueIdentifier>{ab4545ec-8266-4233-80e7-efc812028e33}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Core">
+      <UniqueIdentifier>{aa91d116-f662-4775-849e-ee889aae1a67}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Core\Utility">
+      <UniqueIdentifier>{86f1615c-9849-405d-8d67-ff17004244e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Core\Utility\Logger">
+      <UniqueIdentifier>{863d755b-a633-4a8b-8dc9-465e6a9efc41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Core\Utility\Math">
+      <UniqueIdentifier>{fa51bb9a-74c9-4251-9936-e7d28382a1c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Core\Utility\Math\Functions">
+      <UniqueIdentifier>{a828ecf2-8748-44f4-9a64-6bb97aa7d1c0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Core\Utility\Math\Matrix">
+      <UniqueIdentifier>{803db67d-8a78-4b84-812d-ea1c71d8d8e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Core\Utility\String">
+      <UniqueIdentifier>{f166fe36-2aeb-4746-984c-e2158ffebb59}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Graphics">
+      <UniqueIdentifier>{42ce63ff-f147-44e7-a8ce-f78f93345277}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Graphics\API">
+      <UniqueIdentifier>{7afe623f-94db-486a-a8c0-766cf538b6b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Graphics\Camera">
+      <UniqueIdentifier>{cd6e508c-386c-4ecb-b2bd-146f38d57748}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Input">
+      <UniqueIdentifier>{c778b6f1-c877-436b-9040-58e48341a5b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Application">
+      <UniqueIdentifier>{862256ba-c97e-4356-8cd9-70297f400b69}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Application\Core">
+      <UniqueIdentifier>{a18e12fb-5e6d-46e0-8ae5-c6e78cbfed17}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Application\System">
+      <UniqueIdentifier>{d36b1988-ac33-45ec-ad02-2a7effff55fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="リソース ファイル">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="ソース ファイル">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine">
+      <UniqueIdentifier>{d1852d7e-be51-41e4-ae1b-1b534d4103d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Audio">
+      <UniqueIdentifier>{a16c9a7b-f4a4-49d2-911e-88613ef0a393}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Core">
+      <UniqueIdentifier>{944b8650-1849-40b0-8a43-292ef3cfff36}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Core\Utility">
+      <UniqueIdentifier>{eeb9facf-5b91-4827-83e5-f8ec485665da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Core\Utility\Logger">
+      <UniqueIdentifier>{47f6c952-342a-458e-a643-809d89c3f578}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Core\Utility\Math">
+      <UniqueIdentifier>{f9402e19-b3e3-4f97-ade9-42691276dffa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Core\Utility\Math\Functions">
+      <UniqueIdentifier>{dca682b7-575f-428e-ae96-c79236b28a6b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Core\Utility\Math\Matrix">
+      <UniqueIdentifier>{b5808d12-350f-45c1-9d53-37813dcd6ad4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Core\Utility\String">
+      <UniqueIdentifier>{d221ff9f-af80-49bc-ab54-d94c56e194f4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Graphics">
+      <UniqueIdentifier>{944111e9-bea1-4081-93a6-8bc3328b0a8a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Graphics\API">
+      <UniqueIdentifier>{ee29514f-b90d-4949-97c4-1353141bfba5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Graphics\Camera">
+      <UniqueIdentifier>{dbc7dd2b-b62f-4f17-afe8-099093dc53ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Input">
+      <UniqueIdentifier>{b98ed188-303b-4849-9bea-a73f6b7542dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Application">
+      <UniqueIdentifier>{032c7491-c146-46ef-930f-01d6b213e9e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Application\Core">
+      <UniqueIdentifier>{b58d00ca-5c10-482f-95a5-ab64607fcaf0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Application\System">
+      <UniqueIdentifier>{db5f62c9-0937-47f7-8fc4-e9eade8bb373}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="シェーダー ファイル">
+      <UniqueIdentifier>{9039fb23-a221-486c-a912-c5a0eb87b545}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="externals\imgui\imgui.cpp">
+      <Filter>Externals\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="externals\imgui\imgui_demo.cpp">
+      <Filter>Externals\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="externals\imgui\imgui_draw.cpp">
+      <Filter>Externals\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="externals\imgui\imgui_impl_dx12.cpp">
+      <Filter>Externals\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="externals\imgui\imgui_impl_win32.cpp">
+      <Filter>Externals\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="externals\imgui\imgui_tables.cpp">
+      <Filter>Externals\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="externals\imgui\imgui_widgets.cpp">
+      <Filter>Externals\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Audio\AudioManeger.cpp">
+      <Filter>ソース ファイル\Engine\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Audio\Sound.cpp">
+      <Filter>ソース ファイル\Engine\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Core\Utility\Logger\Logger.cpp">
+      <Filter>ソース ファイル\Engine\Core\Utility\Logger</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Core\Utility\Math\Functions\MathUtils.cpp">
+      <Filter>ソース ファイル\Engine\Core\Utility\Math\Functions</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Core\Utility\Math\Matrix\MatrixGenerators.cpp">
+      <Filter>ソース ファイル\Engine\Core\Utility\Math\Matrix</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Core\Utility\String\StringUtility.cpp">
+      <Filter>ソース ファイル\Engine\Core\Utility\String</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\API\D3DResourceLeakChecker.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\API</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\API\DX12Context.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\API</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Camera\DebugCamera.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Input\Input.cpp">
+      <Filter>ソース ファイル\Engine\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Application\System\main.cpp">
+      <Filter>ソース ファイル\Application\System</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Application\System\Win32Window.cpp">
+      <Filter>ソース ファイル\Application\System</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="DirectXGame\Resources\Shaders\Object3d.PS.hlsl">
+      <Filter>シェーダー ファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="DirectXGame\Resources\Shaders\Object3d.VS.hlsl">
+      <Filter>シェーダー ファイル</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="externals\imgui\imconfig.h">
+      <Filter>Externals\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="externals\imgui\imgui.h">
+      <Filter>Externals\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="externals\imgui\imgui_impl_dx12.h">
+      <Filter>Externals\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="externals\imgui\imgui_impl_win32.h">
+      <Filter>Externals\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="externals\imgui\imgui_internal.h">
+      <Filter>Externals\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="externals\imgui\imstb_rectpack.h">
+      <Filter>Externals\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="externals\imgui\imstb_textedit.h">
+      <Filter>Externals\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="externals\imgui\imstb_truetype.h">
+      <Filter>Externals\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Audio\AudioManager.h">
+      <Filter>ヘッダー ファイル\Engine\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Audio\Sound.h">
+      <Filter>ヘッダー ファイル\Engine\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Core\Utility\Logger\Logger.h">
+      <Filter>ヘッダー ファイル\Engine\Core\Utility\Logger</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Core\Utility\Math\Functions\MathUtils.h">
+      <Filter>ヘッダー ファイル\Engine\Core\Utility\Math\Functions</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Core\Utility\Math\Matrix\MatrixGenerators.h">
+      <Filter>ヘッダー ファイル\Engine\Core\Utility\Math\Matrix</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Core\Utility\Math\MathTypes.h">
+      <Filter>ヘッダー ファイル\Engine\Core\Utility\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Core\Utility\String\StringUtility.h">
+      <Filter>ヘッダー ファイル\Engine\Core\Utility\String</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\API\DX12Context.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\API</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Camera\DebugCamera.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Input\Input.h">
+      <Filter>ヘッダー ファイル\Engine\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\API\D3DResourceLeakChecker.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\API</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Application\Core\ApplicationConfig.h">
+      <Filter>ヘッダー ファイル\Application\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Application\System\Win32Window.h">
+      <Filter>ヘッダー ファイル\Application\System</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="externals\imgui\LICENSE.txt">
+      <Filter>Externals\ImGui</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="DirectXGame\Resources\Shaders\Object3d.hlsli">
+      <Filter>シェーダー ファイル</Filter>
+    </None>
+  </ItemGroup>
+</Project>
