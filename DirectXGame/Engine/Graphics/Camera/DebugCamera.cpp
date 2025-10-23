@@ -4,9 +4,9 @@
 #include <cmath>
 #include <numbers>
 
-#include "DebugCamera.h"
-#include "ApplicationConfig.h"
-#include "EngineMathFunctions.h"
+#include "../Camera/DebugCamera.h"
+//#include "ApplicationConfig.h"
+#include "../../Core/Utility/Math/Functions/MathUtils.h"
 #include "externals/imgui/imgui.h"
 #include "externals/imgui/imgui_impl_dx12.h"
 #include "externals/imgui/imgui_impl_win32.h"

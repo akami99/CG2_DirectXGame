@@ -7,12 +7,12 @@
 #include <array>
 #include <chrono>
 
-#include "WindowWrapper.h"
+#include "System/Win32Window.h"
 
 #include "externals/DirectXTex/DirectXTex.h"
 
 // DirectX基盤
-class DirectXBase {
+class DX12Context {
 public: // namespace省略のためのusing宣言
 #pragma region using宣言
 
@@ -25,7 +25,7 @@ private: // メンバ変数
 #pragma region privateメンバ変数
 
 	// WindowsAPI
-	WindowWrapper* window_ = nullptr;
+	Win32Window* window_ = nullptr;
 
 	// DirectX12デバイス
 	ComPtr<ID3D12Device> device_ = nullptr;
@@ -43,7 +43,7 @@ private: // メンバ変数
 	ComPtr<IDXGISwapChain4> swapChain_ = nullptr;
 
 	// 深度バッファ
-	ComPtr<ID3D12Resource> depthStencilResource_ = nullptr;// = CreateDepthStencilTextureResource(device, WindowWrapper::kClientWidth, WindowWrapper::kClientHeight);
+	ComPtr<ID3D12Resource> depthStencilResource_ = nullptr;// = CreateDepthStencilTextureResource(device, Win32Window::kClientWidth, Win32Window::kClientHeight);
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle_ = {};
 
 	// 各種デスクリプタヒープサイズ
@@ -88,7 +88,7 @@ public: // メンバ関数
 #pragma region publicメンバ関数
 
 	// 初期化
-	void Initialize(WindowWrapper* window);
+	void Initialize(Win32Window* window);
 	// 描画前処理
 	void PreDraw();
 	// 描画後処理

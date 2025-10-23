@@ -1,5 +1,5 @@
 #pragma once
-#include "EngineMath.h"
+#include "../MathTypes.h"
 
 
 /// <summary>

@@ -1,4 +1,4 @@
-#include "Sound.h" // Sound.h をインクルード
+#include "../Audio/Sound.h" // Sound.h をインクルード
 #include <fstream>   // ファイル操作のために必要
 #include <cassert>   // assert のために必要
 #include <cstring>   // strncmp のために必要
@@ -46,8 +46,15 @@ bool Sound::LoadWave(const std::string& filePath) {
     // 既存のデータを解放
     Unload();
 
+    std::string fullPath = filePath;
+	// 既にパスに"DirectXGame/Resources/Assets/Sounds/"が含まれている場合は追加しない
+    if (filePath.find("DirectXGame/Resources/Assets/Sounds/") == std::string::npos &&
+        filePath.find("directXGame/resources/assets/sounds/") == std::string::npos) {
+        fullPath = "DirectXGame/Resources/Assets/Sounds/" + filePath;
+    }
+
     std::ifstream file;
-    file.open(filePath, std::ios_base::binary);
+    file.open(fullPath, std::ios_base::binary);
     if (!file.is_open()) {
         assert(0 && "Failed to open WAV file!");
         return false;

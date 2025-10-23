@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef ENGINE_MATH_H
-#define ENGINE_MATH_H
+#ifndef MATH_TYPES_H
+#define MATH_TYPES_H
 
 struct Vector2 {
 	float x;
@@ -97,4 +97,4 @@ struct ConicalPendulum {
 	float angularVelocity;   // 角速度ω
 };
 
-#endif // ENGINE_MATH_H
+#endif // MATH_TYPES_H
