@@ -68,6 +68,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\API;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Input;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -92,6 +93,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\API;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Input;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -118,6 +120,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>Disabled</Optimization>
       <WholeProgramOptimization>false</WholeProgramOptimization>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\API;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Input;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -132,11 +135,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AudioManeger.cpp" />
-    <ClCompile Include="D3DResourceLeakChecker.cpp" />
-    <ClCompile Include="DebugCamera.cpp" />
-    <ClCompile Include="DirectXBase.cpp" />
-    <ClCompile Include="EngineMathFunctions.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Audio\AudioManeger.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Graphics\API\D3DResourceLeakChecker.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Graphics\Camera\DebugCamera.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Graphics\API\DX12Context.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Core\Utility\Math\Functions\MathUtils.cpp" />
     <ClCompile Include="externals\imgui\imgui.cpp" />
     <ClCompile Include="externals\imgui\imgui_demo.cpp" />
     <ClCompile Include="externals\imgui\imgui_draw.cpp" />
@@ -144,19 +147,19 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="externals\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="externals\imgui\imgui_tables.cpp" />
     <ClCompile Include="externals\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="Input.cpp" />
-    <ClCompile Include="Logger.cpp" />
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="DirectXGame\Engine\Input\Input.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Core\Utility\Logger\Logger.cpp" />
+    <ClCompile Include="DirectXGame\Application\System\main.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Development|x64'">MaxSpeed</Optimization>
       <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Development|x64'">true</WholeProgramOptimization>
     </ClCompile>
-    <ClCompile Include="MatrixGenerators.cpp" />
-    <ClCompile Include="Sound.cpp" />
-    <ClCompile Include="StringUtility.cpp" />
-    <ClCompile Include="WindowWrapper.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Core\Utility\Math\Matrix\MatrixGenerators.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Audio\Sound.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Core\Utility\String\StringUtility.cpp" />
+    <ClCompile Include="DirectXGame\Application\System\Win32Window.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Object3d.PS.hlsl">
+    <FxCompile Include="DirectXGame\Resources\Shaders\Object3d.PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Development|x64'">Pixel</ShaderType>
@@ -164,19 +167,19 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Development|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="Object3d.VS.hlsl">
+    <FxCompile Include="DirectXGame\Resources\Shaders\Object3d.VS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Development|x64'">true</ExcludedFromBuild>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ApplicationConfig.h" />
-    <ClInclude Include="AudioManager.h" />
-    <ClInclude Include="D3DResourceLeakChecker.h" />
-    <ClInclude Include="DebugCamera.h" />
-    <ClInclude Include="DirectXBase.h" />
-    <ClInclude Include="EngineMathFunctions.h" />
+    <ClInclude Include="DirectXGame\Application\Core\ApplicationConfig.h" />
+    <ClInclude Include="DirectXGame\Engine\Audio\AudioManager.h" />
+    <ClInclude Include="DirectXGame\Engine\Graphics\API\D3DResourceLeakChecker.h" />
+    <ClInclude Include="DirectXGame\Engine\Graphics\Camera\DebugCamera.h" />
+    <ClInclude Include="DirectXGame\Engine\Graphics\API\DX12Context.h" />
+    <ClInclude Include="DirectXGame\Engine\Core\Utility\Math\Functions\MathUtils.h" />
     <ClInclude Include="externals\imgui\imconfig.h" />
     <ClInclude Include="externals\imgui\imgui.h" />
     <ClInclude Include="externals\imgui\imgui_impl_dx12.h" />
@@ -185,13 +188,13 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="externals\imgui\imstb_rectpack.h" />
     <ClInclude Include="externals\imgui\imstb_textedit.h" />
     <ClInclude Include="externals\imgui\imstb_truetype.h" />
-    <ClInclude Include="Input.h" />
-    <ClInclude Include="Logger.h" />
-    <ClInclude Include="MatrixGenerators.h" />
-    <ClInclude Include="Sound.h" />
-    <ClInclude Include="EngineMath.h" />
-    <ClInclude Include="StringUtility.h" />
-    <ClInclude Include="WindowWrapper.h" />
+    <ClInclude Include="DirectXGame\Engine\Input\Input.h" />
+    <ClInclude Include="DirectXGame\Engine\Core\Utility\Logger\Logger.h" />
+    <ClInclude Include="DirectXGame\Engine\Core\Utility\Math\Matrix\MatrixGenerators.h" />
+    <ClInclude Include="DirectXGame\Engine\Audio\Sound.h" />
+    <ClInclude Include="DirectXGame\Engine\Core\Utility\Math\MathTypes.h" />
+    <ClInclude Include="DirectXGame\Engine\Core\Utility\String\StringUtility.h" />
+    <ClInclude Include="DirectXGame\Application\System\Win32Window.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="externals\imgui\LICENSE.txt" />
@@ -202,7 +205,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Object3d.hlsli" />
+    <None Include="DirectXGame\Resources\Shaders\Object3d.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

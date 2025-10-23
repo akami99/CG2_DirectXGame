@@ -5,7 +5,7 @@
 #include <Windows.h> // HWNDのために必要
 #include <wrl.h>   // Microsoft::WRL::ComPtrのために必要
 
-#include "WindowWrapper.h" // WindowWrapperのヘッダーファイル
+#include "../Graphics/API/DX12Context.h" // DX12Contextのヘッダーファイル
 
 using namespace Microsoft::WRL; // ComPtrを使うために必要
 
@@ -22,12 +22,12 @@ private: // メンバ変数
 	BYTE preKey_[256] = {};                     // 前回のキー状態
 
 	// WindowsAPI
-	WindowWrapper* window_ = nullptr;
+	Win32Window* window_ = nullptr;
 
 public: // メンバ関数
 	// 初期化
 	// ウィンドウハンドルとHINSTANCEを引数として受け取る
-	void Initialize(WindowWrapper* window);
+	void Initialize(Win32Window* window);
 
 	// デストラクタ
 	// デバイスの取得を解除

@@ -1,5 +1,5 @@
-#include "MatrixGenerators.h"
-#include "EngineMathFunctions.h"
+#include "../Matrix/MatrixGenerators.h"
+#include "../Functions/MathUtils.h"
 #include <cmath>
 
 

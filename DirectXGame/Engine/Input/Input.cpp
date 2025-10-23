@@ -7,7 +7,7 @@
 
 // 初期化
 // ウィンドウハンドルとHINSTANCEを引数として受け取る
-void Input::Initialize(WindowWrapper* window) {
+void Input::Initialize(Win32Window* window) {
 	ZeroMemory(key_, sizeof(key_));
 	ZeroMemory(preKey_, sizeof(preKey_));
 

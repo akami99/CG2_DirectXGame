@@ -1,6 +1,6 @@
 #include <dxgidebug.h>
 
-#include "StringUtility.h"
+#include "../String/StringUtility.h"
 
 namespace StringUtility {
 	// string->wstring

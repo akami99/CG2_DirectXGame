@@ -21,7 +21,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="DirectXGame\Application\System\main.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="externals\imgui\imgui.cpp">
@@ -45,46 +45,46 @@
     <ClCompile Include="externals\imgui\imgui_widgets.cpp">
       <Filter>Externals\ImGui</Filter>
     </ClCompile>
-    <ClCompile Include="Sound.cpp">
+    <ClCompile Include="DirectXGame\Engine\Audio\Sound.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="AudioManeger.cpp">
+    <ClCompile Include="DirectXGame\Engine\Audio\AudioManeger.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Input.cpp">
+    <ClCompile Include="DirectXGame\Engine\Input\Input.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="DebugCamera.cpp">
+    <ClCompile Include="DirectXGame\Engine\Graphics\Camera\DebugCamera.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="MatrixGenerators.cpp">
+    <ClCompile Include="DirectXGame\Engine\Core\Utility\Math\Matrix\MatrixGenerators.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="EngineMathFunctions.cpp">
+    <ClCompile Include="DirectXGame\Engine\Core\Utility\Math\Functions\MathUtils.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="WindowWrapper.cpp">
+    <ClCompile Include="DirectXGame\Application\System\Win32Window.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="DirectXBase.cpp">
+    <ClCompile Include="DirectXGame\Engine\Graphics\API\DX12Context.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Logger.cpp">
+    <ClCompile Include="DirectXGame\Engine\Core\Utility\Logger\Logger.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="StringUtility.cpp">
+    <ClCompile Include="DirectXGame\Engine\Core\Utility\String\StringUtility.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="D3DResourceLeakChecker.cpp">
+    <ClCompile Include="DirectXGame\Engine\Graphics\API\D3DResourceLeakChecker.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Object3d.VS.hlsl" />
-    <FxCompile Include="Object3d.PS.hlsl" />
+    <FxCompile Include="DirectXGame\Resources\Shaders\Object3d.VS.hlsl" />
+    <FxCompile Include="DirectXGame\Resources\Shaders\Object3d.PS.hlsl" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Sound.h">
+    <ClInclude Include="DirectXGame\Engine\Audio\Sound.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="externals\imgui\imconfig.h">
@@ -111,45 +111,45 @@
     <ClInclude Include="externals\imgui\imstb_truetype.h">
       <Filter>Externals\ImGui</Filter>
     </ClInclude>
-    <ClInclude Include="AudioManager.h">
+    <ClInclude Include="DirectXGame\Engine\Audio\AudioManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Input.h">
+    <ClInclude Include="DirectXGame\Engine\Input\Input.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="DebugCamera.h">
+    <ClInclude Include="DirectXGame\Engine\Graphics\Camera\DebugCamera.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="EngineMath.h">
+    <ClInclude Include="DirectXGame\Engine\Core\Utility\Math\MathTypes.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="MatrixGenerators.h">
+    <ClInclude Include="DirectXGame\Engine\Core\Utility\Math\Matrix\MatrixGenerators.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="EngineMathFunctions.h">
+    <ClInclude Include="DirectXGame\Engine\Core\Utility\Math\Functions\MathUtils.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationConfig.h">
+    <ClInclude Include="DirectXGame\Application\Core\ApplicationConfig.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="WindowWrapper.h">
+    <ClInclude Include="DirectXGame\Application\System\Win32Window.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXBase.h">
+    <ClInclude Include="DirectXGame\Engine\Graphics\API\DX12Context.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Logger.h">
+    <ClInclude Include="DirectXGame\Engine\Core\Utility\Logger\Logger.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="StringUtility.h">
+    <ClInclude Include="DirectXGame\Engine\Core\Utility\String\StringUtility.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="D3DResourceLeakChecker.h">
+    <ClInclude Include="DirectXGame\Engine\Graphics\API\D3DResourceLeakChecker.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Object3d.hlsli" />
+    <None Include="DirectXGame\Resources\Shaders\Object3d.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="externals\imgui\LICENSE.txt">

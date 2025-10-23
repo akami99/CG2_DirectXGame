@@ -1,6 +1,6 @@
 #include <Windows.h>
-#include "WindowWrapper.h"
-#include "ApplicationConfig.h"
+#include "../System/Win32Window.h"
+#include "../Core/ApplicationConfig.h"
 
 #include "externals/imgui/imgui.h"
 
@@ -9,7 +9,7 @@
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // ウィンドウプロシージャ
-LRESULT CALLBACK WindowWrapper::WindowProc(HWND hwnd, UINT msg,
+LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT msg,
 	WPARAM wparam, LPARAM lparam) {
 	if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam)) {
 		return true;
@@ -30,7 +30,7 @@ LRESULT CALLBACK WindowWrapper::WindowProc(HWND hwnd, UINT msg,
 
 
 // 初期化
-void WindowWrapper::Initialize() {
+void Win32Window::Initialize() {
 	// システムタイマーの分解能を上げる
 	timeBeginPeriod(1);
 
@@ -73,14 +73,14 @@ void WindowWrapper::Initialize() {
 }
 
 // 終了
-void WindowWrapper::Finalize() {
+void Win32Window::Finalize() {
 	// ウィンドウ破棄
 	CloseWindow(hwnd_);
 	CoUninitialize();
 }
 
 // メッセージ処理
-bool WindowWrapper::ProcessMessage() {
+bool Win32Window::ProcessMessage() {
 	// メッセージがあるかどうかをチェックする
 	MSG msg{};
 

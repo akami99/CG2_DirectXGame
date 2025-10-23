@@ -1,7 +1,7 @@
 #include <dxgidebug.h>
 #include <iostream>
 
-#include "Logger.h"
+#include "../Logger/Logger.h"
 
 namespace Logger {
 	void Log(const std::string& message) {

@@ -3,7 +3,7 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 
-#include "D3DResourceLeakChecker.h"
+#include "../API/D3DResourceLeakChecker.h"
 
 using namespace Microsoft::WRL;
 

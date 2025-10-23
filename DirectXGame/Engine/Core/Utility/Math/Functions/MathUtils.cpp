@@ -1,4 +1,4 @@
-#include "EngineMathFunctions.h"
+#include "../Functions/MathUtils.h"
 #include <cmath> // sqrtf
 #include <cassert> // assert
 

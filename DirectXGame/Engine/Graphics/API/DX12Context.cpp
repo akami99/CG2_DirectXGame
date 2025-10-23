@@ -1,10 +1,11 @@
 #include <cassert>
 #include <format>
 #include <thread>
+#include <filesystem>
 
-#include "DirectXBase.h"
-#include "Logger.h"
-#include "StringUtility.h"
+#include "../API/DX12Context.h"
+#include "../../Core/Utility/Logger/Logger.h"
+#include "../../Core/Utility/String/StringUtility.h"
 
 #include "externals/imgui/imgui.h"
 #include "externals/imgui/imgui_impl_win32.h"
@@ -22,7 +23,7 @@ using namespace StringUtility;
 #pragma region publicメンバ関数
 
 // 初期化
-void DirectXBase::Initialize(WindowWrapper* window) {
+void DX12Context::Initialize(Win32Window* window) {
 	// FPS固定初期化
 	InitializeFixFPS();
 
@@ -74,13 +75,13 @@ void DirectXBase::Initialize(WindowWrapper* window) {
 	// 最初のコマンドリストを実行して、初期化処理を完了させる
 	//ExecuteInitialCommandAndSync();
 
-	Log("Complete Initialize DirectXBase!!!\n");// 初期化完了のログをだす
+	Log("Complete Initialize DX12Context!!!\n");// 初期化完了のログをだす
 }
 
 #pragma region 描画処理
 
 // 描画開始前処理
-void DirectXBase::PreDraw() {
+void DX12Context::PreDraw() {
 
 	HRESULT hr;
 
@@ -134,7 +135,7 @@ void DirectXBase::PreDraw() {
 }
 
 // 描画終了後処理
-void DirectXBase::PostDraw() {
+void DX12Context::PostDraw() {
 
 	// 実際のcommandListのImGuiの描画コマンドを積む
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList_.Get());
@@ -168,11 +169,17 @@ void DirectXBase::PostDraw() {
 }
 
 // テクスチャリソースの生成とSRVの作成
-D3D12_GPU_DESCRIPTOR_HANDLE DirectXBase::CreateTextureResourceAndSRV(const std::string& filePath, uint32_t srvIndex) {
+D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::CreateTextureResourceAndSRV(const std::string& filePath, uint32_t srvIndex) {
 	
+	std::string fullPath = filePath;
+	// 既にパスに"DirectXGame/Resources/Textures/"が含まれている場合は追加しない
+	if (filePath.find("DDirectXGame/Resources/Textures/") == std::string::npos &&
+		filePath.find("DirectXGame/resources/textures/") == std::string::npos) {
+		fullPath = "DirectXGame/Resources/Textures/" + filePath;
+	}
 
 	// テクスチャを読み込む
-	DirectX::ScratchImage mipImages = LoadTexture(filePath);
+	DirectX::ScratchImage mipImages = LoadTexture(fullPath);
 	const DirectX::TexMetadata& metadata = mipImages.GetMetadata();
 
 	// GPU上にテクスチャリソースを生成
@@ -209,19 +216,19 @@ D3D12_GPU_DESCRIPTOR_HANDLE DirectXBase::CreateTextureResourceAndSRV(const std::
 
 #pragma region ゲッター
 
-D3D12_CPU_DESCRIPTOR_HANDLE DirectXBase::GetRTVCPUDescriptorHandle(uint32_t index) {
+D3D12_CPU_DESCRIPTOR_HANDLE DX12Context::GetRTVCPUDescriptorHandle(uint32_t index) {
 	return GetCPUDescriptorHandle(rtvDescriptorHeap_, descriptorSizeRTV_, index);
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE DirectXBase::GetSRVCPUDescriptorHandle(uint32_t index) {
+D3D12_CPU_DESCRIPTOR_HANDLE DX12Context::GetSRVCPUDescriptorHandle(uint32_t index) {
 	return GetCPUDescriptorHandle(srvDescriptorHeap_, descriptorSizeSRV_, index);
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE DirectXBase::GetSRVGPUDescriptorHandle(uint32_t index) {
+D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::GetSRVGPUDescriptorHandle(uint32_t index) {
 	return GetGPUDescriptorHandle(srvDescriptorHeap_, descriptorSizeSRV_, index);
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE DirectXBase::GetDSVCPUDescriptorHandle(uint32_t index) {
+D3D12_CPU_DESCRIPTOR_HANDLE DX12Context::GetDSVCPUDescriptorHandle(uint32_t index) {
 	return GetCPUDescriptorHandle(dsvDescriptorHeap_, descriptorSizeDSV_, index);
 }
 
@@ -232,7 +239,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE DirectXBase::GetDSVCPUDescriptorHandle(uint32_t inde
 #pragma region privateメンバ関数
 
 // デバイスの初期化
-void DirectXBase::InitializeDevice() {
+void DX12Context::InitializeDevice() {
 
 	HRESULT hr;
 
@@ -326,7 +333,7 @@ void DirectXBase::InitializeDevice() {
 }
 
 // コマンド関連の初期化
-void DirectXBase::InitializeCommand() {
+void DX12Context::InitializeCommand() {
 	HRESULT hr;
 
 	// コマンドアロケータを生成する
@@ -348,13 +355,13 @@ void DirectXBase::InitializeCommand() {
 }
 
 // スワップチェーンの初期化
-void DirectXBase::CreateSwapChain() {
+void DX12Context::CreateSwapChain() {
 	HRESULT hr;
 
 	// スワップチェーン生成の設定
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
-	swapChainDesc.Width = WindowWrapper::kClientWidth;     // 画面の幅。ウィンドウのクライアント領域を同じものにしておく
-	swapChainDesc.Height = WindowWrapper::kClientHeight;   // 画面の高さ。ウィンドウのクライアント領域を同じものにしておく
+	swapChainDesc.Width = Win32Window::kClientWidth;     // 画面の幅。ウィンドウのクライアント領域を同じものにしておく
+	swapChainDesc.Height = Win32Window::kClientHeight;   // 画面の高さ。ウィンドウのクライアント領域を同じものにしておく
 	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;  // 色の形式
 	swapChainDesc.SampleDesc.Count = 1; // マルチサンプルしない
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // 描画のターゲットとして利用する
@@ -367,10 +374,10 @@ void DirectXBase::CreateSwapChain() {
 }
 
 // 深度バッファの生成
-void DirectXBase::CreateDepthBuffer() {
+void DX12Context::CreateDepthBuffer() {
 	// ウィンドウサイズを取得
-	uint32_t width = WindowWrapper::kClientWidth;
-	uint32_t height = WindowWrapper::kClientHeight;
+	uint32_t width = Win32Window::kClientWidth;
+	uint32_t height = Win32Window::kClientHeight;
 
 	HRESULT hr;
 
@@ -407,7 +414,7 @@ void DirectXBase::CreateDepthBuffer() {
 }
 
 // 各種デスクリプタヒープの生成
-void DirectXBase::CreateDescriptorHeaps() {
+void DX12Context::CreateDescriptorHeaps() {
 	// DiscriptorSizeを取得しておく
 	descriptorSizeRTV_ = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	descriptorSizeSRV_ = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -422,7 +429,7 @@ void DirectXBase::CreateDescriptorHeaps() {
 }
 
 // レンダーターゲットビューの初期化
-void DirectXBase::InitializeRenderTargetView() {
+void DX12Context::InitializeRenderTargetView() {
 	HRESULT hr;
 
 	// SwapChainからResourceを引っ張ってくる
@@ -458,7 +465,7 @@ void DirectXBase::InitializeRenderTargetView() {
 }
 
 // 深度ステンシルビューの初期化
-void DirectXBase::InitializeDepthStencilView() {
+void DX12Context::InitializeDepthStencilView() {
 
 	// DSVの設定
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
@@ -478,7 +485,7 @@ void DirectXBase::InitializeDepthStencilView() {
 }
 
 // フェンスの生成
-void DirectXBase::CreateFence() {
+void DX12Context::CreateFence() {
 	HRESULT hr;
 
 	// 初期値０でFenceを作る
@@ -491,11 +498,11 @@ void DirectXBase::CreateFence() {
 }
 
 // ビューポート矩形の初期化
-void DirectXBase::InitializeViewportRect() {
+void DX12Context::InitializeViewportRect() {
 
 	// クライアント領域のサイズと一緒にして画面全体に表示
-	viewport_.Width = WindowWrapper::kClientWidth;
-	viewport_.Height = WindowWrapper::kClientHeight;
+	viewport_.Width = Win32Window::kClientWidth;
+	viewport_.Height = Win32Window::kClientHeight;
 	viewport_.TopLeftX = 0;
 	viewport_.TopLeftY = 0;
 	viewport_.MinDepth = 0.0f;
@@ -503,17 +510,17 @@ void DirectXBase::InitializeViewportRect() {
 }
 
 // シザー矩形の初期化
-void DirectXBase::InitializeScissorRect() {
+void DX12Context::InitializeScissorRect() {
 
 	// 基本的にビューポートと同じ矩形が構成されるようにする
 	scissorRect_.left = 0;
 	scissorRect_.top = 0;
-	scissorRect_.right = WindowWrapper::kClientWidth;
-	scissorRect_.bottom = WindowWrapper::kClientHeight;
+	scissorRect_.right = Win32Window::kClientWidth;
+	scissorRect_.bottom = Win32Window::kClientHeight;
 }
 
 // DCXコンパイラの生成
-void DirectXBase::CreateDXCCompiler() {
+void DX12Context::CreateDXCCompiler() {
 	HRESULT hr;
 
 	// dxcCompilerを初期化
@@ -528,7 +535,7 @@ void DirectXBase::CreateDXCCompiler() {
 }
 
 // ImGuiの初期化
-void DirectXBase::InitializeImGui() {
+void DX12Context::InitializeImGui() {
 	// ImGuiの初期化
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -552,12 +559,12 @@ void DirectXBase::InitializeImGui() {
 
 #pragma region 60FPS固定用
 
-void DirectXBase::InitializeFixFPS() {
+void DX12Context::InitializeFixFPS() {
 	// 現在時刻を記録する
 	reference_ = std::chrono::steady_clock::now();
 }
 
-void DirectXBase::UpdateFixFPS() {
+void DX12Context::UpdateFixFPS() {
 	// 1/60秒の時間
 	const std::chrono::microseconds kMinTime(uint64_t(1000000.0f / 60.0f));
 
@@ -588,7 +595,7 @@ void DirectXBase::UpdateFixFPS() {
 #pragma region publicヘルパー関数
 
 // コマンドリストの実行と完了まで待つ
-void DirectXBase::ExecuteInitialCommandAndSync() {
+void DX12Context::ExecuteInitialCommandAndSync() {
 
 	HRESULT hr;
 
@@ -626,16 +633,37 @@ void DirectXBase::ExecuteInitialCommandAndSync() {
 }
 
 // シェーダーのコンパイル
-ComPtr<IDxcBlob> DirectXBase::CompileShader(const std::wstring& filePath, const wchar_t* profile) {
+ComPtr<IDxcBlob> DX12Context::CompileShader(const std::wstring& filePath, const wchar_t* profile) {
 
 	HRESULT hr;
 
+	std::wstring fullPath = filePath;
+	const std::wstring prefix = L"DirectXGame/Resources/Shaders/";
+	// 既にパスに"DirectXGame/Resources/Shaders/"が含まれている場合は追加しない
+	if (filePath.find(L"DirectXGame/Resources/Shaders/") == std::wstring::npos &&
+		filePath.find(L"directXGame/resources/shaders/") == std::wstring::npos) {
+		fullPath = L"DirectXGame/Resources/Shaders/" + filePath;
+	}
+
 	// これからシェーダーをコンパイルする旨をログに出す
-	Log(ConvertString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)));
+	Log(ConvertString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", fullPath, profile)));
 	// hlslファイルを読む
 	ComPtr<IDxcBlobEncoding> shaderSource = nullptr;
-	hr = dxcUtils_->LoadFile(filePath.c_str(), nullptr, &shaderSource);
+	hr = dxcUtils_->LoadFile(fullPath.c_str(), nullptr, &shaderSource);
 	// 読めなかったら止める
+	if (FAILED(hr)) {
+		 // 1. エラーBLOBの取得（D3DCompileの場合）
+		 ID3DBlob* errorBlob = nullptr; // D3DCompileの引数から取得
+
+		 // 2. エラーメッセージのログ出力
+		 if (errorBlob) {
+		     Logger::Log((char*)errorBlob->GetBufferPointer());
+		     errorBlob->Release();
+		 } else {
+		     // hrの値をログに出力する（DXCの場合など）
+		     Logger::Log("Shader compilation failed with HRESULT: " + std::to_string(hr)); 
+		 }
+	}
 	assert(SUCCEEDED(hr));
 	// 読み込んだファイルの内容を設定する
 	DxcBuffer shaderSourceBuffer;
@@ -645,7 +673,7 @@ ComPtr<IDxcBlob> DirectXBase::CompileShader(const std::wstring& filePath, const 
 
 	// Compileする
 	LPCWSTR arguments[] = {
-		filePath.c_str(),         // コンパイル対象のhlslファイル名
+		fullPath.c_str(),         // コンパイル対象のhlslファイル名
 		L"-E", L"main",           // エントリーポイントの指定。基本的にmain以外にはしない
 		L"-T", profile,           // ShaderProfileの設定
 		L"-Zi", L"-Qembed_debug", // デバッグ用の情報を埋め込む
@@ -680,13 +708,13 @@ ComPtr<IDxcBlob> DirectXBase::CompileShader(const std::wstring& filePath, const 
 	hr = shaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr);
 	assert(SUCCEEDED(hr));
 	// 成功したログを出す(性能を重視する場合は少しオーバーヘッドがあるので注意)
-	Log(ConvertString(std::format(L"CompileSucceded, path:{}, profile:{}\n", filePath, profile)));
+	Log(ConvertString(std::format(L"CompileSucceded, path:{}, profile:{}\n", fullPath, profile)));
 	// 実行用のバイナリを返却
 	return shaderBlob;
 }
 
 // バッファリソースの生成
-ComPtr<ID3D12Resource> DirectXBase::CreateBufferResource(size_t sizeInBytes) {
+ComPtr<ID3D12Resource> DX12Context::CreateBufferResource(size_t sizeInBytes) {
 
 	HRESULT hr;
 
@@ -724,7 +752,7 @@ ComPtr<ID3D12Resource> DirectXBase::CreateBufferResource(size_t sizeInBytes) {
 #pragma region privateヘルパー関数
 
 // ディスクリプタヒープの生成
-ComPtr<ID3D12DescriptorHeap> DirectXBase::CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shaderVisible) {
+ComPtr<ID3D12DescriptorHeap> DX12Context::CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shaderVisible) {
 	HRESULT hr;
 
 	// ディスクリプタヒープの生成
@@ -742,14 +770,14 @@ ComPtr<ID3D12DescriptorHeap> DirectXBase::CreateDescriptorHeap(D3D12_DESCRIPTOR_
 #pragma region ハンドルのゲッター
 
 // CPUHandleの取得
-D3D12_CPU_DESCRIPTOR_HANDLE DirectXBase::GetCPUDescriptorHandle(ComPtr<ID3D12DescriptorHeap>& descriptorHeap, uint32_t descriptorSize, uint32_t index) {
+D3D12_CPU_DESCRIPTOR_HANDLE DX12Context::GetCPUDescriptorHandle(ComPtr<ID3D12DescriptorHeap>& descriptorHeap, uint32_t descriptorSize, uint32_t index) {
 	D3D12_CPU_DESCRIPTOR_HANDLE handleCPU = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	handleCPU.ptr += (descriptorSize * index);
 	return handleCPU;
 }
 
 // GPUHandleの取得
-D3D12_GPU_DESCRIPTOR_HANDLE DirectXBase::GetGPUDescriptorHandle(ComPtr<ID3D12DescriptorHeap>& descriptorHeap, uint32_t descriptorSize, uint32_t index) {
+D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::GetGPUDescriptorHandle(ComPtr<ID3D12DescriptorHeap>& descriptorHeap, uint32_t descriptorSize, uint32_t index) {
 	D3D12_GPU_DESCRIPTOR_HANDLE handleGPU = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
 	handleGPU.ptr += (descriptorSize * index);
 	return handleGPU;
@@ -758,7 +786,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE DirectXBase::GetGPUDescriptorHandle(ComPtr<ID3D12Des
 #pragma endregion ハンドルのゲッター
 
 // テクスチャリソースの生成
-ComPtr<ID3D12Resource> DirectXBase::CreateTextureResource(const DirectX::TexMetadata& metadata) {
+ComPtr<ID3D12Resource> DX12Context::CreateTextureResource(const DirectX::TexMetadata& metadata) {
 
 	HRESULT hr;
 
@@ -790,7 +818,7 @@ ComPtr<ID3D12Resource> DirectXBase::CreateTextureResource(const DirectX::TexMeta
 }
 
 // テクスチャデータの転送
-ComPtr<ID3D12Resource> DirectXBase::UploadTextureData(ComPtr<ID3D12Resource> texture, const DirectX::ScratchImage& mipImages) {
+ComPtr<ID3D12Resource> DX12Context::UploadTextureData(ComPtr<ID3D12Resource> texture, const DirectX::ScratchImage& mipImages) {
 
 	std::vector<D3D12_SUBRESOURCE_DATA> subresources;
 	DirectX::PrepareUpload(device_.Get(), mipImages.GetImages(), mipImages.GetImageCount(), mipImages.GetMetadata(), subresources);
@@ -815,13 +843,25 @@ ComPtr<ID3D12Resource> DirectXBase::UploadTextureData(ComPtr<ID3D12Resource> tex
 #pragma region public静的ヘルパー関数
 
 // テクスチャファイルの読み込み
-DirectX::ScratchImage DirectXBase::LoadTexture(const std::string& filePath) {
+DirectX::ScratchImage DX12Context::LoadTexture(const std::string& filePath) {
+	std::string fullPath = filePath;
+	// 既にパスに"DirectXGame/Resources/Assets/Sounds/"が含まれている場合は追加しない
+	if (filePath.find("DirectXGame/Resources/Textures/") == std::string::npos &&
+		filePath.find("directXGame/resources/textures/") == std::string::npos) {
+		fullPath = "DirectXGame/Resources/Textures/" + filePath;
+	}
+
+	if (!std::filesystem::exists(fullPath)) {
+		Logger::Log("ERROR: Texture file not found at path: " + fullPath);
+		assert(false && "Texture file not found!");
+	}
 	
 	HRESULT hr;
 	
 	// テクスチャを読み込んでプログラムで扱えるようにする
+
 	DirectX::ScratchImage image{};
-	std::wstring filePathW = ConvertString(filePath);
+	std::wstring filePathW = ConvertString(fullPath);
 	hr = DirectX::LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
 	assert(SUCCEEDED(hr));
 

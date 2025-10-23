@@ -1,10 +1,9 @@
 #pragma once
-#pragma once
 
-#ifndef ENGINE_MATH_FUNCTIONS_H
-#define ENGINE_MATH_FUNCTIONS_H
+#ifndef MATH_UTILS_H
+#define MATH_UTILS_H
 
-#include "EngineMath.h" // Vector3, Matrix4x4などの構造体定義を含む
+#include "../MathTypes.h" // Vector3, Matrix4x4などの構造体定義を含む
 
 // 基本的なベクトル演算
 
@@ -229,4 +228,4 @@ inline Matrix4x4 operator*=(Matrix4x4& m1, const Matrix4x4& m2) {
 	return m1;
 }
 
-#endif // ENGINE_MATH_FUNCTIONS_H
+#endif // MATH_UTILS_H

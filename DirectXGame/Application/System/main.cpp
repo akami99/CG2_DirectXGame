@@ -19,11 +19,11 @@
 #include <sstream>
 //#include <wrl.h>
 
-#include "EngineMath.h"
-#include "EngineMathFunctions.h"
+#include "Win32Window.h"
+#include "MathTypes.h"
+#include "MathUtils.h"
 #include "MatrixGenerators.h"
-#include "WindowWrapper.h"
-#include "DirectXBase.h"
+#include "DX12Context.h"
 #include "D3DResourceLeakChecker.h"
 #include "AudioManager.h"
 #include "Input.h"
@@ -123,7 +123,7 @@ MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const st
 			std::string textureFilename;
 			s >> textureFilename;
 			// 連結してテクスチャファイルパスにする
-			materialData.textureFilePath = directoryPath + "/" + textureFilename;
+			materialData.textureFilePath = textureFilename;
 		}
 	}
 
@@ -139,7 +139,14 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& fileN
 	std::vector<Vector2> texcoords; // テクスチャ座標
 	std::string line; // ファイルから読んだ1行を格納するもの
 	// 2. ファイルを開く
-	std::ifstream file(directoryPath + "/" + fileName); // ファイルを開く
+	std::string fullPath = directoryPath;
+	// 既にパスに"DirectXGame/Resources/Assets/Sounds/"が含まれている場合は追加しない
+	if (directoryPath.find("DirectXGame/Resources/Assets/Models/") == std::string::npos &&
+		directoryPath.find("directXGame/resources/assets/models/") == std::string::npos) {
+		fullPath = "DirectXGame/Resources/Assets/Models/" + directoryPath;
+	}
+
+	std::ifstream file(fullPath + "/" + fileName); // ファイルを開く
 	assert(file.is_open()); // とりあえず開けなかったら止める
 	// 3. 実際にファイルを読み、ModelDataを構築していく
 	while (std::getline(file, line)) {
@@ -195,7 +202,7 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& fileN
 			std::string materialFileName;
 			s >> materialFileName;
 			// 基本的にobjファイルと同一階層にmtlは存在させるので、ディレクトリ名とファイル名を渡す
-			modelData.material = LoadMaterialTemplateFile(directoryPath, materialFileName);
+			modelData.material = LoadMaterialTemplateFile(fullPath, materialFileName);
 		}
 	}
 	// 4. ModelDataを返す
@@ -235,10 +242,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// WindowsAPIの初期化
 
 	// ポインタ
-	WindowWrapper* window = nullptr;
+	Win32Window* window = nullptr;
 
 	// WindowWrapperの生成と初期化
-	window = new WindowWrapper();
+	window = new Win32Window();
 	window->Initialize();
 
 #pragma endregion
@@ -247,9 +254,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// DirectXの初期化
 
 	// ポインタ
-	DirectXBase* dxBase = nullptr;
+	DX12Context* dxBase = nullptr;
 	// DirectXBaseの生成と初期化
-	dxBase = new DirectXBase();
+	dxBase = new DX12Context();
 	dxBase->Initialize(window);
 
 #pragma endregion
@@ -504,7 +511,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 描画初期化処理 (IMGUI)
 
 	// モデル読み込み
-	ModelData modelData = LoadObjFile("resources", "plane.obj");
+	ModelData modelData = LoadObjFile("Plane", "plane.obj");
 
 	// 実際に頂点リソースを作る
 	ComPtr<ID3D12Resource> vertexResource = dxBase->CreateBufferResource(sizeof(VertexData) * modelData.vertices.size());
@@ -661,16 +668,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	materialDataSprite->uvTransform = uvTransformMatrix;
 
 	// リソースの読み込みとアップロード
-	DirectX::ScratchImage mipImages1 = DirectXBase::LoadTexture("resources/uvChecker.png");
+	DirectX::ScratchImage mipImages1 = DX12Context::LoadTexture("uvChecker.png");
 
-	DirectX::ScratchImage mipImages2 = DirectXBase::LoadTexture(modelData.material.textureFilePath);
+	DirectX::ScratchImage mipImages2 = DX12Context::LoadTexture(modelData.material.textureFilePath);
 
 
 	// SRVを作成するDescriptorHeapの場所を決める
 	D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU1;
 	D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU2;
 
-	textureSrvHandleGPU1 = dxBase->CreateTextureResourceAndSRV("resources/uvChecker.png", 1);
+	textureSrvHandleGPU1 = dxBase->CreateTextureResourceAndSRV("uvChecker.png", 1);
 	textureSrvHandleGPU2 = dxBase->CreateTextureResourceAndSRV(modelData.material.textureFilePath, 2);
 
 	// コマンド実行と完了待機
@@ -688,7 +695,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// 三角形
 	Matrix4x4 worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
-	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, float(WindowWrapper::kClientWidth) / float(WindowWrapper::kClientHeight), 0.1f, 100.0f);
+	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, float(Win32Window::kClientWidth) / float(Win32Window::kClientHeight), 0.1f, 100.0f);
 	Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(currentViewMatrix, projectionMatrix));
 	wvpData->WVP = worldViewProjectionMatrix; // World-View-Projection行列をWVPメンバーに入れる
 	wvpData->World = worldMatrix;           // 純粋なワールド行列をWorldメンバーに入れる
@@ -698,7 +705,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// スプライト
 	Matrix4x4 worldMatrixSprite = MakeAffineMatrix(transformSprite.scale, transformSprite.rotate, transformSprite.translate);
 	Matrix4x4 viewMatrixSprite = MakeIdentity4x4();
-	Matrix4x4 projectionMatrixSprite = MakeOrthographicMatrix(0.0f, 0.0f, float(WindowWrapper::kClientWidth), float(WindowWrapper::kClientHeight), 0.0f, 100.0f);
+	Matrix4x4 projectionMatrixSprite = MakeOrthographicMatrix(0.0f, 0.0f, float(Win32Window::kClientWidth), float(Win32Window::kClientHeight), 0.0f, 100.0f);
 	Matrix4x4 worldViewProjectionMatrixSprite = Multiply(worldMatrixSprite, Multiply(viewMatrixSprite, projectionMatrixSprite));
 	transformationMatrixDataSprite->WVP = worldViewProjectionMatrixSprite; // World-View-Projection行列をWVPメンバーに入れる
 	transformationMatrixDataSprite->World = worldMatrixSprite;           // 純粋なワールド行列をWorldメンバーに入れる
@@ -715,7 +722,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	}
 
 	// 2. 音声ファイルをロード
-	if (!audioManager.LoadSound("alarm1", "resources/Alarm01.wav")) {
+	if (!audioManager.LoadSound("alarm1", "Alarm01.wav")) {
 		// ロード失敗時の処理
 		return 1;
 	}
