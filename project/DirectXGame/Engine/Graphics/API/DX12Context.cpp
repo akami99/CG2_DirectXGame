@@ -173,9 +173,9 @@ D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::CreateTextureResourceAndSRV(const std::
 	
 	std::string fullPath = filePath;
 	// 既にパスに"DirectXGame/Resources/Textures/"が含まれている場合は追加しない
-	if (filePath.find("DDirectXGame/Resources/Textures/") == std::string::npos &&
-		filePath.find("DirectXGame/resources/textures/") == std::string::npos) {
-		fullPath = "DirectXGame/Resources/Textures/" + filePath;
+	if (filePath.find("Resources/Textures/") == std::string::npos &&
+		filePath.find("resources/textures/") == std::string::npos) {
+		fullPath = "Resources/Textures/" + filePath;
 	}
 
 	// テクスチャを読み込む
@@ -294,6 +294,14 @@ void DX12Context::InitializeDevice() {
 		// 採用したアダプターでデバイスを生成
 		hr = D3D12CreateDevice(useAdapter.Get(), featureLevels[i], IID_PPV_ARGS(&device_));
 		// 指定した機能レベルでデバイスが生成できたかを確認
+		if (FAILED(hr)) {
+			// 重要なデバッグログをファイルに書き出す
+			Logger::Log(std::format("FATAL ERROR: D3D12CreateDevice failed. HRESULT: 0x{:08X}", (uint32_t)hr));
+			// D3D12CreateDeviceが失敗した場合、デバイス対応がないか、ドライバが古い
+			assert(false && "Failed to create D3D12 Device.");
+			// ここで強制的に終了する
+			exit(1);
+		}
 		if (SUCCEEDED(hr)) {
 			// 生成できたのでログ出力を行ってループを抜ける
 			Log(std::format("FeatureLevel : {}\n", featureLevelStrings[i]));
@@ -638,11 +646,11 @@ ComPtr<IDxcBlob> DX12Context::CompileShader(const std::wstring& filePath, const 
 	HRESULT hr;
 
 	std::wstring fullPath = filePath;
-	const std::wstring prefix = L"DirectXGame/Resources/Shaders/";
+	//const std::wstring prefix = L"DirectXGame/Resources/Shaders/";
 	// 既にパスに"DirectXGame/Resources/Shaders/"が含まれている場合は追加しない
-	if (filePath.find(L"DirectXGame/Resources/Shaders/") == std::wstring::npos &&
-		filePath.find(L"directXGame/resources/shaders/") == std::wstring::npos) {
-		fullPath = L"DirectXGame/Resources/Shaders/" + filePath;
+	if (filePath.find(L"Resources/Shaders/") == std::wstring::npos &&
+		filePath.find(L"resources/shaders/") == std::wstring::npos) {
+		fullPath = L"Resources/Shaders/" + filePath;
 	}
 
 	// これからシェーダーをコンパイルする旨をログに出す
@@ -846,9 +854,9 @@ ComPtr<ID3D12Resource> DX12Context::UploadTextureData(ComPtr<ID3D12Resource> tex
 DirectX::ScratchImage DX12Context::LoadTexture(const std::string& filePath) {
 	std::string fullPath = filePath;
 	// 既にパスに"DirectXGame/Resources/Assets/Sounds/"が含まれている場合は追加しない
-	if (filePath.find("DirectXGame/Resources/Textures/") == std::string::npos &&
-		filePath.find("directXGame/resources/textures/") == std::string::npos) {
-		fullPath = "DirectXGame/Resources/Textures/" + filePath;
+	if (filePath.find("Resources/Textures/") == std::string::npos &&
+		filePath.find("resources/textures/") == std::string::npos) {
+		fullPath = "Resources/Textures/" + filePath;
 	}
 
 	if (!std::filesystem::exists(fullPath)) {

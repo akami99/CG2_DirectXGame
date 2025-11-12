@@ -28,6 +28,7 @@
 #include "AudioManager.h"
 #include "Input.h"
 #include "DebugCamera.h"
+#include "Logger.h"
 
 //#include "externals/DirectXTex/DirectXTex.h"
 //#include "externals/DirectXTex/d3dx12.h"
@@ -141,9 +142,9 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& fileN
 	// 2. ファイルを開く
 	std::string fullPath = directoryPath;
 	// 既にパスに"DirectXGame/Resources/Assets/Sounds/"が含まれている場合は追加しない
-	if (directoryPath.find("DirectXGame/Resources/Assets/Models/") == std::string::npos &&
-		directoryPath.find("directXGame/resources/assets/models/") == std::string::npos) {
-		fullPath = "DirectXGame/Resources/Assets/Models/" + directoryPath;
+	if (directoryPath.find("Resources/Assets/Models/") == std::string::npos &&
+		directoryPath.find("resources/assets/models/") == std::string::npos) {
+		fullPath = "Resources/Assets/Models/" + directoryPath;
 	}
 
 	std::ifstream file(fullPath + "/" + fileName); // ファイルを開く
@@ -219,24 +220,47 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	CoInitializeEx(0, COINIT_MULTITHREADED);
 
 	D3DResourceLeakChecker leakCheck; // リソースリークチェック用のオブジェクト
+	
+    // ログのディレクトリを用意
+	const std::string logDir = "../generated/logs";
 
-	// ログのディレクトリを用意
-	std::filesystem::create_directory("../generated/logs");
+	// ディレクトリ作成を試みる
+	if (std::filesystem::create_directories(logDir) || std::filesystem::exists(logDir)) {
+		// ディレクトリ作成に成功（または既に存在する）した場合のみ、以下のファイル作成に進む
 
-	// 現在時刻を取得（UTC時刻）
-	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-	// ログファイルの名前にコンマ何秒はいらないので、削って秒にする
-	std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>
-		nowSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
-	// 日本時間（PCの設定時間）に変換
-	std::chrono::zoned_time localTime{ std::chrono::current_zone(), nowSeconds };
-	// formatを使って年月日_時分秒の文字列に変換
-	std::string dateString = std::format("{:%Y%m%d_%H%M%S}", localTime);
-	// 時刻を使ってファイル名を決定
-	std::string logFilePath = std::string("../generated/logs/") + dateString + ".log";
-	// ファイルを作って書き込み準備
-	std::ofstream logStream(logFilePath);
+		// 現在時刻を取得（UTC時刻）からファイル名生成はそのまま...
+		std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+		std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>
+			nowSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
+		std::chrono::zoned_time localTime{ std::chrono::current_zone(), nowSeconds };
+		std::string dateString = std::format("{:%Y%m%d_%H%M%S}", localTime);
 
+		// 時刻を使ってファイル名を決定
+		std::string logFilePath = logDir + "/" + dateString + ".log";
+
+		// ファイルを作って書き込み準備
+		// ※ ログファイルストリーム（logStream）が、Logger::Logで使用される静的変数だと仮定
+		static std::ofstream logStream;
+		logStream.open(logFilePath);
+
+		// ファイルオープンに成功した場合のみ、ロガーを有効化する
+		if (logStream.is_open()) {
+			// ファイルオープンに成功した場合のみ、Loggerにストリームを渡す
+			Logger::SetFileStream(&logStream); // ここでファイル書き出しを有効化！
+
+			// ログファイルが作成できた場合のメッセージ
+			Logger::Log("--- Program Initialized Logging Successfully ---");
+		} else {
+			// ファイルオープンに失敗した場合は、ファイル書き出しを無効化する
+			// Logger::LogはOutputDebugStringAのみ実行するようにする（VSでのデバッグは可能）
+			// Log機能が失敗しても、プログラムは続行する
+		}
+	} else {
+		// ディレクトリ作成に失敗した場合は、ファイル書き出しを無効化する
+		// Log機能が失敗しても、プログラムは続行する
+		// (Logger::LogはOutputDebugStringAのみ実行)
+	}
+	// ログの初期化に失敗しても、プログラムの実行はここから続行する
 
 #pragma region WindowsAPIの初期化
 	// WindowsAPIの初期化
@@ -260,237 +284,237 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	dxBase->Initialize(window);
 
 #pragma endregion
-	
-		// RootSignature作成
-		D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
-		descriptionRootSignature.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	
-		// RootParameter作成。PixelShaderのMaterialとVertexShaderのTransform 
-		D3D12_ROOT_PARAMETER rootParameters[4] = {};
-		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // CBVを使う(b0のbと一致する)
-		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;   // PixelShaderで使う
-		rootParameters[0].Descriptor.ShaderRegister = 0;    // レジスタ番号0とバインド(b0の0と一致する。もしb11と紐づけたいなら11となる)
-		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // CBVを使う(b0のbと一致する)
-		rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;   // VertexShaderで使う
-		rootParameters[1].Descriptor.ShaderRegister = 0;    // レジスタ番号0
-		descriptionRootSignature.pParameters = rootParameters; // ルートパラメータ配列へのポインタ
-		descriptionRootSignature.NumParameters = _countof(rootParameters); // 配列の長さ
-	
-		D3D12_DESCRIPTOR_RANGE descriptorRange[1] = {};
-		descriptorRange[0].BaseShaderRegister = 0;  // 0から始まる
-		descriptorRange[0].NumDescriptors = 1;  // 数は1つ
-		descriptorRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // SRVを使う
-		descriptorRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // Offsetを自動計算
-		rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // DescriptorTableを使う
-		rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
-		rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRange;  // Tableの中身の配列を指定
-		rootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRange); // Tableで利用する数
-	
-		//ライティング
-		rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
-		rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
-		rootParameters[3].Descriptor.ShaderRegister = 1;  // レジスタ番号1を使う
-	
-		// Samplerの設定
-		D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {};
-		staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR; // バイリニアフィルタ
-		staticSamplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;   // 0~1の範囲外をリピート
-		staticSamplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-		staticSamplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-		staticSamplers[0].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;   // 比較しない
-		staticSamplers[0].MaxLOD = D3D12_FLOAT32_MAX;   // ありったけのMipmapを使う
-		staticSamplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
-		staticSamplers[0].ShaderRegister = 0;   // レジスタ番号0を使う
-		descriptionRootSignature.pStaticSamplers = staticSamplers;
-		descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers);
-	
-		// シリアライズしてバイナリにする
-		Microsoft::WRL::ComPtr<ID3DBlob> signatureBlob = nullptr;
-		Microsoft::WRL::ComPtr<ID3DBlob> errorBlob = nullptr;
 
-		HRESULT hr;
+	// RootSignature作成
+	D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
+	descriptionRootSignature.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-		hr = D3D12SerializeRootSignature(&descriptionRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob, &errorBlob);
-		if (FAILED(hr)) {
-			//Logger::Log(reinterpret_cast<char*>(errorBlob->GetBufferPointer()));
-			assert(false);
-		}
-		// バイナリを元に生成
-		Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature = nullptr;
-		hr = dxBase->GetDevice()->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
-		assert(SUCCEEDED(hr));
-	
-		// InputLayout
-		D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
-		inputElementDescs[0].SemanticName = "POSITION";
-		inputElementDescs[0].SemanticIndex = 0;
-		inputElementDescs[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		inputElementDescs[0].InputSlot = 0; // 明示的に指定
-		inputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-		inputElementDescs[0].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA; // 明示的に指定
-		inputElementDescs[0].InstanceDataStepRate = 0; // デフォルト値だが明示するとより分かりやすい
-		inputElementDescs[1].SemanticName = "TEXCOORD";
-		inputElementDescs[1].SemanticIndex = 0;
-		inputElementDescs[1].Format = DXGI_FORMAT_R32G32_FLOAT;
-		inputElementDescs[1].InputSlot = 0; // 明示的に指定
-		inputElementDescs[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-		inputElementDescs[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA; // 明示的に指定
-		inputElementDescs[1].InstanceDataStepRate = 0;
-		inputElementDescs[2].SemanticName = "NORMAL";
-		inputElementDescs[2].SemanticIndex = 0;
-		inputElementDescs[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-		inputElementDescs[2].InputSlot = 0; // 明示的に指定
-		inputElementDescs[2].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-		inputElementDescs[2].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA; // 明示的に指定
-		inputElementDescs[2].InstanceDataStepRate = 0;
-		D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
-		inputLayoutDesc.pInputElementDescs = inputElementDescs;
-		inputLayoutDesc.NumElements = _countof(inputElementDescs);
-	
-	#pragma region ブレンドモード
-		// BlendState
-		enum BlendMode {
-			//!< ブレンド無し
-			kBlendModeNone,
-			//!< 通常aブレンド。デフォルト。Src * SrcA + Dest * (1 - SrcA)
-			kBlendModeNormal,
-			//!< 加算。Src * SrcA + Dest * 1
-			kBlendModeAdd,
-			//!< 減算。Dest * 1 - Src * SrcA
-			kBlendModeSubtract,
-			//!< 乗算。Src * 0 + Dest * SrcA
-			kBlendModeMultiply,
-			//!< スクリーン。Src * (1 - DestA) + Dest * 1
-			kBlendModeScreen,
-			//!< 利用してはいけない
-			kCountOfBlendMode,
+	// RootParameter作成。PixelShaderのMaterialとVertexShaderのTransform 
+	D3D12_ROOT_PARAMETER rootParameters[4] = {};
+	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // CBVを使う(b0のbと一致する)
+	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;   // PixelShaderで使う
+	rootParameters[0].Descriptor.ShaderRegister = 0;    // レジスタ番号0とバインド(b0の0と一致する。もしb11と紐づけたいなら11となる)
+	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // CBVを使う(b0のbと一致する)
+	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;   // VertexShaderで使う
+	rootParameters[1].Descriptor.ShaderRegister = 0;    // レジスタ番号0
+	descriptionRootSignature.pParameters = rootParameters; // ルートパラメータ配列へのポインタ
+	descriptionRootSignature.NumParameters = _countof(rootParameters); // 配列の長さ
+
+	D3D12_DESCRIPTOR_RANGE descriptorRange[1] = {};
+	descriptorRange[0].BaseShaderRegister = 0;  // 0から始まる
+	descriptorRange[0].NumDescriptors = 1;  // 数は1つ
+	descriptorRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // SRVを使う
+	descriptorRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // Offsetを自動計算
+	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // DescriptorTableを使う
+	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
+	rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRange;  // Tableの中身の配列を指定
+	rootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRange); // Tableで利用する数
+
+	//ライティング
+	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
+	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
+	rootParameters[3].Descriptor.ShaderRegister = 1;  // レジスタ番号1を使う
+
+	// Samplerの設定
+	D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {};
+	staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR; // バイリニアフィルタ
+	staticSamplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;   // 0~1の範囲外をリピート
+	staticSamplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	staticSamplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	staticSamplers[0].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;   // 比較しない
+	staticSamplers[0].MaxLOD = D3D12_FLOAT32_MAX;   // ありったけのMipmapを使う
+	staticSamplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
+	staticSamplers[0].ShaderRegister = 0;   // レジスタ番号0を使う
+	descriptionRootSignature.pStaticSamplers = staticSamplers;
+	descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers);
+
+	// シリアライズしてバイナリにする
+	Microsoft::WRL::ComPtr<ID3DBlob> signatureBlob = nullptr;
+	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob = nullptr;
+
+	HRESULT hr;
+
+	hr = D3D12SerializeRootSignature(&descriptionRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob, &errorBlob);
+	if (FAILED(hr)) {
+		//Logger::Log(reinterpret_cast<char*>(errorBlob->GetBufferPointer()));
+		assert(false);
+	}
+	// バイナリを元に生成
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature = nullptr;
+	hr = dxBase->GetDevice()->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
+	assert(SUCCEEDED(hr));
+
+	// InputLayout
+	D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
+	inputElementDescs[0].SemanticName = "POSITION";
+	inputElementDescs[0].SemanticIndex = 0;
+	inputElementDescs[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	inputElementDescs[0].InputSlot = 0; // 明示的に指定
+	inputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	inputElementDescs[0].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA; // 明示的に指定
+	inputElementDescs[0].InstanceDataStepRate = 0; // デフォルト値だが明示するとより分かりやすい
+	inputElementDescs[1].SemanticName = "TEXCOORD";
+	inputElementDescs[1].SemanticIndex = 0;
+	inputElementDescs[1].Format = DXGI_FORMAT_R32G32_FLOAT;
+	inputElementDescs[1].InputSlot = 0; // 明示的に指定
+	inputElementDescs[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	inputElementDescs[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA; // 明示的に指定
+	inputElementDescs[1].InstanceDataStepRate = 0;
+	inputElementDescs[2].SemanticName = "NORMAL";
+	inputElementDescs[2].SemanticIndex = 0;
+	inputElementDescs[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	inputElementDescs[2].InputSlot = 0; // 明示的に指定
+	inputElementDescs[2].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	inputElementDescs[2].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA; // 明示的に指定
+	inputElementDescs[2].InstanceDataStepRate = 0;
+	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
+	inputLayoutDesc.pInputElementDescs = inputElementDescs;
+	inputLayoutDesc.NumElements = _countof(inputElementDescs);
+
+#pragma region ブレンドモード
+	// BlendState
+	enum BlendMode {
+		//!< ブレンド無し
+		kBlendModeNone,
+		//!< 通常aブレンド。デフォルト。Src * SrcA + Dest * (1 - SrcA)
+		kBlendModeNormal,
+		//!< 加算。Src * SrcA + Dest * 1
+		kBlendModeAdd,
+		//!< 減算。Dest * 1 - Src * SrcA
+		kBlendModeSubtract,
+		//!< 乗算。Src * 0 + Dest * SrcA
+		kBlendModeMultiply,
+		//!< スクリーン。Src * (1 - DestA) + Dest * 1
+		kBlendModeScreen,
+		//!< 利用してはいけない
+		kCountOfBlendMode,
+	};
+
+	int currentBlendMode = kBlendModeNormal;
+
+	// BlendStateの設定を配列で用意しておく
+	D3D12_BLEND_DESC blendDescs[kCountOfBlendMode] = {};
+	// ブレンド無し
+	blendDescs[kBlendModeNone].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDescs[kBlendModeNone].RenderTarget[0].BlendEnable = FALSE;
+
+	// 通常のアルファブレンド
+	blendDescs[kBlendModeNormal].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDescs[kBlendModeNormal].RenderTarget[0].BlendEnable = TRUE;
+	blendDescs[kBlendModeNormal].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA; // ソースのアルファ値
+	blendDescs[kBlendModeNormal].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeNormal].RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA; // 1.0f - ソースのアルファ値
+	blendDescs[kBlendModeNormal].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
+	blendDescs[kBlendModeNormal].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeNormal].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
+
+	// 加算ブレンド
+	blendDescs[kBlendModeAdd].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDescs[kBlendModeAdd].RenderTarget[0].BlendEnable = TRUE;
+	blendDescs[kBlendModeAdd].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA; // ソースのアルファ値
+	blendDescs[kBlendModeAdd].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeAdd].RenderTarget[0].DestBlend = D3D12_BLEND_ONE; // デストのアルファ値
+	blendDescs[kBlendModeAdd].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
+	blendDescs[kBlendModeAdd].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeAdd].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
+
+	// 減算ブレンド
+	blendDescs[kBlendModeSubtract].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDescs[kBlendModeSubtract].RenderTarget[0].BlendEnable = TRUE;
+	blendDescs[kBlendModeSubtract].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA; // ソースのアルファ値
+	blendDescs[kBlendModeSubtract].RenderTarget[0].BlendOp = D3D12_BLEND_OP_REV_SUBTRACT; // 減算
+	blendDescs[kBlendModeSubtract].RenderTarget[0].DestBlend = D3D12_BLEND_ONE; // デストのアルファ値
+	blendDescs[kBlendModeSubtract].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
+	blendDescs[kBlendModeSubtract].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeSubtract].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
+
+	// 乗算ブレンド
+	blendDescs[kBlendModeMultiply].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDescs[kBlendModeMultiply].RenderTarget[0].BlendEnable = TRUE;
+	blendDescs[kBlendModeMultiply].RenderTarget[0].SrcBlend = D3D12_BLEND_ZERO; // 0.0f
+	blendDescs[kBlendModeMultiply].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeMultiply].RenderTarget[0].DestBlend = D3D12_BLEND_SRC_COLOR; // ソースカラー値
+	blendDescs[kBlendModeMultiply].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
+	blendDescs[kBlendModeMultiply].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeMultiply].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
+
+	// スクリーンブレンド
+	blendDescs[kBlendModeScreen].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDescs[kBlendModeScreen].RenderTarget[0].BlendEnable = TRUE;
+	blendDescs[kBlendModeScreen].RenderTarget[0].SrcBlend = D3D12_BLEND_INV_DEST_COLOR; // デストカラー値
+	blendDescs[kBlendModeScreen].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeScreen].RenderTarget[0].DestBlend = D3D12_BLEND_ONE; // ソースアルファ値
+	blendDescs[kBlendModeScreen].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
+	blendDescs[kBlendModeScreen].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
+	blendDescs[kBlendModeScreen].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
+#pragma endregion
+
+	// RasterizerState
+	D3D12_RASTERIZER_DESC rasterizerDesc{};
+	// 裏面をカリング
+	rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
+	// 三角形の中を塗りつぶす
+	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+
+	// Shaderをコンパイルする
+	ComPtr<IDxcBlob> vertexShaderBlob = dxBase->CompileShader(L"Object3D.VS.hlsl", L"vs_6_0");
+	assert(vertexShaderBlob != nullptr);
+	ComPtr<IDxcBlob> pixelShaderBlob = dxBase->CompileShader(L"Object3D.PS.hlsl", L"ps_6_0");
+	assert(pixelShaderBlob != nullptr);
+
+	// PSOを生成する
+
+	// DepthStencilStateの設定
+	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
+	// Depthの機能を有効化する
+	depthStencilDesc.DepthEnable = true;
+	// 書き込みします
+	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+	// 比較関数はLessEqual。つまり、近ければ描画される
+	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+
+	// ベースのPSO設定
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDescBase{};
+
+	// **共通設定**を一度だけセット
+	psoDescBase.pRootSignature = rootSignature.Get(); // RootSignature
+	psoDescBase.InputLayout = inputLayoutDesc; // InputLayout
+	psoDescBase.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() }; // VertexShader
+	psoDescBase.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() }; // PixelShader
+	psoDescBase.RasterizerState = rasterizerDesc; // RasterizerState
+	// 書き込むRTVの情報
+	psoDescBase.NumRenderTargets = 1;
+	psoDescBase.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	psoDescBase.SampleDesc.Count = 1;
+	// DepthStencilの設定
+	psoDescBase.DepthStencilState = depthStencilDesc;
+	psoDescBase.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	// 利用するトポロジ（形状）のタイプ。三角形
+	psoDescBase.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	// どのように画面に色を打ち込むかの設定（気にしなくていい）
+	psoDescBase.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+
+	// ループで各ブレンドモードのPSOを生成
+
+	// 外部で宣言（クラスのメンバー変数など）
+	ComPtr<ID3D12PipelineState> pPsoArray[kCountOfBlendMode];
+
+	for (int i = 0; i < kCountOfBlendMode; ++i) {
+		if (i == kCountOfBlendMode) {
+			continue;
 		};
-	
-		int currentBlendMode = kBlendModeNormal;
-	
-		// BlendStateの設定を配列で用意しておく
-		D3D12_BLEND_DESC blendDescs[kCountOfBlendMode] = {};
-		// ブレンド無し
-		blendDescs[kBlendModeNone].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-		blendDescs[kBlendModeNone].RenderTarget[0].BlendEnable = FALSE;
-	
-		// 通常のアルファブレンド
-		blendDescs[kBlendModeNormal].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-		blendDescs[kBlendModeNormal].RenderTarget[0].BlendEnable = TRUE;
-		blendDescs[kBlendModeNormal].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA; // ソースのアルファ値
-		blendDescs[kBlendModeNormal].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
-		blendDescs[kBlendModeNormal].RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA; // 1.0f - ソースのアルファ値
-		blendDescs[kBlendModeNormal].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
-		blendDescs[kBlendModeNormal].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
-		blendDescs[kBlendModeNormal].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
-	
-		// 加算ブレンド
-		blendDescs[kBlendModeAdd].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-		blendDescs[kBlendModeAdd].RenderTarget[0].BlendEnable = TRUE;
-		blendDescs[kBlendModeAdd].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA; // ソースのアルファ値
-		blendDescs[kBlendModeAdd].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
-		blendDescs[kBlendModeAdd].RenderTarget[0].DestBlend = D3D12_BLEND_ONE; // デストのアルファ値
-		blendDescs[kBlendModeAdd].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
-		blendDescs[kBlendModeAdd].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
-		blendDescs[kBlendModeAdd].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
-	
-		// 減算ブレンド
-		blendDescs[kBlendModeSubtract].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-		blendDescs[kBlendModeSubtract].RenderTarget[0].BlendEnable = TRUE;
-		blendDescs[kBlendModeSubtract].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA; // ソースのアルファ値
-		blendDescs[kBlendModeSubtract].RenderTarget[0].BlendOp = D3D12_BLEND_OP_REV_SUBTRACT; // 減算
-		blendDescs[kBlendModeSubtract].RenderTarget[0].DestBlend = D3D12_BLEND_ONE; // デストのアルファ値
-		blendDescs[kBlendModeSubtract].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
-		blendDescs[kBlendModeSubtract].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
-		blendDescs[kBlendModeSubtract].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
-	
-		// 乗算ブレンド
-		blendDescs[kBlendModeMultiply].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-		blendDescs[kBlendModeMultiply].RenderTarget[0].BlendEnable = TRUE;
-		blendDescs[kBlendModeMultiply].RenderTarget[0].SrcBlend = D3D12_BLEND_ZERO; // 0.0f
-		blendDescs[kBlendModeMultiply].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
-		blendDescs[kBlendModeMultiply].RenderTarget[0].DestBlend = D3D12_BLEND_SRC_COLOR; // ソースカラー値
-		blendDescs[kBlendModeMultiply].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
-		blendDescs[kBlendModeMultiply].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
-		blendDescs[kBlendModeMultiply].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
-	
-		// スクリーンブレンド
-		blendDescs[kBlendModeScreen].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-		blendDescs[kBlendModeScreen].RenderTarget[0].BlendEnable = TRUE;
-		blendDescs[kBlendModeScreen].RenderTarget[0].SrcBlend = D3D12_BLEND_INV_DEST_COLOR; // デストカラー値
-		blendDescs[kBlendModeScreen].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
-		blendDescs[kBlendModeScreen].RenderTarget[0].DestBlend = D3D12_BLEND_ONE; // ソースアルファ値
-		blendDescs[kBlendModeScreen].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
-		blendDescs[kBlendModeScreen].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
-		blendDescs[kBlendModeScreen].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
-	#pragma endregion
-	
-		// RasterizerState
-		D3D12_RASTERIZER_DESC rasterizerDesc{};
-		// 裏面をカリング
-		rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
-		// 三角形の中を塗りつぶす
-		rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
-	
-		// Shaderをコンパイルする
-		ComPtr<IDxcBlob> vertexShaderBlob = dxBase->CompileShader(L"Object3D.VS.hlsl", L"vs_6_0");
-		assert(vertexShaderBlob != nullptr);
-		ComPtr<IDxcBlob> pixelShaderBlob = dxBase->CompileShader(L"Object3D.PS.hlsl", L"ps_6_0");
-		assert(pixelShaderBlob != nullptr);
-	
-		// PSOを生成する
-	
-		// DepthStencilStateの設定
-		D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
-		// Depthの機能を有効化する
-		depthStencilDesc.DepthEnable = true;
-		// 書き込みします
-		depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-		// 比較関数はLessEqual。つまり、近ければ描画される
-		depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-	
-		// ベースのPSO設定
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDescBase{};
-	
-		// **共通設定**を一度だけセット
-		psoDescBase.pRootSignature = rootSignature.Get(); // RootSignature
-		psoDescBase.InputLayout = inputLayoutDesc; // InputLayout
-		psoDescBase.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() }; // VertexShader
-		psoDescBase.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() }; // PixelShader
-		psoDescBase.RasterizerState = rasterizerDesc; // RasterizerState
-		// 書き込むRTVの情報
-		psoDescBase.NumRenderTargets = 1;
-		psoDescBase.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-		psoDescBase.SampleDesc.Count = 1;
-		// DepthStencilの設定
-		psoDescBase.DepthStencilState = depthStencilDesc;
-		psoDescBase.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		// 利用するトポロジ（形状）のタイプ。三角形
-		psoDescBase.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		// どのように画面に色を打ち込むかの設定（気にしなくていい）
-		psoDescBase.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-	
-		// ループで各ブレンドモードのPSOを生成
-	
-		// 外部で宣言（クラスのメンバー変数など）
-		ComPtr<ID3D12PipelineState> pPsoArray[kCountOfBlendMode];
-	
-		for (int i = 0; i < kCountOfBlendMode; ++i) {
-			if (i == kCountOfBlendMode) {
-				continue;
-			};
-	
-			// 設定をベースからコピー
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = psoDescBase;
-	
-			// ブレンド設定だけを、現在のインデックス(i)に対応するものに切り替える
-			psoDesc.BlendState = blendDescs[i];
-	
-			// PSO生成
-			// 結果を配列 m_pPsoArray[i] に格納
-			hr = dxBase->GetDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pPsoArray[i]));
-			assert(SUCCEEDED(hr));
-		}
+
+		// 設定をベースからコピー
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = psoDescBase;
+
+		// ブレンド設定だけを、現在のインデックス(i)に対応するものに切り替える
+		psoDesc.BlendState = blendDescs[i];
+
+		// PSO生成
+		// 結果を配列 m_pPsoArray[i] に格納
+		hr = dxBase->GetDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pPsoArray[i]));
+		assert(SUCCEEDED(hr));
+	}
 
 #pragma region DirectInputの初期化
 

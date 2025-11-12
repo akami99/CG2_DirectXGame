@@ -48,9 +48,9 @@ bool Sound::LoadWave(const std::string& filePath) {
 
     std::string fullPath = filePath;
 	// 既にパスに"DirectXGame/Resources/Assets/Sounds/"が含まれている場合は追加しない
-    if (filePath.find("DirectXGame/Resources/Assets/Sounds/") == std::string::npos &&
-        filePath.find("directXGame/resources/assets/sounds/") == std::string::npos) {
-        fullPath = "DirectXGame/Resources/Assets/Sounds/" + filePath;
+    if (filePath.find("Resources/Assets/Sounds/") == std::string::npos &&
+        filePath.find("resources/assets/sounds/") == std::string::npos) {
+        fullPath = "Resources/Assets/Sounds/" + filePath;
     }
 
     std::ifstream file;
