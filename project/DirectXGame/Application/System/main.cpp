@@ -1,10 +1,10 @@
 //#include <Windows.h>
 //#include <cstdint>
 //#include <string>
-#include <format>
-#include <filesystem>
-#include <fstream>
-#include <chrono>
+//#include <format>
+//#include <filesystem>
+//#include <fstream>
+//#include <chrono>
 
 #include <dxgi1_6.h>
 #include <cassert>
@@ -84,13 +84,27 @@ struct ModelData {
 };
 
 static LONG WINAPI ExportDump(EXCEPTION_POINTERS* exception) {
+	// ログと同じく、exeと同じ階層に「dumps」フォルダを作成する
+	const wchar_t* dumpDir = L"dumps";
+
+	CreateDirectoryW(dumpDir, nullptr);
+
 	// 時刻を取得して、時刻を名前に入れたファイルを作成。Dumpsディレクトリいかに出力
 	SYSTEMTIME time;
 	GetLocalTime(&time);
 	wchar_t filePath[MAX_PATH] = { 0 };
-	CreateDirectory(L"./../generated/dumps", nullptr);
-	StringCchPrintfW(filePath, MAX_PATH, L"./../generated/dumps/%04d-%02d%02d-%02d%02d%02d.dmp", time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond);
+
+	StringCchPrintfW(filePath, MAX_PATH, L"%s/%04d-%02d%02d-%02d%02d%02d.dmp", dumpDir, time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond);
+
 	HANDLE dumpFileHandle = CreateFile(filePath, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ, 0, CREATE_ALWAYS, 0, 0);
+
+	// 4. ハンドルの有効性チェック
+	if (dumpFileHandle == INVALID_HANDLE_VALUE) {
+		// ファイル作成に失敗した場合（権限不足など）、ダンプ処理はスキップして終了
+		// エラーコードをログに記録できれば理想だが、ここではシンプルな終了とする
+		return EXCEPTION_EXECUTE_HANDLER;
+	}
+
 	// processId（このexeのID）とクラッシュ（例外）の発生したthreadIdを取得
 	DWORD processId = GetCurrentProcessId();
 	DWORD threadId = GetCurrentThreadId();
@@ -101,6 +115,10 @@ static LONG WINAPI ExportDump(EXCEPTION_POINTERS* exception) {
 	minidumpInformation.ClientPointers = TRUE;
 	// Dumpを出力、MiniDumpNormalは最低限の情報を出力するフラグ
 	MiniDumpWriteDump(GetCurrentProcess(), processId, dumpFileHandle, MiniDumpNormal, &minidumpInformation, nullptr, nullptr);
+	
+	// ファイルハンドルを閉じる
+	CloseHandle(dumpFileHandle);
+	
 	// 他に関連付けられているSEH例外ハンドラがあれば実行。通常はプロセスを終了する
 	return EXCEPTION_EXECUTE_HANDLER;
 }
@@ -220,47 +238,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	CoInitializeEx(0, COINIT_MULTITHREADED);
 
 	D3DResourceLeakChecker leakCheck; // リソースリークチェック用のオブジェクト
-	
-    // ログのディレクトリを用意
-	const std::string logDir = "../generated/logs";
 
-	// ディレクトリ作成を試みる
-	if (std::filesystem::create_directories(logDir) || std::filesystem::exists(logDir)) {
-		// ディレクトリ作成に成功（または既に存在する）した場合のみ、以下のファイル作成に進む
-
-		// 現在時刻を取得（UTC時刻）からファイル名生成はそのまま...
-		std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-		std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>
-			nowSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
-		std::chrono::zoned_time localTime{ std::chrono::current_zone(), nowSeconds };
-		std::string dateString = std::format("{:%Y%m%d_%H%M%S}", localTime);
-
-		// 時刻を使ってファイル名を決定
-		std::string logFilePath = logDir + "/" + dateString + ".log";
-
-		// ファイルを作って書き込み準備
-		// ※ ログファイルストリーム（logStream）が、Logger::Logで使用される静的変数だと仮定
-		static std::ofstream logStream;
-		logStream.open(logFilePath);
-
-		// ファイルオープンに成功した場合のみ、ロガーを有効化する
-		if (logStream.is_open()) {
-			// ファイルオープンに成功した場合のみ、Loggerにストリームを渡す
-			Logger::SetFileStream(&logStream); // ここでファイル書き出しを有効化！
-
-			// ログファイルが作成できた場合のメッセージ
-			Logger::Log("--- Program Initialized Logging Successfully ---");
-		} else {
-			// ファイルオープンに失敗した場合は、ファイル書き出しを無効化する
-			// Logger::LogはOutputDebugStringAのみ実行するようにする（VSでのデバッグは可能）
-			// Log機能が失敗しても、プログラムは続行する
-		}
-	} else {
-		// ディレクトリ作成に失敗した場合は、ファイル書き出しを無効化する
-		// Log機能が失敗しても、プログラムは続行する
-		// (Logger::LogはOutputDebugStringAのみ実行)
-	}
-	// ログの初期化に失敗しても、プログラムの実行はここから続行する
+	// ログを用意
+	Logger::InitializeFileLogging();
 
 #pragma region WindowsAPIの初期化
 	// WindowsAPIの初期化
