@@ -23,6 +23,11 @@ PixelShaderOutput main(VertexShaderOutput input) {
     float4 transformedUV = mul(float4(input.texcoord, 0.0f, 1.0f), gMaterial.uvTransform);
     float4 textureColor = gTexture.Sample(gSampler, transformedUV.xy);
     
+    // アルファテスト(2値抜き)
+    if (textureColor.a < 0.5f) {
+        discard; // Pixelを棄却
+    }
+    
     if (gMaterial.enableLighting != 0) { // Lightingする場合
         // half lambert
         float NdotL = dot(normalize(input.normal), -normalize(gDirectionalLight.direction));
@@ -33,5 +38,10 @@ PixelShaderOutput main(VertexShaderOutput input) {
     } else { // Lightingしない場合。前回までと同じ演算
         output.color = gMaterial.color * textureColor;
     }
+    
+    if (output.color.a == 0.0f) {
+        discard; // Pixelを棄却
+    }
+    
     return output;
 }

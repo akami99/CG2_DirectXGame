@@ -515,7 +515,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 描画初期化処理 (IMGUI)
 
 	// モデル読み込み
-	ModelData modelData = LoadObjFile("Plane", "plane.obj");
+	ModelData modelData = LoadObjFile("Fence", "fence.obj");
 
 	// 実際に頂点リソースを作る
 	ComPtr<ID3D12Resource> vertexResource = dxBase->CreateBufferResource(sizeof(VertexData) * modelData.vertices.size());
@@ -657,7 +657,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// Transform変数を作る
 	//三角形
-	Transform transform{ {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
+	Transform transform{ {1.0f, 1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
 	//スプライト
 	Transform transformSprite{ {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
 
@@ -762,6 +762,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::SliderAngle("rotate.x", &transform.rotate.x);
 		ImGui::SliderAngle("rotate.y", &transform.rotate.y);
 		ImGui::SliderAngle("rotate.z", &transform.rotate.z);
+		ImGui::DragFloat3("translate", &transform.translate.x, 0.01f);
 
 		ImGui::ColorEdit4("color", &materialData->color.x);
 
