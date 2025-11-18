@@ -17,9 +17,8 @@ DebugCamera::DebugCamera() {
 void DebugCamera::Initialize() {
 	// 初期値の計算
 	rotation_ = { 0, 0, 0 };
-	translation_ = { 0, 0, -50 };
+	translation_ = { 0, 0, -20 };
 	matRot_ = MakeIdentity4x4(); // 初期回転行列は単位行列
-	translation_ = { 0.0f, 0.0f, -50.0f };
 	worldMatrix_ = MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, matRot_, translation_);
 	viewMatrix_ = Inverse(worldMatrix_);
 

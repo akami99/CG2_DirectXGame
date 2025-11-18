@@ -212,6 +212,28 @@ D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::CreateTextureResourceAndSRV(const std::
 	return textureSrvHandleGPU;
 }
 
+D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::CreateStructuredBufferSRV(ComPtr<ID3D12Resource> resource, uint32_t numElement, uint32_t structureByteStride, uint32_t srvIndex) {
+	// SRVの設定
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+	srvDesc.Format = DXGI_FORMAT_UNKNOWN; // StructuredBufferの場合はUNKNOWN
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;// バッファとして扱う
+	srvDesc.Buffer.FirstElement = 0; // 最初の要素位置
+	srvDesc.Buffer.NumElements = numElement; // 要素数
+	srvDesc.Buffer.StructureByteStride = structureByteStride; // 構造体（要素）のバイトサイズ
+	srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE; // 特にフラグは無し
+
+	// SRVを作成するディスクリプタヒープの場所を取得
+	D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU = GetSRVCPUDescriptorHandle(srvIndex);
+	D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU = GetSRVGPUDescriptorHandle(srvIndex);
+
+	// SRVの生成
+	device_->CreateShaderResourceView(resource.Get(), &srvDesc, srvHandleCPU);
+
+	// GPU用のハンドルを返す
+	return srvHandleGPU;
+}
+
 #pragma endregion 描画処理
 
 #pragma region ゲッター

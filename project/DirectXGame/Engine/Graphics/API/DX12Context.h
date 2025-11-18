@@ -97,6 +97,16 @@ public: // メンバ関数
 	// テクスチャリソースとSRVの生成
 	D3D12_GPU_DESCRIPTOR_HANDLE CreateTextureResourceAndSRV(const std::string& filePath, uint32_t srvIndex);
 
+	/// <summary>
+	/// StructuredBuffer用のSRVを作成
+	/// </summary>
+	/// <param name="resource">StructuredBufferのID3D12Resource</param>
+	/// <param name="numElement">格納されている要素（インスタンス）の数</param>
+	/// <param name="structureByteStride">構造体（要素）のバイトサイズ</param>
+	/// <param name="srvIndex">デスクリプタヒープ上のインデックス</param>
+	/// <returns>GPU用のデスクリプタハンドル</returns>
+	D3D12_GPU_DESCRIPTOR_HANDLE CreateStructuredBufferSRV(ComPtr<ID3D12Resource> resource, uint32_t numElement, uint32_t structureByteStride, uint32_t srvIndex);
+
 #pragma region ゲッター
 
 	// 各種DirectXオブジェクトのゲッター
