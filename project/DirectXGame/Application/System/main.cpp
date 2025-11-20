@@ -1114,6 +1114,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma region UI処理
 		// 開発用UIの処理
 		//ImGui::ShowDemoWindow();
+		// 設定ウィンドウ(画面右側)
+		ImGui::SetNextWindowPos(ImVec2(Win32Window::kClientWidth - 10.0f, 10.0f), ImGuiCond_Once, ImVec2(1.0f, 0.0f));
 		ImGui::Begin("Settings");
 		// デバッグウィンドウ
 		//ImGui::Text("Camera");
@@ -1173,8 +1175,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		ImGui::End();
 
-		// 移動モード用の操作説明
+		// 移動モード用の操作説明(画面左上)
 		if (controlMaterial) {
+			ImGui::SetNextWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_Once);
 			ImGui::Begin("Control Material Mode");
 			ImGui::Text("A/D: Left/Right");
 			ImGui::Text("W/S: Up/Down");

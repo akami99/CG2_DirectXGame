@@ -29,6 +29,11 @@ void DebugCamera::Initialize() {
 }
 
 void DebugCamera::Update(Input& input) {
+	// デバッグ用ImGuiウィンドウ
+
+	// 初期表示位置を設定(画面左上)
+	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);
+
 	ImGui::Begin("Debug Camera Control");
 	ImGui::Text("Mode Change: TAB");
 	// TABキー入力でモードを切り替える
