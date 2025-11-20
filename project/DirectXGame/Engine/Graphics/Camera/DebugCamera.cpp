@@ -172,6 +172,13 @@ void DebugCamera::Update(Input& input) {
 		ImGui::Text("Target: (%.2f, %.2f, %.2f)", target_.x, target_.y, target_.z);
 		ImGui::Text("Orbit Distance: %.2f", orbitDistance_);
 
+		// 操作説明
+		ImGui::Text("W/S + LSHIFT: Pivot Up/Down");
+		ImGui::Text("A/D + LSHIFT: Pivot Left/Right");
+		ImGui::Text("W/S: Move Target Forward/Backward");
+		ImGui::Text("A/D: Move Target Left/Right");
+		ImGui::Text("R/F: Move Target Up/Down");
+
 	} else {
 		// --- 一人称視点 (First-Person Camera) ロジック ---
 
@@ -230,7 +237,13 @@ void DebugCamera::Update(Input& input) {
 		// ワールド座標系での移動量を現在位置に加算
 		translation_ += worldMove;
 
-		ImGui::Text("Mode: First-Person Camera\n\n\n\n");
+		ImGui::Text("Mode: First-Person Camera");
+		// 操作説明
+		ImGui::Text("W/S + LSHIFT: Pitch Up/Down");
+		ImGui::Text("A/D + LSHIFT: Yaw Left/Right");
+		ImGui::Text("W/S: Move Forward/Backward");
+		ImGui::Text("A/D: Move Left/Right");
+		ImGui::Text("R/F: Move Up/Down\n\n\n\n");
 	}
 
 	// --- 共通の処理 ---
