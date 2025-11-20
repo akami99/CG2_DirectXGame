@@ -12,6 +12,7 @@ struct VertexShaderOutput {
     float4 position : SV_Position;
     float2 texcoord : TEXCOORD0;
     float3 normal : NORMAL0;
+    float4 color : COLOR0;
 };
 
 struct PixelShaderOutput {
@@ -34,4 +35,10 @@ struct DirectionalLight {
     float3 direction;
     float _padding_dummy;
     float intensity;
+};
+
+struct ParticleInstanceData {
+    float4x4 WVP;
+    float4x4 World;
+    float4 color;
 };

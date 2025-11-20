@@ -212,6 +212,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::CreateTextureResourceAndSRV(const std::
 	return textureSrvHandleGPU;
 }
 
+// StructuredBuffer用のSRVを作成
 D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::CreateStructuredBufferSRV(ComPtr<ID3D12Resource> resource, uint32_t numElement, uint32_t structureByteStride, uint32_t srvIndex) {
 	// SRVの設定
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};

@@ -103,6 +103,13 @@ struct ModelData {
 	MaterialData material;  		  // マテリアルデータ
 };
 
+// パーティクルインスタンスデータの構造体
+struct ParticleInstanceData {
+	Matrix4x4 WVP;                    // ワールドビュー射影行列
+	Matrix4x4 World;                  // ワールド行列
+	Vector4 color;                    // 色
+};// Matrix4x4(64)+Vector4(16)=80バイト
+
 #pragma endregion ここまで
 
 #pragma region 関数定義
@@ -390,7 +397,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region Sprite用のRootSignature作成
 	// Sprite用のRootSignature作成
-	
+
 	// Texture用 SRV (Pixel Shader用)
 	D3D12_DESCRIPTOR_RANGE spriteTextureSrvRange[1] = {};
 	spriteTextureSrvRange[0].BaseShaderRegister = 0;// t0
@@ -820,17 +827,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// Particle最大数
 	const uint32_t kNumParticle = 10;
 	// Particle用のTransformationMatrixリソースを作る
-	ComPtr<ID3D12Resource> particleResource = dxBase->CreateBufferResource(sizeof(TransformationMatrix) * kNumParticle);
+	ComPtr<ID3D12Resource> particleResource = dxBase->CreateBufferResource(sizeof(ParticleInstanceData) * kNumParticle);
 	// 書き込むためのアドレスを取得
-	TransformationMatrix* particleData = nullptr;
+	ParticleInstanceData* particleData = nullptr;
 	particleResource->Map(0, nullptr, reinterpret_cast<void**>(&particleData));
 	// 単位行列を書き込んでおく
 	for (uint32_t index = 0; index < kNumParticle; ++index) {
 		particleData[index].WVP = MakeIdentity4x4();
 		particleData[index].World = MakeIdentity4x4();
+		particleData[index].color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	}
 
-	D3D12_GPU_DESCRIPTOR_HANDLE instanceSrvHandleGPU = dxBase->CreateStructuredBufferSRV(particleResource, kNumParticle, sizeof(TransformationMatrix), 3);
+	D3D12_GPU_DESCRIPTOR_HANDLE instanceSrvHandleGPU = dxBase->CreateStructuredBufferSRV(particleResource, kNumParticle, sizeof(ParticleInstanceData), 3);
 
 	// ランダムエンジンの初期化(パーティクル用)
 	static std::random_device particleSeedGenerator;
@@ -841,6 +849,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Particle particles[kNumParticle];
 	for (uint32_t index = 0; index < kNumParticle; ++index) {
 		particles[index] = MakeNewParticle(particleRandomEngine);
+
+		// 色をGPUに転送
+		particleData[index].color = particles[index].color;
 	}
 
 #pragma endregion ここまで
@@ -1137,9 +1148,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma endregion ここまで
 
 		// ゲームの処理-----------------------------------------------------------------------------------
-		
+
 #pragma region 更新処理
-		
+
 		// inputを更新
 		input->Update();
 
@@ -1192,7 +1203,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		materialDataSprite->uvTransform = uvTransformMatrix;
 
 		Matrix4x4 spriteWorldMatrix = MakeAffineMatrix(spriteTransform.scale, spriteTransform.rotate, spriteTransform.translate);
-		
+
 		Matrix4x4 worldViewProjectionMatrixSprite = Multiply(spriteWorldMatrix, Multiply(spriteViewMatrix, spriteProjectionMatrix));
 		transformationMatrixDataSprite->WVP = worldViewProjectionMatrixSprite; // World-View-Projection行列をWVPメンバーに入れる
 		transformationMatrixDataSprite->World = spriteWorldMatrix;           // 純粋なワールド行列をWorldメンバーに入れる
@@ -1211,7 +1222,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		dxBase->PreDraw();
 
 		// コマンドを積む
-		
+
 		/// object3dの描画---------------------------------------
 
 		// object3d用のRootSignatureを設定
@@ -1266,7 +1277,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(1, instanceSrvHandleGPU);
 		// SRVのDescriptorTableの先頭を設定。2はrootParameter[2]である。
 		dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(2, changeTexture ? textureSrvHandleGPU2 : textureSrvHandleGPU1);
-		
+
 		// 描画！（DrawCall/ドローコール）
 		dxBase->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), kNumParticle, 0, 0);
 
