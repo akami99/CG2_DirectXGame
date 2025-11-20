@@ -29,6 +29,8 @@ void DebugCamera::Initialize() {
 }
 
 void DebugCamera::Update(Input& input) {
+	ImGui::Begin("Debug Camera Control");
+	ImGui::Text("Mode Change: TAB");
 	// TABキー入力でモードを切り替える
 	if (input.IsKeyTriggered(DIK_TAB)) {
 		isOrbitMode_ = !isOrbitMode_;
@@ -228,7 +230,7 @@ void DebugCamera::Update(Input& input) {
 		// ワールド座標系での移動量を現在位置に加算
 		translation_ += worldMove;
 
-		ImGui::Text("Mode: First-Person Camera");
+		ImGui::Text("Mode: First-Person Camera\n\n\n\n");
 	}
 
 	// --- 共通の処理 ---
@@ -238,7 +240,7 @@ void DebugCamera::Update(Input& input) {
 	// ビュー行列を更新
 	viewMatrix_ = Inverse(worldMatrix_);
 
-	ImGui::Begin("Debug Camera Control");
+	ImGui::Separator();
 	ImGui::Text("Translation: (%.2f, %.2f, %.2f)", translation_.x, translation_.y, translation_.z);
 	ImGui::Text("Rotation: (%.2f, %.2f, %.2f)", rotation_.x, rotation_.y, rotation_.z);
 	ImGui::Text("World Matrix: \n%.2f %.2f %.2f %.2f\n%.2f %.2f %.2f %.2f\n%.2f %.2f %.2f %.2f\n%.2f %.2f %.2f %.2f",

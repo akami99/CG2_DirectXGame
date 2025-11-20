@@ -579,6 +579,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	};
 
 	int currentBlendMode = kBlendModeNormal;
+	int particleBlendMode = kBlendModeAdd;
 
 	// BlendStateの設定を配列で用意しておく
 	D3D12_BLEND_DESC blendDescs[kCountOfBlendMode] = {};
@@ -1067,8 +1068,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	Matrix4x4 spriteProjectionMatrix = MakeOrthographicMatrix(0.0f, 0.0f, float(Win32Window::kClientWidth), float(Win32Window::kClientHeight), 0.0f, 100.0f);
 
-	//マテリアルの表示
+	//マテリアル
 	bool showMaterial = true;
+	
+	bool controlMaterial = false;
 
 	//スプライトの表示
 	bool showSprite = false;
@@ -1118,20 +1121,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//ImGui::DragFloat3("cameraTranslate", &cameraTransform.translate.x, 0.01f);
 		//ImGui::DragFloat3("cameraRotate", &cameraTransform.rotate.x, 0.01f);
 
+		ImGui::Checkbox("changeTexture", &changeTexture);
+
 		ImGui::Separator();
 		ImGui::Text("Material");
 
 		ImGui::Checkbox("showMaterial", &showMaterial);
-		ImGui::SliderAngle("rotate.x", &object3dTransform.rotate.x);
-		ImGui::SliderAngle("rotate.y", &object3dTransform.rotate.y);
-		ImGui::SliderAngle("rotate.z", &object3dTransform.rotate.z);
+		ImGui::Checkbox("controlMaterial", &controlMaterial);
+		ImGui::DragFloat3("scale", &object3dTransform.scale.x, 0.01f);
+		ImGui::DragFloat3("rotate", &object3dTransform.rotate.x, 0.01f);
 		ImGui::DragFloat3("translate", &object3dTransform.translate.x, 0.01f);
 
 		ImGui::ColorEdit4("color", &materialData->color.x);
 
 		ImGui::Combo("BlendMode", &currentBlendMode, "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
-
-		ImGui::Checkbox("changeTexture", &changeTexture);
 
 		ImGui::Separator();
 		ImGui::Text("Particle");
@@ -1139,6 +1142,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (ImGui::Button("Generate Particle")) {
 			generateParticle = true;
 		}
+		ImGui::Combo("ParticleBlendMode", &particleBlendMode, "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
 
 		ImGui::Separator();
 		ImGui::Text("Sprite");
@@ -1169,6 +1173,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		ImGui::End();
 
+		// 移動モード用の操作説明
+		if (controlMaterial) {
+			ImGui::Begin("Control Material Mode");
+			ImGui::Text("A/D: Left/Right");
+			ImGui::Text("W/S: Up/Down");
+			ImGui::Text("Q/E: Forward/Backward");
+			ImGui::Text("UP/DOWN: Scale Up/Down");
+			ImGui::Text("C/Z: Rotate Left/Right");
+			ImGui::Text("X: Reset Rotation");
+			ImGui::Text("Space: Generate Particle");
+			ImGui::End();
+		}
+
 #pragma endregion ここまで
 
 		// ゲームの処理-----------------------------------------------------------------------------------
@@ -1178,26 +1195,57 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// inputを更新
 		input->Update();
 
-		// キーボードの入力処理テスト(サウンド再生)
+		// キーボードの入力処理
 		if (input->IsKeyTriggered(DIK_SPACE)) { // スペースキーが押されているか
 			// サウンドの再生
 			audioManager.PlaySound("alarm1");
 		}
-		if (input->IsKeyDown(DIK_Z)) { // Zキーが押されている間は左に回転
-			object3dTransform.rotate.y -= 0.02f;
-		}
-		if (input->IsKeyDown(DIK_C)) { // Cキーが押されている間は右に回転
-			object3dTransform.rotate.y += 0.02f;
-		}
-		if (input->IsKeyReleased(DIK_X)) { // Rキーが離されたら回転をリセット
-			object3dTransform.rotate.y = 0.0f;
-		}
+
 		audioManager.CleanupFinishedVoices(); // 完了した音声のクリーンアップ
+
+		if (controlMaterial) {
+			if (input->IsKeyDown(DIK_A)) { // Aキーが押されている間は左移動
+				object3dTransform.translate.x -= 0.1f;
+			}
+			if (input->IsKeyDown(DIK_D)) { // Dキーが押されている間は右移動
+				object3dTransform.translate.x += 0.1f;
+			}
+			if (input->IsKeyDown(DIK_W)) { // Wキーが押されている間は上移動
+				object3dTransform.translate.y += 0.1f;
+			}
+			if (input->IsKeyDown(DIK_S)) { // Sキーが押されている間は下移動
+				object3dTransform.translate.y -= 0.1f;
+			}
+			if (input->IsKeyDown(DIK_Q)) { // Qキーが押されている間は前進 
+				object3dTransform.translate.z += 0.1f;
+			}
+			if (input->IsKeyDown(DIK_E)) { // Eキーが押されている間は後退
+				object3dTransform.translate.z -= 0.1f;
+			}
+
+			if (input->IsKeyDown(DIK_UP)) { // 上キーが押されている間は拡大
+				object3dTransform.scale += Vector3(0.01f, 0.01f, 0.01f);
+			}
+			if (input->IsKeyDown(DIK_DOWN)) { // 下キーが押されている間は縮小
+				object3dTransform.scale -= Vector3(0.01f, 0.01f, 0.01f);
+			}
+			if (input->IsKeyDown(DIK_C)) { // Cキーが押されている間は左に回転
+				object3dTransform.rotate.y -= 0.02f;
+			}
+			if (input->IsKeyDown(DIK_Z)) { // Zキーが押されている間は右に回転
+				object3dTransform.rotate.y += 0.02f;
+			}
+			if (input->IsKeyReleased(DIK_X)) { // Xキーが離されたら回転をリセット
+				object3dTransform.rotate.y = 0.0f;
+			}
+		}
 
 		//object3dTransform.rotate.y += 0.01f;
 
 		// カメラの更新
-		debugCamera.Update(*input);
+		if (!controlMaterial) {
+			debugCamera.Update(*input);
+		}
 		currentViewMatrix = debugCamera.GetViewMatrix();
 
 		// particle用データの更新
@@ -1205,9 +1253,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// 現在有効なインスタンスデータを、GPU転送用バッファ(particleData)のどこに詰めるかを示すインデックス
 		uint32_t currentLiveIndex = 0;
 
+		if (input->IsKeyTriggered(DIK_SPACE)) {
+			generateParticle = true;
+		}
+
 		if (generateParticle) {
 			for (uint32_t index = 0; index < kNumMaxParticle; ++index) {
 				particles[index] = MakeNewParticle(particleRandomEngine);
+				particles[index].transform.translate = particles[index].transform.translate + object3dTransform.translate; // 発生位置をオブジェクトの位置に合わせる
 			}
 			generateParticle = false;
 		}
@@ -1313,9 +1366,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// RootSignatureを設定
 		dxBase->GetCommandList()->SetGraphicsRootSignature(particleRootSignature.Get());
 		// 現在のブレンドモードに応じたPSOを設定
-		if (currentBlendMode >= 0 && currentBlendMode < kCountOfBlendMode) {
+		if (particleBlendMode >= 0 && particleBlendMode < kCountOfBlendMode) {
 			// PSOを設定
-			dxBase->GetCommandList()->SetPipelineState(particlePsoArray[currentBlendMode].Get());
+			dxBase->GetCommandList()->SetPipelineState(particlePsoArray[particleBlendMode].Get());
 		} else {
 			// 不正な値の場合
 			dxBase->GetCommandList()->SetPipelineState(particlePsoArray[kBlendModeNormal].Get());
