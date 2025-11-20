@@ -831,7 +831,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// Particle用リソース作成
 
 	// Particle最大数
-	const uint32_t kNumMaxParticle = 10;
+	const uint32_t kNumMaxParticle = 20;
 	// Particle用のTransformationMatrixリソースを作る
 	ComPtr<ID3D12Resource> particleResource = dxBase->CreateBufferResource(sizeof(ParticleInstanceData) * kNumMaxParticle);
 	// 書き込むためのアドレスを取得
@@ -1260,7 +1260,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (generateParticle) {
 			for (uint32_t index = 0; index < kNumMaxParticle; ++index) {
 				particles[index] = MakeNewParticle(particleRandomEngine);
-				particles[index].transform.translate = particles[index].transform.translate + object3dTransform.translate; // 発生位置をオブジェクトの位置に合わせる
+				// 発生位置をオブジェクトの位置に合わせる
+				particles[index].transform.translate = particles[index].transform.translate + object3dTransform.translate; 
 			}
 			generateParticle = false;
 		}
@@ -1274,8 +1275,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			float alpha = 1.0f - (particles[index].currentTime / particles[index].lifeTime);
 
 			if (particles[index].currentTime >= particles[index].lifeTime) {
-				// 透明になったらスキップ
-				continue;
+				// 寿命が尽きた場合、新しいパーティクルとして再初期化（リサイクル）
+				particles[index] = MakeNewParticle(particleRandomEngine);
+				// 発生位置をオブジェクトの位置に合わせる
+				particles[index].transform.translate = particles[index].transform.translate + object3dTransform.translate; 
 			}
 
 			// パーティクルのワールド行列とWVP行列を計算して転送
