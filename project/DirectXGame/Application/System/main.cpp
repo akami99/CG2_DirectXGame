@@ -84,6 +84,8 @@ struct Particle {
 	Transform transform;              // 変換行列
 	Vector3 velocity;                 // 速度
 	Vector4 color;                    // 色
+	float lifeTime;                   // 生存時間
+	float currentTime;                // 経過時間
 }; // Transform(36)+Vector3(12)+Vector4(16)=64バイト
 
 // 変換行列をまとめた構造体
@@ -264,11 +266,14 @@ Particle MakeNewParticle(std::mt19937& randomEngine) {
 	// ランダムな速度ベクトルを生成
 	std::random_device rd;
 	std::mt19937 gen(rd());
-	std::uniform_real_distribution<float> distribution(-1.0f, 1.0f); // particleDist()という関数のように使うイメージ
+	std::uniform_real_distribution<float> distribution(-1.0f, 1.0f); // distribution()という関数のように使うイメージ
+	std::uniform_real_distribution<float> distTime(1.0f, 3.0f);
 	// パーティクルの初期化
 	Particle particle;
 	particle.transform.scale = { 1.0f, 1.0f, 1.0f };
 	particle.transform.rotate = { 0.0f, 0.0f, 0.0f };
+	particle.lifeTime = distTime(randomEngine);
+	particle.currentTime = 0.0f;
 	// ランダムに設定
 	particle.transform.translate = { distribution(randomEngine), distribution(randomEngine), distribution(randomEngine) };
 
@@ -825,20 +830,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// Particle用リソース作成
 
 	// Particle最大数
-	const uint32_t kNumParticle = 10;
+	const uint32_t kNumMaxParticle = 10;
 	// Particle用のTransformationMatrixリソースを作る
-	ComPtr<ID3D12Resource> particleResource = dxBase->CreateBufferResource(sizeof(ParticleInstanceData) * kNumParticle);
+	ComPtr<ID3D12Resource> particleResource = dxBase->CreateBufferResource(sizeof(ParticleInstanceData) * kNumMaxParticle);
 	// 書き込むためのアドレスを取得
 	ParticleInstanceData* particleData = nullptr;
 	particleResource->Map(0, nullptr, reinterpret_cast<void**>(&particleData));
 	// 単位行列を書き込んでおく
-	for (uint32_t index = 0; index < kNumParticle; ++index) {
+	for (uint32_t index = 0; index < kNumMaxParticle; ++index) {
 		particleData[index].WVP = MakeIdentity4x4();
 		particleData[index].World = MakeIdentity4x4();
 		particleData[index].color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	}
 
-	D3D12_GPU_DESCRIPTOR_HANDLE instanceSrvHandleGPU = dxBase->CreateStructuredBufferSRV(particleResource, kNumParticle, sizeof(ParticleInstanceData), 3);
+	D3D12_GPU_DESCRIPTOR_HANDLE instanceSrvHandleGPU = dxBase->CreateStructuredBufferSRV(particleResource, kNumMaxParticle, sizeof(ParticleInstanceData), 3);
 
 	// ランダムエンジンの初期化(パーティクル用)
 	static std::random_device particleSeedGenerator;
@@ -846,13 +851,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	std::uniform_real_distribution<float> particleDist(-1.0f, 1.0f);
 
-	Particle particles[kNumParticle];
-	for (uint32_t index = 0; index < kNumParticle; ++index) {
+	Particle particles[kNumMaxParticle];
+
+	bool generateParticle = false;
+
+	for (uint32_t index = 0; index < kNumMaxParticle; ++index) {
 		particles[index] = MakeNewParticle(particleRandomEngine);
 
 		// 色をGPUに転送
 		particleData[index].color = particles[index].color;
 	}
+
+	// Particle用リソースの読み込みとアップロード
+	DirectX::ScratchImage particleMipImages = DX12Context::LoadTexture("circle.png");
+
+	// SRVを作成するDescriptorHeapの場所を決める
+	D3D12_GPU_DESCRIPTOR_HANDLE particleTextureSrvHandleGPU;
+
+	particleTextureSrvHandleGPU = dxBase->CreateTextureResourceAndSRV("circle.png", 1);
 
 #pragma endregion ここまで
 
@@ -1054,6 +1070,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	Matrix4x4 spriteProjectionMatrix = MakeOrthographicMatrix(0.0f, 0.0f, float(Win32Window::kClientWidth), float(Win32Window::kClientHeight), 0.0f, 100.0f);
 
+	//マテリアルの表示
+	bool showMaterial = true;
+
 	//スプライトの表示
 	bool showSprite = false;
 
@@ -1105,6 +1124,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::Separator();
 		ImGui::Text("Material");
 
+		ImGui::Checkbox("showMaterial", &showMaterial);
 		ImGui::SliderAngle("rotate.x", &object3dTransform.rotate.x);
 		ImGui::SliderAngle("rotate.y", &object3dTransform.rotate.y);
 		ImGui::SliderAngle("rotate.z", &object3dTransform.rotate.z);
@@ -1117,11 +1137,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::Checkbox("changeTexture", &changeTexture);
 
 		ImGui::Separator();
+		ImGui::Text("Particle");
+
+		if (ImGui::Button("Generate Particle")) {
+			generateParticle = true;
+		}
+
+		ImGui::Separator();
 		ImGui::Text("Sprite");
 
+		ImGui::Checkbox("showSprite", &showSprite);
 		ImGui::SliderFloat3("translateSprite", &spriteTransform.translate.x, 0.0f, 1000.0f);
 		ImGui::ColorEdit4("colorSprite", &materialDataSprite->color.x);
-		ImGui::Checkbox("showSprite", &showSprite);
 
 		ImGui::Separator();
 		ImGui::Text("Light");
@@ -1176,8 +1203,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		debugCamera.Update(*input);
 		currentViewMatrix = debugCamera.GetViewMatrix();
 
-		// インスタンス用データの更新
-		for (uint32_t index = 0; index < kNumParticle; ++index) {
+		// particle用データの更新
+		if (generateParticle) {
+			for (uint32_t index = 0; index < kNumMaxParticle; ++index) {
+				particles[index] = MakeNewParticle(particleRandomEngine);
+
+				// 色をGPUに転送
+				particleData[index].color = particles[index].color;
+			}
+			generateParticle = false;
+		}
+
+		uint32_t numParticle = 0; // 現在の有効なパーティクル数をカウントする変数
+		for (uint32_t index = 0; index < kNumMaxParticle; ++index) {
+			if (particles[index].color.w <= 0.0f) {
+				// 透明になったらスキップ
+				continue;
+			}
+
 			/*particles[index].transform = transform;
 			particles[index].transform.translate.x += index * 0.1f;
 			particles[index].transform.translate.y += index * 0.1f;
@@ -1185,11 +1228,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			// 速度分移動する
 			particles[index].transform.translate = particles[index].transform.translate + (particles[index].velocity * kDeltaTime);
+			particles[index].currentTime += kDeltaTime; // 経過時間を加算
 
 			Matrix4x4 particleWorldMatrix = MakeAffineMatrix(particles[index].transform.scale, particles[index].transform.rotate, particles[index].transform.translate);
 			Matrix4x4 particleWVPMatrix = Multiply(particleWorldMatrix, Multiply(currentViewMatrix, object3dProjectionMatrix));
 			particleData[index].WVP = particleWVPMatrix;
 			particleData[index].World = particleWorldMatrix;
+
+			// 色をGPUに転送
+			particleData[index].color = particles[index].color;
+			float alpha = 1.0f - (particles[index].currentTime / particles[index].lifeTime);
+			// イージングをかけるならここで調整
+
+			particleData[index].color.w = alpha; // 徐々に透明にする	
+
+			++numParticle; // 有効なパーティクル数をカウント
 		}
 
 		// 三角形
@@ -1251,7 +1304,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// DirectionalLightのCBufferの場所を設定 (PS b1, rootParameter[3]に対応)
 		dxBase->GetCommandList()->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetGPUVirtualAddress()); // directionalLightResourceはライトのCBV
 		// 描画！（DrawCall/ドローコール）
-		dxBase->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
+		if (showMaterial) {
+			dxBase->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
+		}
 		//commandList->DrawIndexedInstanced(totalIndexCount, 1, 0, 0, 0); // 引数を totalIndexCount に変更
 
 		/// Particle描画---------------------------------------
@@ -1259,13 +1314,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// RootSignatureを設定
 		dxBase->GetCommandList()->SetGraphicsRootSignature(particleRootSignature.Get());
 		// ブレンドモードに応じたPSOを設定
-		if (currentBlendMode >= 0 && currentBlendMode < kCountOfBlendMode) {
-			// PSOを設定
-			dxBase->GetCommandList()->SetPipelineState(particlePsoArray[currentBlendMode].Get());
-		} else {
-			// 不正な値の場合
-			dxBase->GetCommandList()->SetPipelineState(particlePsoArray[kBlendModeNormal].Get());
-		}
+		dxBase->GetCommandList()->SetPipelineState(particlePsoArray[kBlendModeAdd].Get());
 		// VBVを設定
 		dxBase->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferView);
 		// トポロジを設定
@@ -1276,10 +1325,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// インスタンス用SRVのDescriptorTableの先頭を設定。1はrootParametersForInstancing[1]である。
 		dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(1, instanceSrvHandleGPU);
 		// SRVのDescriptorTableの先頭を設定。2はrootParameter[2]である。
-		dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(2, changeTexture ? textureSrvHandleGPU2 : textureSrvHandleGPU1);
+		dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(2, changeTexture ? particleTextureSrvHandleGPU : textureSrvHandleGPU1);
 
 		// 描画！（DrawCall/ドローコール）
-		dxBase->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), kNumParticle, 0, 0);
+		if (numParticle > 0) {
+			dxBase->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), numParticle, 0, 0);
+		}
 
 		/// スプライト-------------------------------
 		// スプライト用のRootSignatureを設定
