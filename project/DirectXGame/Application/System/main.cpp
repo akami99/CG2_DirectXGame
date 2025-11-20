@@ -843,7 +843,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		particleData[index].color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	}
 
-	D3D12_GPU_DESCRIPTOR_HANDLE instanceSrvHandleGPU = dxBase->CreateStructuredBufferSRV(particleResource, kNumMaxParticle, sizeof(ParticleInstanceData), 3);
+	D3D12_GPU_DESCRIPTOR_HANDLE instanceSrvHandleGPU = dxBase->CreateStructuredBufferSRV(particleResource, kNumMaxParticle, sizeof(ParticleInstanceData), 4);
 
 	// ランダムエンジンの初期化(パーティクル用)
 	static std::random_device particleSeedGenerator;
@@ -861,14 +861,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// 色をGPUに転送
 		particleData[index].color = particles[index].color;
 	}
-
-	// Particle用リソースの読み込みとアップロード
-	DirectX::ScratchImage particleMipImages = DX12Context::LoadTexture("circle.png");
-
-	// SRVを作成するDescriptorHeapの場所を決める
-	D3D12_GPU_DESCRIPTOR_HANDLE particleTextureSrvHandleGPU;
-
-	particleTextureSrvHandleGPU = dxBase->CreateTextureResourceAndSRV("circle.png", 1);
 
 #pragma endregion ここまで
 
@@ -1043,13 +1035,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	DirectX::ScratchImage mipImages2 = DX12Context::LoadTexture(modelData.material.textureFilePath);
 
+	// Particle用リソースの読み込みとアップロード
+	DirectX::ScratchImage particleMipImages = DX12Context::LoadTexture("circle.png");
 
 	// SRVを作成するDescriptorHeapの場所を決める
 	D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU1;
 	D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU2;
+	D3D12_GPU_DESCRIPTOR_HANDLE particleTextureSrvHandleGPU;
+
 
 	textureSrvHandleGPU1 = dxBase->CreateTextureResourceAndSRV("uvChecker.png", 1);
 	textureSrvHandleGPU2 = dxBase->CreateTextureResourceAndSRV(modelData.material.textureFilePath, 2);
+	particleTextureSrvHandleGPU = dxBase->CreateTextureResourceAndSRV("circle.png", 3);
 
 	// コマンド実行と完了待機
 	dxBase->ExecuteInitialCommandAndSync();
@@ -1204,46 +1201,48 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		currentViewMatrix = debugCamera.GetViewMatrix();
 
 		// particle用データの更新
+
+		// 現在有効なインスタンスデータを、GPU転送用バッファ(particleData)のどこに詰めるかを示すインデックス
+		uint32_t currentLiveIndex = 0;
+
 		if (generateParticle) {
 			for (uint32_t index = 0; index < kNumMaxParticle; ++index) {
 				particles[index] = MakeNewParticle(particleRandomEngine);
-
-				// 色をGPUに転送
-				particleData[index].color = particles[index].color;
 			}
 			generateParticle = false;
 		}
 
-		uint32_t numParticle = 0; // 現在の有効なパーティクル数をカウントする変数
 		for (uint32_t index = 0; index < kNumMaxParticle; ++index) {
-			if (particles[index].color.w <= 0.0f) {
+			// パーティクル実体の更新
+			particles[index].transform.translate = particles[index].transform.translate + (particles[index].velocity * kDeltaTime);
+			particles[index].currentTime += kDeltaTime; // 経過時間を加算
+
+			// アルファ値を計算 (透明化の処理)
+			float alpha = 1.0f - (particles[index].currentTime / particles[index].lifeTime);
+
+			if (particles[index].currentTime >= particles[index].lifeTime) {
 				// 透明になったらスキップ
 				continue;
 			}
 
-			/*particles[index].transform = transform;
-			particles[index].transform.translate.x += index * 0.1f;
-			particles[index].transform.translate.y += index * 0.1f;
-			particles[index].transform.translate.z += index * 0.1f;*/
+			// パーティクルのワールド行列とWVP行列を計算して転送
 
-			// 速度分移動する
-			particles[index].transform.translate = particles[index].transform.translate + (particles[index].velocity * kDeltaTime);
-			particles[index].currentTime += kDeltaTime; // 経過時間を加算
-
+			// 行列の計算
 			Matrix4x4 particleWorldMatrix = MakeAffineMatrix(particles[index].transform.scale, particles[index].transform.rotate, particles[index].transform.translate);
 			Matrix4x4 particleWVPMatrix = Multiply(particleWorldMatrix, Multiply(currentViewMatrix, object3dProjectionMatrix));
-			particleData[index].WVP = particleWVPMatrix;
-			particleData[index].World = particleWorldMatrix;
+			
+			// 転送
+			particleData[currentLiveIndex].WVP = particleWVPMatrix;
+			particleData[currentLiveIndex].World = particleWorldMatrix;
+			particleData[currentLiveIndex].color = particles[index].color;
+			
+			// 計算したアルファ値を適用
+			particleData[currentLiveIndex].color.w = alpha; // 徐々に透明にする	
 
-			// 色をGPUに転送
-			particleData[index].color = particles[index].color;
-			float alpha = 1.0f - (particles[index].currentTime / particles[index].lifeTime);
-			// イージングをかけるならここで調整
-
-			particleData[index].color.w = alpha; // 徐々に透明にする	
-
-			++numParticle; // 有効なパーティクル数をカウント
+			currentLiveIndex++; // 有効なパーティクル数をカウント
 		}
+		// 描画数を更新
+		uint32_t numParticleToDraw = currentLiveIndex;
 
 		// 三角形
 		Matrix4x4 object3dWorldMatrix = MakeAffineMatrix(object3dTransform.scale, object3dTransform.rotate, object3dTransform.translate);
@@ -1313,8 +1312,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		// RootSignatureを設定
 		dxBase->GetCommandList()->SetGraphicsRootSignature(particleRootSignature.Get());
-		// ブレンドモードに応じたPSOを設定
-		dxBase->GetCommandList()->SetPipelineState(particlePsoArray[kBlendModeAdd].Get());
+		// 現在のブレンドモードに応じたPSOを設定
+		if (currentBlendMode >= 0 && currentBlendMode < kCountOfBlendMode) {
+			// PSOを設定
+			dxBase->GetCommandList()->SetPipelineState(particlePsoArray[currentBlendMode].Get());
+		} else {
+			// 不正な値の場合
+			dxBase->GetCommandList()->SetPipelineState(particlePsoArray[kBlendModeNormal].Get());
+		}
 		// VBVを設定
 		dxBase->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferView);
 		// トポロジを設定
@@ -1328,8 +1333,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(2, changeTexture ? particleTextureSrvHandleGPU : textureSrvHandleGPU1);
 
 		// 描画！（DrawCall/ドローコール）
-		if (numParticle > 0) {
-			dxBase->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), numParticle, 0, 0);
+		if (numParticleToDraw > 0) {
+			dxBase->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), numParticleToDraw, 0, 0);
 		}
 
 		/// スプライト-------------------------------
