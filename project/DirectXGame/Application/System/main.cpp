@@ -27,7 +27,7 @@
 #include "DX12Context.h"
 #include "D3DResourceLeakChecker.h"
 #include "AudioManager.h"
-#include "SpriteBase.h"
+#include "SpriteCommon.h"
 #include "Sprite.h"
 #include "Input.h"
 #include "DebugCamera.h"
@@ -47,6 +47,10 @@
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "dxcompiler.lib")
 #pragma comment(lib, "DirectXTex.lib")
+
+using namespace MathUtils;
+using namespace MathGenerators;
+using namespace BlendMode;
 
 #pragma region 構造体定義
 // 構造体定義
@@ -331,11 +335,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// スプライト共通部の初期化
 
 	// ポインタ
-	SpriteBase* spriteBase = nullptr;
+	SpriteCommon* spriteCommon = nullptr;
 
 	//スプライト共通部の初期化
-	spriteBase = new SpriteBase();
-	spriteBase->Initialize();
+	spriteCommon = new SpriteCommon();
+	spriteCommon->Initialize(dxBase);
 
 #pragma endregion ここまで
 
@@ -417,55 +421,55 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma endregion ここまで
 
 #pragma region Sprite用のRootSignature作成
-	// Sprite用のRootSignature作成
+	//// Sprite用のRootSignature作成
 
-	// Texture用 SRV (Pixel Shader用)
-	D3D12_DESCRIPTOR_RANGE spriteTextureSrvRange[1] = {};
-	spriteTextureSrvRange[0].BaseShaderRegister = 0;// t0
-	spriteTextureSrvRange[0].NumDescriptors = 1;
-	spriteTextureSrvRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	spriteTextureSrvRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	//// Texture用 SRV (Pixel Shader用)
+	//D3D12_DESCRIPTOR_RANGE spriteTextureSrvRange[1] = {};
+	//spriteTextureSrvRange[0].BaseShaderRegister = 0;// t0
+	//spriteTextureSrvRange[0].NumDescriptors = 1;
+	//spriteTextureSrvRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	//spriteTextureSrvRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-	// RootParameter作成
-	D3D12_ROOT_PARAMETER spriteRootParameters[3] = {};
+	//// RootParameter作成
+	//D3D12_ROOT_PARAMETER spriteRootParameters[3] = {};
 
-	// Root Parameter 0: Pixel Shader用 Material CBV (b0)
-	spriteRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	spriteRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	spriteRootParameters[0].Descriptor.ShaderRegister = 0; // b0
+	//// Root Parameter 0: Pixel Shader用 Material CBV (b0)
+	//spriteRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	//spriteRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	//spriteRootParameters[0].Descriptor.ShaderRegister = 0; // b0
 
-	// Root Parameter 1: Vertex Shader用 Transform CBV (b0)
-	spriteRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	spriteRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	spriteRootParameters[1].Descriptor.ShaderRegister = 1; // b1
+	//// Root Parameter 1: Vertex Shader用 Transform CBV (b0)
+	//spriteRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	//spriteRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	//spriteRootParameters[1].Descriptor.ShaderRegister = 1; // b1
 
-	// Root Parameter 2: Pixel Shader用 Texture SRV (t0)
-	spriteRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	spriteRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	spriteRootParameters[2].DescriptorTable.pDescriptorRanges = spriteTextureSrvRange;
-	spriteRootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(spriteTextureSrvRange);
+	//// Root Parameter 2: Pixel Shader用 Texture SRV (t0)
+	//spriteRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	//spriteRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	//spriteRootParameters[2].DescriptorTable.pDescriptorRanges = spriteTextureSrvRange;
+	//spriteRootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(spriteTextureSrvRange);
 
-	// RootSignatureDesc
-	D3D12_ROOT_SIGNATURE_DESC spriteRootSignatureDesc{};
-	spriteRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	spriteRootSignatureDesc.pParameters = spriteRootParameters;
-	spriteRootSignatureDesc.NumParameters = _countof(spriteRootParameters);
-	spriteRootSignatureDesc.pStaticSamplers = staticSamplers; // 共通Samplerを使用
-	spriteRootSignatureDesc.NumStaticSamplers = _countof(staticSamplers);
+	//// RootSignatureDesc
+	//D3D12_ROOT_SIGNATURE_DESC spriteRootSignatureDesc{};
+	//spriteRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+	//spriteRootSignatureDesc.pParameters = spriteRootParameters;
+	//spriteRootSignatureDesc.NumParameters = _countof(spriteRootParameters);
+	//spriteRootSignatureDesc.pStaticSamplers = staticSamplers; // 共通Samplerを使用
+	//spriteRootSignatureDesc.NumStaticSamplers = _countof(staticSamplers);
 
-	// シリアライズと生成
-	ComPtr<ID3D12RootSignature> spriteRootSignature = nullptr;
-	ComPtr<ID3DBlob> spriteSignatureBlob = nullptr;
-	ComPtr<ID3DBlob> spriteErrorBlob = nullptr;
+	//// シリアライズと生成
+	//ComPtr<ID3D12RootSignature> spriteRootSignature = nullptr;
+	//ComPtr<ID3DBlob> spriteSignatureBlob = nullptr;
+	//ComPtr<ID3DBlob> spriteErrorBlob = nullptr;
 
-	hr = D3D12SerializeRootSignature(&spriteRootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &spriteSignatureBlob, &spriteErrorBlob);
-	// エラーチェックと生成処理...
-	if (FAILED(hr)) {
-		Logger::Log(reinterpret_cast<char*>(spriteErrorBlob->GetBufferPointer()));
-		assert(false);
-	}
-	hr = dxBase->GetDevice()->CreateRootSignature(0, spriteSignatureBlob->GetBufferPointer(), spriteSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&spriteRootSignature));
-	assert(SUCCEEDED(hr));
+	//hr = D3D12SerializeRootSignature(&spriteRootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &spriteSignatureBlob, &spriteErrorBlob);
+	//// エラーチェックと生成処理...
+	//if (FAILED(hr)) {
+	//	Logger::Log(reinterpret_cast<char*>(spriteErrorBlob->GetBufferPointer()));
+	//	assert(false);
+	//}
+	//hr = dxBase->GetDevice()->CreateRootSignature(0, spriteSignatureBlob->GetBufferPointer(), spriteSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&spriteRootSignature));
+	//assert(SUCCEEDED(hr));
 
 #pragma endregion ここまで
 
@@ -575,25 +579,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region ブレンドモード
 	// ブレンドモード
-
-	// BlendState
-	enum BlendMode {
-		//!< ブレンド無し
-		kBlendModeNone,
-		//!< 通常aブレンド。デフォルト。Src * SrcA + Dest * (1 - SrcA)
-		kBlendModeNormal,
-		//!< 加算。Src * SrcA + Dest * 1
-		kBlendModeAdd,
-		//!< 減算。Dest * 1 - Src * SrcA
-		kBlendModeSubtract,
-		//!< 乗算。Src * 0 + Dest * SrcA
-		kBlendModeMultiply,
-		//!< スクリーン。Src * (1 - DestA) + Dest * 1
-		kBlendModeScreen,
-		//!< 利用してはいけない
-		kCountOfBlendMode,
-	};
-
 	int currentBlendMode = kBlendModeNormal;
 	int particleBlendMode = kBlendModeAdd;
 
@@ -663,10 +648,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ComPtr<IDxcBlob> object3dPSBlob = dxBase->CompileShader(L"Object3d.PS.hlsl", L"ps_6_0");
 	assert(object3dVSBlob != nullptr && object3dPSBlob != nullptr);
 
-	// スプライト用シェーダーをコンパイル
-	ComPtr<IDxcBlob> spriteVSBlob = dxBase->CompileShader(L"Sprite.VS.hlsl", L"vs_6_0");
-	ComPtr<IDxcBlob> spritePSBlob = dxBase->CompileShader(L"Sprite.PS.hlsl", L"ps_6_0");
-	assert(spriteVSBlob != nullptr && spritePSBlob != nullptr);
+	//// スプライト用シェーダーをコンパイル
+	//ComPtr<IDxcBlob> spriteVSBlob = dxBase->CompileShader(L"Sprite.VS.hlsl", L"vs_6_0");
+	//ComPtr<IDxcBlob> spritePSBlob = dxBase->CompileShader(L"Sprite.PS.hlsl", L"ps_6_0");
+	//assert(spriteVSBlob != nullptr && spritePSBlob != nullptr);
 
 	// パーティクル用
 	ComPtr<IDxcBlob> particleVSBlob = dxBase->CompileShader(L"Particle.VS.hlsl", L"vs_6_0");
@@ -718,29 +703,29 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma endregion ここまで
 
 #pragma region Sprite用PSO共通設定
-	// スプライト用PSO共通設定
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDescSpriteBase{};
+	//// スプライト用PSO共通設定
+	//D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDescSpriteBase{};
 
-	// 共通設定をセット
-	psoDescSpriteBase.pRootSignature = spriteRootSignature.Get(); // Sprite用Root Signature
-	psoDescSpriteBase.InputLayout = inputLayoutDesc; // 共通のInputLayoutを使用 (VertexDataの構成)
-	psoDescSpriteBase.VS = { spriteVSBlob->GetBufferPointer(), spriteVSBlob->GetBufferSize() };
-	psoDescSpriteBase.PS = { spritePSBlob->GetBufferPointer(), spritePSBlob->GetBufferSize() };
-	psoDescSpriteBase.RasterizerState = rasterizerDesc; // 共通のRasterizerStateを使用
-	psoDescSpriteBase.NumRenderTargets = 1;
-	psoDescSpriteBase.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	psoDescSpriteBase.SampleDesc.Count = 1;
+	//// 共通設定をセット
+	//psoDescSpriteBase.pRootSignature = spriteRootSignature.Get(); // Sprite用Root Signature
+	//psoDescSpriteBase.InputLayout = inputLayoutDesc; // 共通のInputLayoutを使用 (VertexDataの構成)
+	//psoDescSpriteBase.VS = { spriteVSBlob->GetBufferPointer(), spriteVSBlob->GetBufferSize() };
+	//psoDescSpriteBase.PS = { spritePSBlob->GetBufferPointer(), spritePSBlob->GetBufferSize() };
+	//psoDescSpriteBase.RasterizerState = rasterizerDesc; // 共通のRasterizerStateを使用
+	//psoDescSpriteBase.NumRenderTargets = 1;
+	//psoDescSpriteBase.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	//psoDescSpriteBase.SampleDesc.Count = 1;
 
-	// Depth/Stencilの設定は DepthTest を無効化
-	psoDescSpriteBase.DepthStencilState.DepthEnable = false; // 2DなのでDepthテストを無効化
-	psoDescSpriteBase.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; // 書き込みも無効
-	psoDescSpriteBase.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	//// Depth/Stencilの設定は DepthTest を無効化
+	//psoDescSpriteBase.DepthStencilState.DepthEnable = false; // 2DなのでDepthテストを無効化
+	//psoDescSpriteBase.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; // 書き込みも無効
+	//psoDescSpriteBase.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-	psoDescSpriteBase.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	psoDescSpriteBase.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+	//psoDescSpriteBase.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	//psoDescSpriteBase.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
 
-	// 外部で宣言（クラスのメンバー変数など）
-	ComPtr<ID3D12PipelineState> spritePsoArray[kCountOfBlendMode];
+	//// 外部で宣言（クラスのメンバー変数など）
+	//ComPtr<ID3D12PipelineState> spritePsoArray[kCountOfBlendMode];
 
 #pragma endregion ここまで
 
@@ -797,14 +782,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// ----------------------------------------------------
 		// Sprite用 PSO 生成 (ブレンド設定適用)
 		// ----------------------------------------------------
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDescSprite = psoDescSpriteBase;
+		//D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDescSprite = psoDescSpriteBase;
 
-		// Depth書き込みはベース設定で無効化されているため、ブレンド設定のみ適用
-		psoDescSprite.BlendState = blendDescs[i];
+		//// Depth書き込みはベース設定で無効化されているため、ブレンド設定のみ適用
+		//psoDescSprite.BlendState = blendDescs[i];
 
-		// PSO生成
-		hr = dxBase->GetDevice()->CreateGraphicsPipelineState(&psoDescSprite, IID_PPV_ARGS(&spritePsoArray[i]));
-		assert(SUCCEEDED(hr));
+		//// PSO生成
+		//hr = dxBase->GetDevice()->CreateGraphicsPipelineState(&psoDescSprite, IID_PPV_ARGS(&spritePsoArray[i]));
+		//assert(SUCCEEDED(hr));
 
 		// ----------------------------------------------------
 		// Object3D用 PSO 生成 (ブレンド設定適用)
@@ -1423,22 +1408,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		}
 
 		/// スプライト-------------------------------
-		// スプライト用のRootSignatureを設定
-		dxBase->GetCommandList()->SetGraphicsRootSignature(spriteRootSignature.Get());
-		// ブレンドモードに応じたPSOを設定
-		if (currentBlendMode >= 0 && currentBlendMode < kCountOfBlendMode) {
-			// PSOを設定
-			dxBase->GetCommandList()->SetPipelineState(spritePsoArray[currentBlendMode].Get());
-		} else {
-			// 不正な値の場合
-			dxBase->GetCommandList()->SetPipelineState(spritePsoArray[kBlendModeNormal].Get());
-		}
+		// スプライト用の設定
+		spriteCommon->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode));
 		// IBVを設定
 		dxBase->GetCommandList()->IASetIndexBuffer(&indexBufferViewSprite);
 		// VBVを設定
 		dxBase->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferViewSprite);
-		// トポロジを設定
-		dxBase->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		/// ルートパラメータを設定
 		// マテリアルCBVの場所を設定
 		dxBase->GetCommandList()->SetGraphicsRootConstantBufferView(0, materialResourceSprite->GetGPUVirtualAddress());
@@ -1481,7 +1456,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	delete sprite;
 
 	// SpriteBaseの解放
-	delete spriteBase;
+	delete spriteCommon;
 
 	// DerectXの解放
 	delete dxBase;

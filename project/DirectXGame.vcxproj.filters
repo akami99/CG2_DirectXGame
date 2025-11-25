@@ -133,6 +133,12 @@
     <Filter Include="ソース ファイル\Engine\Graphics\Sprite">
       <UniqueIdentifier>{ccd546fc-5ad3-4066-baf6-576344ec4427}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\Engine\Graphics\BlendMode">
+      <UniqueIdentifier>{1242879f-123e-4f99-9b3a-a23c0105c2ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Graphics\BlendMode">
+      <UniqueIdentifier>{426d7aa0-c88e-45a9-b439-9a90f78e4132}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="externals\imgui\imgui.cpp">
@@ -195,7 +201,10 @@
     <ClCompile Include="DirectXGame\Engine\Graphics\Sprite\Sprite.cpp">
       <Filter>ソース ファイル\Engine\Graphics\Sprite</Filter>
     </ClCompile>
-    <ClCompile Include="DirectXGame\Engine\Graphics\Sprite\SpriteBase.cpp">
+    <ClCompile Include="DirectXGame\Engine\Graphics\BlendMode\BlendMode.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\BlendMode</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Sprite\SpriteCommon.cpp">
       <Filter>ソース ファイル\Engine\Graphics\Sprite</Filter>
     </ClCompile>
   </ItemGroup>
@@ -266,8 +275,11 @@
     <ClInclude Include="DirectXGame\Engine\Graphics\Sprite\Sprite.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Sprite</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXGame\Engine\Graphics\Sprite\SpriteBase.h">
+    <ClInclude Include="DirectXGame\Engine\Graphics\Sprite\SpriteCommon.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Sprite</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\BlendMode\BlendMode.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\BlendMode</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
