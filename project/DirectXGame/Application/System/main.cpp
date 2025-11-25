@@ -27,6 +27,8 @@
 #include "DX12Context.h"
 #include "D3DResourceLeakChecker.h"
 #include "AudioManager.h"
+#include "SpriteBase.h"
+#include "Sprite.h"
 #include "Input.h"
 #include "DebugCamera.h"
 #include "Logger.h"
@@ -300,6 +302,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ログを用意
 	Logger::InitializeFileLogging();
 
+#pragma region 基盤システムの初期化
+
 #pragma region WindowsAPIの初期化
 	// WindowsAPIの初期化
 
@@ -320,6 +324,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// DirectXBaseの生成と初期化
 	dxBase = new DX12Context();
 	dxBase->Initialize(window);
+
+#pragma endregion ここまで
+
+#pragma region スプライト共通部の初期化
+	// スプライト共通部の初期化
+
+	// ポインタ
+	SpriteBase* spriteBase = nullptr;
+
+	//スプライト共通部の初期化
+	spriteBase = new SpriteBase();
+	spriteBase->Initialize();
 
 #pragma endregion ここまで
 
@@ -1095,6 +1111,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma endregion ここまで
 
+#pragma endregion ここまで
+
+#pragma region 最初のシーンの初期化
+	// 最初のシーンの初期化
+	
+	Sprite* sprite = new Sprite();
+	sprite->Initialize();
+
+#pragma endregion ここまで
+
 	// ウィンドウのxボタンが押されるまでループ
 	// 1. ウィンドウメッセージ処理
 	while (true) {
@@ -1450,6 +1476,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
+
+	// Spriteの解放
+	delete sprite;
+
+	// SpriteBaseの解放
+	delete spriteBase;
 
 	// DerectXの解放
 	delete dxBase;

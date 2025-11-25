@@ -127,6 +127,12 @@
     <Filter Include="シェーダー ファイル\Sprite">
       <UniqueIdentifier>{21824ac5-7557-4bb5-b6cd-e75d4702c843}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Graphics\Sprite">
+      <UniqueIdentifier>{dfcc8536-8d84-4967-9f10-ca6778a8b044}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Graphics\Sprite">
+      <UniqueIdentifier>{ccd546fc-5ad3-4066-baf6-576344ec4427}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="externals\imgui\imgui.cpp">
@@ -185,6 +191,12 @@
     </ClCompile>
     <ClCompile Include="DirectXGame\Application\System\Win32Window.cpp">
       <Filter>ソース ファイル\Application\System</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Sprite\Sprite.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\Sprite</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Sprite\SpriteBase.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\Sprite</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -250,6 +262,12 @@
     </ClInclude>
     <ClInclude Include="DirectXGame\Application\System\Win32Window.h">
       <Filter>ヘッダー ファイル\Application\System</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Sprite\Sprite.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Sprite</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Sprite\SpriteBase.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Sprite</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
