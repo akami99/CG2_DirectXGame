@@ -873,8 +873,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 更新前に一度だけ計算しておく
 	Matrix4x4 object3dProjectionMatrix = MakePerspectiveFovMatrix(0.45f, float(Win32Window::kClientWidth) / float(Win32Window::kClientHeight), 0.1f, 100.0f);
 
-	Matrix4x4 spriteProjectionMatrix = MakeOrthographicMatrix(0.0f, 0.0f, float(Win32Window::kClientWidth), float(Win32Window::kClientHeight), 0.0f, 100.0f);
-
 	//マテリアル
 	bool showMaterial = true;
 
@@ -906,9 +904,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region 最初のシーンの初期化
 	// 最初のシーンの初期化
-
-	Sprite* sprite = new Sprite();
-	sprite->Initialize(spriteCommon);
+	std::vector<Sprite*> sprites;
+	for (uint32_t i = 0; i < 10; ++i) {
+		Sprite* newSprite = new Sprite();
+		newSprite->Initialize(spriteCommon);
+		newSprite->SetTranslate({ float(i * 50), float(i * 50) });
+		newSprite->SetScale({ 50.0f, 50.0f });
+		sprites.push_back(newSprite);
+	}
 
 #pragma endregion ここまで
 
@@ -940,76 +943,97 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//ImGui::DragFloat3("cameraTranslate", &cameraTransform.translate.x, 0.01f);
 		//ImGui::DragFloat3("cameraRotate", &cameraTransform.rotate.x, 0.01f);
 
-		ImGui::Checkbox("changeTexture", &changeTexture);
-
+		// グローバル設定
 		ImGui::Separator();
-		ImGui::Text("Material");
-
-		ImGui::Checkbox("showMaterial", &showMaterial);
-		ImGui::Checkbox("controlMaterial", &controlMaterial);
-		ImGui::DragFloat3("scale", &object3dTransform.scale.x, 0.01f);
-		ImGui::DragFloat3("rotate", &object3dTransform.rotate.x, 0.01f);
-		ImGui::DragFloat3("translate", &object3dTransform.translate.x, 0.01f);
-
-		ImGui::ColorEdit4("color", &materialData->color.x);
-
-		ImGui::Combo("BlendMode", &currentBlendMode, "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
-
-		ImGui::Separator();
-		ImGui::Text("Particle");
-
-		if (ImGui::Button("Generate Particle")) {
-			generateParticle = true;
+		if (ImGui::TreeNode("Global Settings")) {
+			ImGui::Combo("BlendMode", &currentBlendMode, "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
+			ImGui::Checkbox("changeTexture", &changeTexture);
+			ImGui::TreePop();
 		}
-		ImGui::Combo("ParticleBlendMode", &particleBlendMode, "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
 
 		ImGui::Separator();
-		ImGui::Text("Sprite");
+		if (ImGui::TreeNode("Material")) {
+			ImGui::Checkbox("showMaterial", &showMaterial);
+			ImGui::Checkbox("controlMaterial", &controlMaterial);
+			ImGui::DragFloat3("scale", &object3dTransform.scale.x, 0.01f);
+			ImGui::DragFloat3("rotate", &object3dTransform.rotate.x, 0.01f);
+			ImGui::DragFloat3("translate", &object3dTransform.translate.x, 0.01f);
 
-		ImGui::Checkbox("showSprite", &showSprite);
-
-		Vector2 spritePosition = sprite->GetTranslate();
-		float spriteRotation = sprite->GetRotation();
-		Vector2 spriteScale = sprite->GetScale();
-		Vector4 spriteColor = sprite->GetColor();
-
-		ImGui::SliderFloat2("translateSprite", &spritePosition.x, 0.0f, 1000.0f);
-		ImGui::SliderFloat("rotateSprite", &spriteRotation, 0.0f, 360.0f);
-		ImGui::SliderFloat2("scaleSprite", &spriteScale.x, 1.0f, Win32Window::kClientWidth);
-		ImGui::ColorEdit4("colorSprite", &spriteColor.x);
-		sprite->SetTranslate(spritePosition);
-		sprite->SetRotation(spriteRotation);
-		sprite->SetScale(spriteScale);
-		sprite->SetColor(spriteColor);
+			ImGui::ColorEdit4("color", &materialData->color.x);
+			ImGui::TreePop();
+		}
 
 		ImGui::Separator();
-		ImGui::Text("UV");
-
-
-		// UVTransform用の変数を用意
-		Transform uvTransformSprite = {};
-		uvTransformSprite.translate = sprite->GetUvTranslate();
-		uvTransformSprite.scale = sprite->GetUvScale();
-		uvTransformSprite.rotate = sprite->GetUvRotation();
-
-		ImGui::DragFloat2("uvTranslate", &uvTransformSprite.translate.x, 0.01f, -10.0f, 10.0f);
-		ImGui::DragFloat2("uvScale", &uvTransformSprite.scale.x, 0.01f, -10.0f, 10.0f);
-		ImGui::SliderAngle("uvRotate", &uvTransformSprite.rotate.z);
-		sprite->SetUvTranslate(uvTransformSprite.translate);
-		sprite->SetUvScale(uvTransformSprite.scale);
-		sprite->SetUvRotation(uvTransformSprite.rotate);
+		if (ImGui::TreeNode("Particle")) {
+			if (ImGui::Button("Reload Particle")) {
+				generateParticle = true;
+			}
+			ImGui::Combo("ParticleBlendMode", &particleBlendMode, "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
+			ImGui::TreePop();
+		}
 
 		ImGui::Separator();
-		ImGui::Text("Light");
+		if (ImGui::TreeNode("Sprite")) {
 
-		ImGui::ColorEdit4("colorLight", &directionalLightData->color.x);
-		ImGui::DragFloat3("directionLight", &directionalLightData->direction.x, 0.01f);
-		ImGui::DragFloat("intensityLight", &directionalLightData->intensity, 0.01f);
-		ImGui::CheckboxFlags("enableLighting", reinterpret_cast<uint32_t*>(&materialData->enableLighting), 1 << 0);
+			ImGui::Checkbox("showSprite", &showSprite);
 
-		if (ImGui::Button("Play Sound")) {
-			// サウンドの再生
-			audioManager.PlaySound("alarm1");
+			for (size_t i = 0; i < sprites.size(); ++i) {
+				std::string label = "Sprite " + std::to_string(i);
+				if (ImGui::TreeNode(label.c_str())) {
+					Sprite* sprite = sprites[i];
+
+					Vector2 spritePosition = sprite->GetTranslate();
+					float spriteRotation = sprite->GetRotation();
+					Vector2 spriteScale = sprite->GetScale();
+					Vector4 spriteColor = sprite->GetColor();
+
+					ImGui::SliderFloat2("translateSprite", &spritePosition.x, 0.0f, 1000.0f);
+					ImGui::SliderFloat("rotateSprite", &spriteRotation, 0.0f, 360.0f);
+					ImGui::SliderFloat2("scaleSprite", &spriteScale.x, 1.0f, Win32Window::kClientWidth);
+					ImGui::ColorEdit4("colorSprite", &spriteColor.x);
+					sprite->SetTranslate(spritePosition);
+					sprite->SetRotation(spriteRotation);
+					sprite->SetScale(spriteScale);
+					sprite->SetColor(spriteColor);
+
+					ImGui::Separator();
+					ImGui::Text("UV");
+
+					// UVTransform用の変数を用意
+					Transform uvTransformSprite = {};
+					uvTransformSprite.translate = sprite->GetUvTranslate();
+					uvTransformSprite.scale = sprite->GetUvScale();
+					uvTransformSprite.rotate = sprite->GetUvRotation();
+
+					ImGui::DragFloat2("uvTranslate", &uvTransformSprite.translate.x, 0.01f, -10.0f, 10.0f);
+					ImGui::DragFloat2("uvScale", &uvTransformSprite.scale.x, 0.01f, -10.0f, 10.0f);
+					ImGui::SliderAngle("uvRotate", &uvTransformSprite.rotate.z);
+					sprite->SetUvTranslate(uvTransformSprite.translate);
+					sprite->SetUvScale(uvTransformSprite.scale);
+					sprite->SetUvRotation(uvTransformSprite.rotate);
+					ImGui::TreePop();
+				}
+			}
+			ImGui::TreePop();
+		}
+
+		ImGui::Separator();
+		if (ImGui::TreeNode("Light")) {
+			ImGui::ColorEdit4("colorLight", &directionalLightData->color.x);
+			ImGui::DragFloat3("directionLight", &directionalLightData->direction.x, 0.01f);
+			ImGui::DragFloat("intensityLight", &directionalLightData->intensity, 0.01f);
+			ImGui::CheckboxFlags("enableLighting", reinterpret_cast<uint32_t*>(&materialData->enableLighting), 1 << 0);
+			ImGui::TreePop();
+		}
+
+		ImGui::Separator();
+		if (ImGui::TreeNode("Sound")) {
+			ImGui::Text("Press Space to Play Sound");
+			if (ImGui::Button("Play Sound")) {
+				// サウンドの再生
+				audioManager.PlaySound("alarm1");
+			}
+			ImGui::TreePop();
 		}
 
 		ImGui::End();
@@ -1149,7 +1173,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		object3dData->World = object3dWorldMatrix;           // 純粋なワールド行列をWorldメンバーに入れる
 
 		// スプライト
-		sprite->Update();
+		for (size_t i = 0; i < sprites.size(); ++i) {
+			sprites[i]->Update();
+		}
 
 #pragma endregion ここまで
 
@@ -1233,8 +1259,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		spriteCommon->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode));
 		// 描画！（DrawCall/ドローコール）
 		if (showSprite) {
-			sprite->Draw(textureSrvHandleGPU1);
-			/*dxBase->GetCommandList()->DrawIndexedInstanced(6, 1, 0, 0, 0);*/
+			for (size_t i = 0; i < sprites.size(); ++i) {
+				sprites[i]->Draw(textureSrvHandleGPU1);
+			}
 		}
 
 
@@ -1263,7 +1290,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ImGui::DestroyContext();
 
 	// Spriteの解放
-	delete sprite;
+	for (size_t i = 0; i < sprites.size(); ++i) {
+		delete sprites[i];
+	}
 
 	// SpriteBaseの解放
 	delete spriteCommon;
