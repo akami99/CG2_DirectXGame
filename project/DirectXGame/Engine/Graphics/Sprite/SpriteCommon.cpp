@@ -24,7 +24,7 @@ void SpriteCommon::Initialize(DX12Context* dxBase) {
 }
 
 void SpriteCommon::SetCommonDrawSettings(BlendState currentBlendMode) {
-	// スプライト用のRootSignatureを設定
+	// RootSignatureを設定
 	dxBase_->GetCommandList()->SetGraphicsRootSignature(rootSignature_.Get());
 	// ブレンドモードに応じたPSOを設定
 	if (currentBlendMode >= 0 && currentBlendMode < kCountOfBlendMode) {
@@ -143,8 +143,8 @@ void SpriteCommon::CreatePSO() {
 
 #pragma endregion ここまで
 
-#pragma region Sprite用PSO共通設定
-	// スプライト用PSO共通設定
+#pragma region PSO共通設定
+	// PSO共通設定
 
 	// RasterizerState作成
 	// カリング
@@ -152,25 +152,25 @@ void SpriteCommon::CreatePSO() {
 	// 三角形の中を塗りつぶす
 	rasterizerDesc_.FillMode = D3D12_FILL_MODE_SOLID;
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDescSpriteBase{};
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDescBase{};
 
 	// 共通設定をセット
-	psoDescSpriteBase.pRootSignature = rootSignature_.Get(); // Sprite用Root Signature
-	psoDescSpriteBase.InputLayout = inputLayoutDesc; // 共通のInputLayoutを使用 (VertexDataの構成)
-	psoDescSpriteBase.VS = { vsBlob_->GetBufferPointer(), vsBlob_->GetBufferSize() };
-	psoDescSpriteBase.PS = { psBlob_->GetBufferPointer(), psBlob_->GetBufferSize() };
-	psoDescSpriteBase.RasterizerState = rasterizerDesc_; // 共通のRasterizerStateを使用
-	psoDescSpriteBase.NumRenderTargets = 1;
-	psoDescSpriteBase.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	psoDescSpriteBase.SampleDesc.Count = 1;
+	psoDescBase.pRootSignature = rootSignature_.Get(); // Sprite用Root Signature
+	psoDescBase.InputLayout = inputLayoutDesc; // 共通のInputLayoutを使用 (VertexDataの構成)
+	psoDescBase.VS = { vsBlob_->GetBufferPointer(), vsBlob_->GetBufferSize() };
+	psoDescBase.PS = { psBlob_->GetBufferPointer(), psBlob_->GetBufferSize() };
+	psoDescBase.RasterizerState = rasterizerDesc_; // 共通のRasterizerStateを使用
+	psoDescBase.NumRenderTargets = 1;
+	psoDescBase.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	psoDescBase.SampleDesc.Count = 1;
 
 	// Depth/Stencilの設定は DepthTest を無効化
-	psoDescSpriteBase.DepthStencilState.DepthEnable = false; // 2DなのでDepthテストを無効化
-	psoDescSpriteBase.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; // 書き込みも無効
-	psoDescSpriteBase.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	psoDescBase.DepthStencilState.DepthEnable = false; // 2DなのでDepthテストを無効化
+	psoDescBase.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; // 書き込みも無効
+	psoDescBase.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-	psoDescSpriteBase.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	psoDescSpriteBase.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+	psoDescBase.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDescBase.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
 
 #pragma endregion ここまで
 
@@ -182,11 +182,11 @@ void SpriteCommon::CreatePSO() {
 	// PSOの生成 (ループ部分)
 	for (int i = 0; i < kCountOfBlendMode; ++i) {
 		// i番目のブレンド設定をPSOにセット
-		psoDescSpriteBase.BlendState = blendDescs[i];
+		psoDescBase.BlendState = blendDescs[i];
 
 		// PSOの生成
 
-		hr = dxBase_->GetDevice()->CreateGraphicsPipelineState(&psoDescSpriteBase, IID_PPV_ARGS(&psoArray_[i]));
+		hr = dxBase_->GetDevice()->CreateGraphicsPipelineState(&psoDescBase, IID_PPV_ARGS(&psoArray_[i]));
 		assert(SUCCEEDED(hr));
 	}
 

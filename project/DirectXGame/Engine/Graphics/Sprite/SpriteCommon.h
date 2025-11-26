@@ -1,15 +1,13 @@
 #pragma once
 
 #include <wrl/client.h>
-#include <d3d12.h>
-#include <DXGI.h>
 
 #include "API/DX12Context.h"
 #include "BlendMode/BlendMode.h"
 
 // スプライト共通部
 class SpriteCommon {
-public: // namespace省略のためのusing宣言
+private: // namespace省略のためのusing宣言
 #pragma region using宣言
 
 	// Microsoft::WRL::ComPtrをComPtrで省略
@@ -42,6 +40,7 @@ public: // メンバ関数
 	// 共通描画設定
 	void SetCommonDrawSettings(BlendMode::BlendState currentBlendMode);
 	
+	// DirectX基底部分を取得
 	DX12Context* GetDX12Context() const { return dxBase_; }
 
 	//// 外部からRootSignatureを取得できるようにする
