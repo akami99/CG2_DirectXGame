@@ -92,6 +92,16 @@ private: // メンバ変数
 	// テクスチャ番号
 	uint32_t textureIndex_ = 0;
 
+	// アンカーポイント
+	Vector2 anchorPoint_ = { 0.0f, 0.0f };
+	// 左右フリップ
+	bool isFlipX_ = false;
+	// 上下フリップ
+	bool isFlipY_ = false;
+	// テクスチャ左上座標
+	Vector2 textureLeftTop_ = { 0.0f, 0.0f };
+	// テクスチャ切り出しサイズ
+	Vector2 textureSize_ = { 100.0f, 100.0f };
 
 public: // メンバ関数
 	// 初期化
@@ -106,19 +116,29 @@ public: // メンバ関数
 	// getter
 
 	// 座標の取得
-	const Vector2 GetTranslate() const { return translate_; }
+	const Vector2& GetTranslate() const { return translate_; }
 	// 回転の取得
-	float GetRotation() const { return rotation_; }
+	const float& GetRotation() const { return rotation_; }
 	// スケールの取得
-	const Vector2 GetScale() const { return scale_; }
+	const Vector2& GetScale() const { return scale_; }
 	//　色の取得
-	const Vector4 GetColor() const { return materialData_->color; }
+	const Vector4& GetColor() const { return materialData_->color; }
 	// UV座標の取得
-	const Vector3 GetUvTranslate() { return uvTransform_.translate; }
+	const Vector3& GetUvTranslate() const { return uvTransform_.translate; }
 	// UV回転の取得
-	const Vector3 GetUvRotation() { return uvTransform_.rotate; }
+	const Vector3& GetUvRotation() const { return uvTransform_.rotate; }
 	// UVスケールの取得
-	const Vector3 GetUvScale() { return uvTransform_.scale; }
+	const Vector3& GetUvScale() const { return uvTransform_.scale; }
+	// アンカーポイントの取得
+	const Vector2& GetAnchorPoint() const { return anchorPoint_; }
+	// 左右フリップの取得
+	const bool& GetFlipX() const { return isFlipX_; }
+	// 上下フリップの取得
+	const bool& GetFlipY() const { return isFlipY_; }
+	// テクスチャ左上座標の取得
+	const Vector2& GetTextureLeftTop() const { return textureLeftTop_; }
+	// テクスチャ切り出しサイズの取得
+	const Vector2& GetTextureSize() const { return textureSize_; }
 
 	// setter
 
@@ -127,7 +147,7 @@ public: // メンバ関数
 		translate_ = translate;
 	}
 	// 回転の設定
-	void SetRotation(float rotation) {
+	void SetRotation(const float& rotation) {
 		rotation_ = rotation;
 	}
 	// スケールの設定
@@ -151,8 +171,26 @@ public: // メンバ関数
 		uvTransform_.scale = uvScale;
 	}
 	// テクスチャインデックスを設定するためのセッター
-	void SetTextureIndex(uint32_t index) {
-		textureIndex_ = index;
+	void SetTextureIndex(const uint32_t& index);
+	// アンカーポイントの取得
+	void SetAnchorPoint(const Vector2& anchorPoint) {
+		anchorPoint_ = anchorPoint;
+	}
+	// 左右フリップの取得
+	void SetFlipX(const bool& isFlipX) {
+		isFlipX_ = isFlipX;
+	}
+	// 上下フリップの取得
+	void SetFlipY(const bool& isFlipY) {
+		isFlipY_ = isFlipY;
+	}
+	// テクスチャ左上座標の設定
+	void SetTextureLeftTop(const Vector2& textureLeftTop) {
+		textureLeftTop_ = textureLeftTop;
+	}
+	// テクスチャ切り出しサイズの設定
+	void SetTextureSize(const Vector2& textureSize) {
+		textureSize_ = textureSize;
 	}
 
 private: // メンバ関数
@@ -164,5 +202,8 @@ private: // メンバ関数
 
 	// 変換行列バッファの作成
 	void CreateTransformationMatrixResource();
+
+	// テクスチャサイズをイメージに合わせる
+	void AdjustTextureSize();
 };
 

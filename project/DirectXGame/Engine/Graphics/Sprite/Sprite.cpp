@@ -28,10 +28,36 @@ void Sprite::Initialize(SpriteCommon* spriteCommon, uint32_t textureIndex) {
 
 	// インデックスを代入
 	textureIndex_ = textureIndex;
+
+	AdjustTextureSize();
 }
 
 // 更新処理
 void Sprite::Update() {
+	
+	// アンカーポイント
+	float left = 0.0f - anchorPoint_.x;
+	float right = 1.0f - anchorPoint_.x;
+	float top = 0.0f - anchorPoint_.y;
+	float bottom = 1.0f - anchorPoint_.y;
+
+	// 左右反転
+	if (isFlipX_) {
+		left = -left;
+		right = -right;
+	}
+	// 上下反転
+	if (isFlipY_) {
+		top = -top;
+		bottom = -bottom;
+	}
+
+	// テクスチャ範囲指定
+	const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureIndex_);
+	float texLeft = textureLeftTop_.x / metadata.width;
+	float texRight = (textureLeftTop_.x + textureSize_.x) / metadata.width;
+	float texTop = textureLeftTop_.y / metadata.height;
+	float texBottom = (textureLeftTop_.y + textureSize_.y) / metadata.height;
 
 #pragma region 頂点データとインデックスデータの設定
 	// 頂点データとインデックスデータの設定
@@ -39,23 +65,23 @@ void Sprite::Update() {
 	// 頂点リソースにデータを書き込む
 
 	// 頂点0: 左下 (0,0)
-	vertexData_[0].position = { 0.0f, 1.0f, 0.0f, 1.0f };
-	vertexData_[0].texcoord = { 0.0f, 1.0f };
+	vertexData_[0].position = { left, bottom, 0.0f, 1.0f };
+	vertexData_[0].texcoord = { texLeft, texBottom };
 	vertexData_[0].normal = { 0.0f, 0.0f, -1.0f };
 
 	// 頂点1: 左上 (640,0)
-	vertexData_[1].position = { 0.0f, 0.0f, 0.0f, 1.0f };
-	vertexData_[1].texcoord = { 0.0f, 0.0f };
+	vertexData_[1].position = { left, top, 0.0f, 1.0f };
+	vertexData_[1].texcoord = { texLeft, texTop };
 	vertexData_[1].normal = { 0.0f, 0.0f, -1.0f };
 
 	// 頂点2: 右下 (0,360)
-	vertexData_[2].position = { 1.0f, 1.0f, 0.0f, 1.0f };
-	vertexData_[2].texcoord = { 1.0f, 1.0f };
+	vertexData_[2].position = { right, bottom, 0.0f, 1.0f };
+	vertexData_[2].texcoord = { texRight, texBottom };
 	vertexData_[2].normal = { 0.0f, 0.0f, -1.0f };
 
 	// 頂点3: 右上 (640,360)
-	vertexData_[3].position = { 1.0f, 0.0f, 0.0f, 1.0f };
-	vertexData_[3].texcoord = { 1.0f, 0.0f };
+	vertexData_[3].position = { right, top, 0.0f, 1.0f };
+	vertexData_[3].texcoord = { texRight, texTop };
 	vertexData_[3].normal = { 0.0f, 0.0f, -1.0f };
 
 	// インデックスリソースにデータを書き込む
@@ -91,7 +117,7 @@ void Sprite::Update() {
 	Matrix4x4 wvpMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
 	transformationMatrixData_->WVP = wvpMatrix; // World-View-Projection行列をWVPメンバーに入れる
 	transformationMatrixData_->World = worldMatrix;  // 純粋なワールド行列をWorldメンバーに入れる
-
+	
 #pragma endregion ここまで
 }
 
@@ -110,6 +136,14 @@ void Sprite::Draw() {
 	spriteCommon_->GetDX12Context()->GetCommandList()->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(textureIndex_));
 	// 描画コマンド
 	spriteCommon_->GetDX12Context()->GetCommandList()->DrawIndexedInstanced(6, 1, 0, 0, 0);
+}
+
+void Sprite::SetTextureIndex(const uint32_t& index) {
+	
+	textureIndex_ = index;
+
+	// テクスチャが変わったので、切り出しサイズを新しいテクスチャに合わせる
+	AdjustTextureSize();
 }
 
 // 頂点バッファとインデックスバッファの作成
@@ -206,4 +240,14 @@ void Sprite::CreateTransformationMatrixResource() {
 	transformationMatrixData_->World = MakeIdentity4x4();
 
 #pragma endregion ここまで
+}
+
+void Sprite::AdjustTextureSize() {
+	// テクスチャメタデータを取得
+	const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureIndex_);
+	
+	textureSize_.x = static_cast<float>(metadata.width);
+	textureSize_.y = static_cast<float>(metadata.height);
+	// 画像をテクスチャサイズに合わせる
+	scale_ = textureSize_;
 }

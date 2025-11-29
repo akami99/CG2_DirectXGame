@@ -782,7 +782,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// モデル読み込み
 	ModelData modelData = LoadObjFile("Plane", "plane.obj");
-	
+
 	// 実際に頂点リソースを作る
 	ComPtr<ID3D12Resource> vertexResource = dxBase->CreateBufferResource(sizeof(VertexData) * modelData.vertices.size());
 	//ID3D12Resource* vertexResource = CreateBufferResource(device, sizeof(VertexData) * totalUniqueVertexCount);
@@ -862,7 +862,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	/*Transform cameraTransform = { { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -10.0f } };
 	Matrix4x4 cameraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);*/
 	Matrix4x4 currentViewMatrix = debugCamera.GetViewMatrix();
-	
+
 	// 更新前に一度だけ計算しておく
 	Matrix4x4 object3dProjectionMatrix = MakePerspectiveFovMatrix(0.45f, float(Win32Window::kClientWidth) / float(Win32Window::kClientHeight), 0.1f, 100.0f);
 
@@ -889,12 +889,26 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region 最初のシーンの初期化
 	// 最初のシーンの初期化
+	const float spriteSize = 200.0f;
 	std::vector<Sprite*> sprites;
 	for (uint32_t i = 0; i < 10; ++i) {
 		Sprite* newSprite = new Sprite();
 		newSprite->Initialize(spriteCommon, uvCheckerIndex);
-		newSprite->SetTranslate({ float(i * 50), float(i * 50) });
-		newSprite->SetScale({ 50.0f, 50.0f });
+		newSprite->SetAnchorPoint({ 0.5f, 0.5f });
+		if (i == 7) {
+			newSprite->SetFlipX(1);
+			newSprite->SetFlipY(1);
+		} else if (i == 8) {
+			newSprite->SetFlipX(1);
+			newSprite->SetTextureLeftTop({ 0.0f, 0.0f });
+			newSprite->SetTextureSize({ 64.0f, 64.0f });
+			newSprite->SetScale({ spriteSize, spriteSize });
+		} else if (i == 9) {
+			newSprite->SetTextureLeftTop({ 0.0f, 0.0f });
+			newSprite->SetTextureSize({ 64.0f, 64.0f });
+			newSprite->SetScale({ spriteSize, spriteSize });
+		}
+		newSprite->SetTranslate({ float(i * spriteSize / 3), float(i * spriteSize / 3) });
 		sprites.push_back(newSprite);
 	}
 
@@ -985,7 +999,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 					Vector4 spriteColor = sprite->GetColor();
 
 					ImGui::SliderFloat2("translateSprite", &spritePosition.x, 0.0f, 1000.0f);
-					ImGui::SliderFloat("rotateSprite", &spriteRotation, 0.0f, 360.0f);
+					ImGui::SliderFloat("rotateSprite", &spriteRotation, -6.28f, 6.28f);
 					ImGui::SliderFloat2("scaleSprite", &spriteScale.x, 1.0f, Win32Window::kClientWidth);
 					ImGui::ColorEdit4("colorSprite", &spriteColor.x);
 					sprite->SetTranslate(spritePosition);
@@ -1002,7 +1016,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 					uvTransformSprite.scale = sprite->GetUvScale();
 					uvTransformSprite.rotate = sprite->GetUvRotation();
 
-					ImGui::DragFloat2("uvTranslate", &uvTransformSprite.translate.x, 0.01f, -10.0f, 10.0f);
+					ImGui::DragFloat2("uvTranslate", &uvTransformSprite.translate.x, 0.01f, 0.0f, 1.0f);
 					ImGui::DragFloat2("uvScale", &uvTransformSprite.scale.x, 0.01f, -10.0f, 10.0f);
 					ImGui::SliderAngle("uvRotate", &uvTransformSprite.rotate.z);
 					sprite->SetUvTranslate(uvTransformSprite.translate);
@@ -1208,7 +1222,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// WVP用CBVの場所を設定
 		dxBase->GetCommandList()->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 		// SRVのDescriptorTableの先頭を設定。2はrootParameter[2]である。
-		dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(2,	TextureManager::GetInstance()->GetSrvHandleGPU(modelTextureIndex));
+		dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(modelTextureIndex));
 		// DirectionalLightのCBufferの場所を設定 (PS b1, rootParameter[3]に対応)
 		dxBase->GetCommandList()->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetGPUVirtualAddress()); // directionalLightResourceはライトのCBV
 		// 描画！（DrawCall/ドローコール）
@@ -1257,16 +1271,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (showSprite) {
 			for (size_t i = 0; i < sprites.size(); ++i) {
 
-				uint32_t targetIndex;
-				if ((i % 2) == 0) {
-					// 偶数番目のスプライトにはmonsterBallテクスチャを適用
-					targetIndex = monsterBallIndex;
-				} else {
-					// 奇数番目のスプライトにはuvCheckerテクスチャを適用
-					targetIndex = uvCheckerIndex;
+				if (i == 6) {
+					// monsterBallテクスチャを適用
+					sprites[i]->SetTextureIndex(monsterBallIndex);
 				}
-				// Draw() の前に、スプライトの内部状態を更新
-				sprites[i]->SetTextureIndex(targetIndex);
 
 				// 描画
 				sprites[i]->Draw();

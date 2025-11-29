@@ -83,6 +83,25 @@ D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetSrvHandleGPU(uint32_t textureInde
 	return textureData.srvHandleGPU;
 }
 
+const DirectX::TexMetadata& TextureManager::GetMetaData(uint32_t textureIndex) {
+	// SRVインデックスを配列インデックスに変換
+	// kSRVIndexTop (1) 未満の場合、arrayIndexは0未満になるため、
+	// kSRVIndexTopでの最小値チェックを先に行う。
+	assert(textureIndex >= kSRVIndexTop && "Error: texture index is the reserved index (0)!");
+
+	uint32_t arrayIndex = textureIndex - kSRVIndexTop;
+
+	// 配列の境界チェック（arrayIndexが配列のサイズ未満であることを確認）
+	assert(arrayIndex < textureDatas_.size() && "Error: texture array index out of bounds!");
+
+	// テクスチャデータの参照を取得
+	// arrayIndex を使用してアクセスする
+	const TextureData& textureData = textureDatas_[arrayIndex];
+
+	// GPUハンドルを返却
+	return textureData.metadata;
+}
+
 uint32_t TextureManager::LoadTexture(const std::string& filePath) {
 
 	std::string fullPath = filePath;

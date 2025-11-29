@@ -148,7 +148,7 @@ void SpriteCommon::CreatePSO() {
 
 	// RasterizerState作成
 	// カリング
-	rasterizerDesc_.CullMode = D3D12_CULL_MODE_BACK;
+	rasterizerDesc_.CullMode = D3D12_CULL_MODE_NONE;
 	// 三角形の中を塗りつぶす
 	rasterizerDesc_.FillMode = D3D12_FILL_MODE_SOLID;
 
