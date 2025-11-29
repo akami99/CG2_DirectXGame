@@ -71,12 +71,6 @@ void DX12Context::Initialize(Win32Window* window) {
 	// ImGuiの初期化
 	InitializeImGui();
 
-	// テクスチャリソースの生成とSRVの作成
-	//CreateTextureResourceAndSRV("resources/uvChecker.png", 1);
-
-	// 最初のコマンドリストを実行して、初期化処理を完了させる
-	//ExecuteInitialCommandAndSync();
-
 	Log("Complete Initialize DX12Context!!!\n");// 初期化完了のログをだす
 }
 
@@ -169,50 +163,6 @@ void DX12Context::PostDraw() {
 	swapChain_->Present(1, 0);
 
 }
-
-// テクスチャリソースの生成とSRVの作成
-//D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::CreateTextureResourceAndSRV(const std::string& filePath, uint32_t srvIndex) {
-//	
-//	std::string fullPath = filePath;
-//	// 既にパスに"DirectXGame/Resources/Textures/"が含まれている場合は追加しない
-//	if (filePath.find("Resources/Textures/") == std::string::npos &&
-//		filePath.find("resources/textures/") == std::string::npos) {
-//		fullPath = "Resources/Textures/" + filePath;
-//	}
-//
-//	// テクスチャを読み込む
-//	DirectX::ScratchImage mipImages = LoadTexture(fullPath);
-//	const DirectX::TexMetadata& metadata = mipImages.GetMetadata();
-//
-//	// GPU上にテクスチャリソースを生成
-//	ComPtr<ID3D12Resource> textureResource = CreateTextureResource(metadata);
-//
-//	////テクスチャリソースをアップロードし、コマンドリストに積む
-//	//ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(textureResource, mipImages);
-//
-//	//// テクスチャリソース本体も保持
-//	//textureResources_.push_back(textureResource);
-//
-//	//// アップロード完了まで中間リソースを保持
-//	//intermediateResources_.push_back(intermediateResource);
-//
-//	// SRVの設定
-//	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
-//	srvDesc.Format = metadata.format;
-//	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-//	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;//2Dテクスチャ
-//	srvDesc.Texture2D.MipLevels = UINT(metadata.mipLevels);
-//
-//	// SRVを作成するディスクリプタヒープの場所を取得
-//	D3D12_CPU_DESCRIPTOR_HANDLE textureSrvHandleCPU = GetSRVCPUDescriptorHandle(srvIndex);
-//	D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU = GetSRVGPUDescriptorHandle(srvIndex);
-//	
-//	// SRVの生成
-//	device_->CreateShaderResourceView(textureResource.Get(), &srvDesc, textureSrvHandleCPU);
-//
-//	// GPU用のハンドルを返す
-//	return textureSrvHandleGPU;
-//}
 
 // StructuredBuffer用のSRVを作成
 D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::CreateStructuredBufferSRV(ComPtr<ID3D12Resource> resource, uint32_t numElement, uint32_t structureByteStride, uint32_t srvIndex) {

@@ -81,12 +81,6 @@ private: // メンバ変数
 	ComPtr<IDxcCompiler3> dxcCompiler_ = nullptr; // コンパイラ
 	ComPtr<IDxcIncludeHandler> includeHandler_ = nullptr; // インクルードハンドラ
 
-	// テクスチャアップロード用中間リソースを保持する配列
-	//std::vector<ComPtr<ID3D12Resource>> intermediateResources_ = {};
-
-	// テクスチャリソース本体を保持する配列
-	//std::vector<ComPtr<ID3D12Resource>> textureResources_ = {};
-
 #pragma endregion privateメンバ変数
 
 public: // メンバ関数
@@ -98,9 +92,6 @@ public: // メンバ関数
 	void PreDraw();
 	// 描画後処理
 	void PostDraw();
-
-	// テクスチャリソースとSRVの生成
-	//D3D12_GPU_DESCRIPTOR_HANDLE CreateTextureResourceAndSRV(const std::string& filePath, uint32_t srvIndex);
 
 	/// <summary>
 	/// StructuredBuffer用のSRVを作成

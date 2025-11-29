@@ -782,13 +782,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// モデル読み込み
 	ModelData modelData = LoadObjFile("Plane", "plane.obj");
-	//modelData.vertices.push_back({ .position = {1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {0.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} });
-	//modelData.vertices.push_back({ .position = {-1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} });
-	//modelData.vertices.push_back({ .position = {1.0f, -1.0f, 0.0f, 1.0f}, .texcoord = {0.0f, 1.0f}, .normal = {0.0f, 0.0f, 1.0f} });
-	//modelData.vertices.push_back({ .position = {1.0f, -1.0f, 0.0f, 1.0f}, .texcoord = {0.0f, 1.0f}, .normal = {0.0f, 0.0f, 1.0f} });
-	//modelData.vertices.push_back({ .position = {-1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} });
-	//modelData.vertices.push_back({ .position = {-1.0f, -1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 1.0f}, .normal = {0.0f, 0.0f, 1.0f} });
-
+	
 	// 実際に頂点リソースを作る
 	ComPtr<ID3D12Resource> vertexResource = dxBase->CreateBufferResource(sizeof(VertexData) * modelData.vertices.size());
 	//ID3D12Resource* vertexResource = CreateBufferResource(device, sizeof(VertexData) * totalUniqueVertexCount);
@@ -854,8 +848,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// テクスチャインデックスを保持
 	uint32_t uvCheckerIndex = TextureManager::GetInstance()->LoadTexture("uvChecker.png");// Index 1
-	uint32_t modelTextureIndex = TextureManager::GetInstance()->LoadTexture(modelData.material.textureFilePath);// Index 2
-	uint32_t particleTextureIndex = TextureManager::GetInstance()->LoadTexture("circle.png");// Index 3
+	uint32_t monsterBallIndex = TextureManager::GetInstance()->LoadTexture("monsterBall.png");// Index 2
+	uint32_t modelTextureIndex = TextureManager::GetInstance()->LoadTexture(modelData.material.textureFilePath);// Index 3
+	uint32_t particleTextureIndex = TextureManager::GetInstance()->LoadTexture("circle.png");// Index 4
 
 	// コマンド実行と完了待機
 	dxBase->ExecuteInitialCommandAndSync();
@@ -949,7 +944,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::Separator();
 		if (ImGui::TreeNode("Global Settings")) {
 			ImGui::Combo("BlendMode", &currentBlendMode, "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
-			ImGui::Checkbox("changeTexture", &changeTexture);
 			ImGui::TreePop();
 		}
 
@@ -967,6 +961,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		ImGui::Separator();
 		if (ImGui::TreeNode("Particle")) {
+			ImGui::Checkbox("changeTexture", &changeTexture);
 			if (ImGui::Button("Reload Particle")) {
 				generateParticle = true;
 			}
@@ -1213,11 +1208,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// WVP用CBVの場所を設定
 		dxBase->GetCommandList()->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 		// SRVのDescriptorTableの先頭を設定。2はrootParameter[2]である。
-		dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(2,
-			changeTexture ?
-			TextureManager::GetInstance()->GetSrvHandleGPU(modelTextureIndex) :
-			TextureManager::GetInstance()->GetSrvHandleGPU(uvCheckerIndex)
-		);
+		dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(2,	TextureManager::GetInstance()->GetSrvHandleGPU(modelTextureIndex));
 		// DirectionalLightのCBufferの場所を設定 (PS b1, rootParameter[3]に対応)
 		dxBase->GetCommandList()->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetGPUVirtualAddress()); // directionalLightResourceはライトのCBV
 		// 描画！（DrawCall/ドローコール）
@@ -1268,10 +1259,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 				uint32_t targetIndex;
 				if ((i % 2) == 0) {
-					// 偶数番目のスプライトには Particle テクスチャを適用
-					targetIndex = particleTextureIndex;
+					// 偶数番目のスプライトにはmonsterBallテクスチャを適用
+					targetIndex = monsterBallIndex;
 				} else {
-					// 奇数番目のスプライトには UV Checker テクスチャを適用
+					// 奇数番目のスプライトにはuvCheckerテクスチャを適用
 					targetIndex = uvCheckerIndex;
 				}
 				// Draw() の前に、スプライトの内部状態を更新
