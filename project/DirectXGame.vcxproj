@@ -80,7 +80,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\API;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Graphics\Sprite;$(ProjectDir)DirectXGame\Engine\Graphics\BlendMode;$(ProjectDir)DirectXGame\Engine\Input;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\API;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Graphics\Sprite;$(ProjectDir)DirectXGame\Engine\Graphics\BlendMode;$(ProjectDir)DirectXGame\Engine\Graphics\Texture;$(ProjectDir)DirectXGame\Engine\Input;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -105,7 +105,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\API;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Graphics\Sprite;$(ProjectDir)DirectXGame\Engine\Graphics\BlendMode;$(ProjectDir)DirectXGame\Engine\Input;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\API;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Graphics\Sprite;$(ProjectDir)DirectXGame\Engine\Graphics\BlendMode;$(ProjectDir)DirectXGame\Engine\Graphics\Texture;$(ProjectDir)DirectXGame\Engine\Input;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -132,7 +132,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>Disabled</Optimization>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\API;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Graphics\Sprite;$(ProjectDir)DirectXGame\Engine\Graphics\BlendMode;$(ProjectDir)DirectXGame\Engine\Input;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\API;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Graphics\Sprite;$(ProjectDir)DirectXGame\Engine\Graphics\BlendMode;$(ProjectDir)DirectXGame\Engine\Graphics\Texture;$(ProjectDir)DirectXGame\Engine\Input;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -172,6 +172,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="DirectXGame\Application\System\Win32Window.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\Sprite\SpriteCommon.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\Sprite\Sprite.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Graphics\Texture\TextureManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Particle.PS.hlsl">
@@ -248,6 +249,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="DirectXGame\Application\System\Win32Window.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\Sprite\SpriteCommon.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\Sprite\Sprite.h" />
+    <ClInclude Include="DirectXGame\Engine\Graphics\Texture\TextureManager.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="externals\imgui\LICENSE.txt" />

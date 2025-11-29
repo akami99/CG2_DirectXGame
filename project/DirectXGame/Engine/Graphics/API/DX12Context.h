@@ -21,6 +21,11 @@ public: // namespace省略のためのusing宣言
 
 #pragma endregion
 
+public: // メンバ変数
+
+	// 最大SRV数(最大テクスチャ枚数)
+	static const uint32_t kMaxSRVCount;
+
 private: // メンバ変数
 #pragma region privateメンバ変数
 
@@ -56,9 +61,9 @@ private: // メンバ変数
 	ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap_ = nullptr; // DSV用
 
 	// レンダーターゲットビュー
-	static const uint32_t kSwapChainResourcesCount_ = 2; // スワップチェーンの要素数(ダブルバッファ)
-	std::array<ComPtr<ID3D12Resource>, kSwapChainResourcesCount_> swapChainResources_ = {}; // レンダーターゲットビューの配列
-	std::array <D3D12_CPU_DESCRIPTOR_HANDLE, kSwapChainResourcesCount_> rtvHandles_ = {}; // RTVのハンドル配列
+	static const uint32_t kSwapChainResourcesCount = 2; // スワップチェーンの要素数(ダブルバッファ)
+	std::array<ComPtr<ID3D12Resource>, kSwapChainResourcesCount> swapChainResources_ = {}; // レンダーターゲットビューの配列
+	std::array <D3D12_CPU_DESCRIPTOR_HANDLE, kSwapChainResourcesCount> rtvHandles_ = {}; // RTVのハンドル配列
 
 	// フェンス
 	ComPtr<ID3D12Fence> fence_ = nullptr; // GPU-CPU同期用
@@ -77,10 +82,10 @@ private: // メンバ変数
 	ComPtr<IDxcIncludeHandler> includeHandler_ = nullptr; // インクルードハンドラ
 
 	// テクスチャアップロード用中間リソースを保持する配列
-	std::vector<ComPtr<ID3D12Resource>> intermediateResources_ = {};
+	//std::vector<ComPtr<ID3D12Resource>> intermediateResources_ = {};
 
 	// テクスチャリソース本体を保持する配列
-	std::vector<ComPtr<ID3D12Resource>> textureResources_ = {};
+	//std::vector<ComPtr<ID3D12Resource>> textureResources_ = {};
 
 #pragma endregion privateメンバ変数
 
@@ -95,7 +100,7 @@ public: // メンバ関数
 	void PostDraw();
 
 	// テクスチャリソースとSRVの生成
-	D3D12_GPU_DESCRIPTOR_HANDLE CreateTextureResourceAndSRV(const std::string& filePath, uint32_t srvIndex);
+	//D3D12_GPU_DESCRIPTOR_HANDLE CreateTextureResourceAndSRV(const std::string& filePath, uint32_t srvIndex);
 
 	/// <summary>
 	/// StructuredBuffer用のSRVを作成
@@ -211,50 +216,9 @@ public: // ヘルパー関数
 	/// <returns>生成したバッファリソース</returns>
 	ComPtr<ID3D12Resource> CreateBufferResource(size_t sizeInBytes);
 
-#pragma endregion publicヘルパー関数
-
-private: // ヘルパー関数
-#pragma region privateヘルパー関数
-
-#pragma region デスクリプタ
-
-	/// <summary>
-	/// デスクリプタヒープを生成する
-	/// </summary>
-	/// <param name="heapType">デスクリプタヒープのタイプ</param>
-	/// <param name="numDescriptors">デスクリプタの数</param>
-	/// <param name="shaderVisible">シェーダから見えるかどうか</param>
-	/// <returns>生成したデスクリプタヒープへのポインタ</returns>
-	ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shaderVisible);
-
-#pragma region ハンドルのゲッター
-
-	/// <summary>
-	/// 指定したインデックスのCPUデスクリプタハンドルを取得
-	/// </summary>
-	/// <param name="descriptorHeap">デスクリプタヒープへのポインタ</param>
-	/// <param name="descriptorSize">各デスクリプタのサイズ</param>
-	/// <param name="index">取得するデスクリプタのインデックス</param>
-	/// <returns>指定したインデックスに対応する D3D12_CPU_DESCRIPTOR_HANDLE</returns>
-	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ComPtr<ID3D12DescriptorHeap>& descriptorHeap, uint32_t descriptorSize, uint32_t index);
-
-	/// <summary>
-	/// 指定したインデックスのGPUデスクリプタハンドルを取得
-	/// </summary>
-	/// <param name="descriptorHeap">デスクリプタヒープへのポインタ</param>
-	/// <param name="descriptorSize">各デスクリプタのサイズ</param>
-	/// <param name="index">取得するデスクリプタのインデックス</param>
-	/// <returns>指定したインデックスに対応する D3D12_GPU_DESCRIPTOR_HANDLE</returns>
-	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ComPtr<ID3D12DescriptorHeap>& descriptorHeap, uint32_t descriptorSize, uint32_t index);
-
-#pragma endregion ハンドルのゲッター
-
-#pragma endregion デスクリプタ
-	
 	/// <summary>
 	/// テクスチャリソースの生成
 	/// </summary>
-	/// <param name="device">デバイス</param>
 	/// <param name="metadata">metadata</param>
 	/// <returns>生成したテクスチャリソース</returns>
 	ComPtr<ID3D12Resource> CreateTextureResource(const DirectX::TexMetadata& metadata);
@@ -268,19 +232,44 @@ private: // ヘルパー関数
 	[[nodiscard]] // 戻り値を破棄しない
 	ComPtr<ID3D12Resource> UploadTextureData(ComPtr<ID3D12Resource> texture, const DirectX::ScratchImage& mipImages);
 
-#pragma endregion privateヘルパー関数
+#pragma endregion publicヘルパー関数
+	private: // ヘルパー関数
+#pragma region privateヘルパー関数
 
-public: // 静的ヘルパー関数
-#pragma region public静的ヘルパー関数
+#pragma region デスクリプタ
 
-	/// <summary>
-	/// テクスチャファイルの読み込み
-	/// </summary>
-	/// <param name="filePath">テクスチャファイルのパス</param>
-	/// <returns>画像イメージデータ</returns>
-	static DirectX::ScratchImage LoadTexture(const std::string& filePath);
+		/// <summary>
+		/// デスクリプタヒープを生成する
+		/// </summary>
+		/// <param name="heapType">デスクリプタヒープのタイプ</param>
+		/// <param name="numDescriptors">デスクリプタの数</param>
+		/// <param name="shaderVisible">シェーダから見えるかどうか</param>
+		/// <returns>生成したデスクリプタヒープへのポインタ</returns>
+		ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors, bool shaderVisible);
 
-#pragma endregion public静的ヘルパー関数
+#pragma region ハンドルのゲッター
+
+		/// <summary>
+		/// 指定したインデックスのCPUデスクリプタハンドルを取得
+		/// </summary>
+		/// <param name="descriptorHeap">デスクリプタヒープへのポインタ</param>
+		/// <param name="descriptorSize">各デスクリプタのサイズ</param>
+		/// <param name="index">取得するデスクリプタのインデックス</param>
+		/// <returns>指定したインデックスに対応する D3D12_CPU_DESCRIPTOR_HANDLE</returns>
+		static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ComPtr<ID3D12DescriptorHeap>& descriptorHeap, uint32_t descriptorSize, uint32_t index);
+
+		/// <summary>
+		/// 指定したインデックスのGPUデスクリプタハンドルを取得
+		/// </summary>
+		/// <param name="descriptorHeap">デスクリプタヒープへのポインタ</param>
+		/// <param name="descriptorSize">各デスクリプタのサイズ</param>
+		/// <param name="index">取得するデスクリプタのインデックス</param>
+		/// <returns>指定したインデックスに対応する D3D12_GPU_DESCRIPTOR_HANDLE</returns>
+		static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ComPtr<ID3D12DescriptorHeap>& descriptorHeap, uint32_t descriptorSize, uint32_t index);
+
+#pragma endregion ハンドルのゲッター
+
+#pragma endregion デスクリプタ
 
 };
 

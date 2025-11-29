@@ -21,17 +21,19 @@
 #include <random>
 
 #include "Win32Window.h"
+#include "DX12Context.h"
+#include "D3DResourceLeakChecker.h"
+#include "Logger.h"
+#include "Input.h"
+#include "TextureManager.h"
+#include "SpriteCommon.h"
+#include "Sprite.h"
+#include "AudioManager.h"
+#include "DebugCamera.h"
+
 #include "MathTypes.h"
 #include "MathUtils.h"
 #include "MatrixGenerators.h"
-#include "DX12Context.h"
-#include "D3DResourceLeakChecker.h"
-#include "AudioManager.h"
-#include "SpriteCommon.h"
-#include "Sprite.h"
-#include "Input.h"
-#include "DebugCamera.h"
-#include "Logger.h"
 
 #include "ApplicationConfig.h"
 
@@ -731,6 +733,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma endregion ここまで
 
+#pragma region TextureManagerの初期化
+	// TextureManagerの初期化
+
+	TextureManager::GetInstance()->Initialize(dxBase);
+
+#pragma endregion
+
 #pragma region Particle用リソース作成
 	// Particle用リソース作成
 
@@ -773,12 +782,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// モデル読み込み
 	ModelData modelData = LoadObjFile("Plane", "plane.obj");
-	modelData.vertices.push_back({ .position = {1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {0.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} });
-	modelData.vertices.push_back({ .position = {-1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} });
-	modelData.vertices.push_back({ .position = {1.0f, -1.0f, 0.0f, 1.0f}, .texcoord = {0.0f, 1.0f}, .normal = {0.0f, 0.0f, 1.0f} });
-	modelData.vertices.push_back({ .position = {1.0f, -1.0f, 0.0f, 1.0f}, .texcoord = {0.0f, 1.0f}, .normal = {0.0f, 0.0f, 1.0f} });
-	modelData.vertices.push_back({ .position = {-1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} });
-	modelData.vertices.push_back({ .position = {-1.0f, -1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 1.0f}, .normal = {0.0f, 0.0f, 1.0f} });
+	//modelData.vertices.push_back({ .position = {1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {0.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} });
+	//modelData.vertices.push_back({ .position = {-1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} });
+	//modelData.vertices.push_back({ .position = {1.0f, -1.0f, 0.0f, 1.0f}, .texcoord = {0.0f, 1.0f}, .normal = {0.0f, 0.0f, 1.0f} });
+	//modelData.vertices.push_back({ .position = {1.0f, -1.0f, 0.0f, 1.0f}, .texcoord = {0.0f, 1.0f}, .normal = {0.0f, 0.0f, 1.0f} });
+	//modelData.vertices.push_back({ .position = {-1.0f, 1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 0.0f}, .normal = {0.0f, 0.0f, 1.0f} });
+	//modelData.vertices.push_back({ .position = {-1.0f, -1.0f, 0.0f, 1.0f}, .texcoord = {1.0f, 1.0f}, .normal = {0.0f, 0.0f, 1.0f} });
 
 	// 実際に頂点リソースを作る
 	ComPtr<ID3D12Resource> vertexResource = dxBase->CreateBufferResource(sizeof(VertexData) * modelData.vertices.size());
@@ -838,48 +847,29 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//三角形
 	Transform object3dTransform{ {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
 
-	// リソースの読み込みとアップロード
-	DirectX::ScratchImage mipImages1 = DX12Context::LoadTexture("uvChecker.png");
+#pragma endregion ここまで
 
-	DirectX::ScratchImage mipImages2 = DX12Context::LoadTexture(modelData.material.textureFilePath);
+#pragma region テクスチャの読み込みとアップロード
+	// テクスチャの読み込みとアップロード
 
-	// Particle用リソースの読み込みとアップロード
-	DirectX::ScratchImage particleMipImages = DX12Context::LoadTexture("circle.png");
-
-	// SRVを作成するDescriptorHeapの場所を決める
-	D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU1;
-	D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU2;
-	D3D12_GPU_DESCRIPTOR_HANDLE particleTextureSrvHandleGPU;
-
-
-	textureSrvHandleGPU1 = dxBase->CreateTextureResourceAndSRV("uvChecker.png", 1);
-	textureSrvHandleGPU2 = dxBase->CreateTextureResourceAndSRV(modelData.material.textureFilePath, 2);
-	particleTextureSrvHandleGPU = dxBase->CreateTextureResourceAndSRV("circle.png", 3);
+	// テクスチャインデックスを保持
+	uint32_t uvCheckerIndex = TextureManager::GetInstance()->LoadTexture("uvChecker.png");// Index 1
+	uint32_t modelTextureIndex = TextureManager::GetInstance()->LoadTexture(modelData.material.textureFilePath);// Index 2
+	uint32_t particleTextureIndex = TextureManager::GetInstance()->LoadTexture("circle.png");// Index 3
 
 	// コマンド実行と完了待機
 	dxBase->ExecuteInitialCommandAndSync();
+	TextureManager::GetInstance()->ReleaseIntermediateResources();
 
-	/// 変数の宣言と初期化
-	bool changeTexture = true;
-
-#pragma endregion ここまで
+#pragma endregion ここまで(コマンド実行済み)
 
 	// カメラの設定
 	/*Transform cameraTransform = { { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -10.0f } };
 	Matrix4x4 cameraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);*/
 	Matrix4x4 currentViewMatrix = debugCamera.GetViewMatrix();
-	Matrix4x4 spriteViewMatrix = MakeIdentity4x4();
-
+	
 	// 更新前に一度だけ計算しておく
 	Matrix4x4 object3dProjectionMatrix = MakePerspectiveFovMatrix(0.45f, float(Win32Window::kClientWidth) / float(Win32Window::kClientHeight), 0.1f, 100.0f);
-
-	//マテリアル
-	bool showMaterial = true;
-
-	bool controlMaterial = false;
-
-	//スプライトの表示
-	bool showSprite = false;
 
 #pragma region サウンドの初期化
 	// サウンドの初期化
@@ -907,11 +897,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	std::vector<Sprite*> sprites;
 	for (uint32_t i = 0; i < 10; ++i) {
 		Sprite* newSprite = new Sprite();
-		newSprite->Initialize(spriteCommon);
+		newSprite->Initialize(spriteCommon, uvCheckerIndex);
 		newSprite->SetTranslate({ float(i * 50), float(i * 50) });
 		newSprite->SetScale({ 50.0f, 50.0f });
 		sprites.push_back(newSprite);
 	}
+
+	//スプライトの表示
+	bool showSprite = true;
+
+	//マテリアル
+	bool showMaterial = true;
+
+	bool controlMaterial = true;
+
+
+	// 画像の変更(particle,)
+	bool changeTexture = true;
 
 #pragma endregion ここまで
 
@@ -1028,7 +1030,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		ImGui::Separator();
 		if (ImGui::TreeNode("Sound")) {
-			ImGui::Text("Press Space to Play Sound");
 			if (ImGui::Button("Play Sound")) {
 				// サウンドの再生
 				audioManager.PlaySound("alarm1");
@@ -1062,10 +1063,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		input->Update();
 
 		// キーボードの入力処理
-		if (input->IsKeyTriggered(DIK_SPACE)) { // スペースキーが押されているか
-			// サウンドの再生
-			audioManager.PlaySound("alarm1");
-		}
 
 		audioManager.CleanupFinishedVoices(); // 完了した音声のクリーンアップ
 
@@ -1216,7 +1213,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// WVP用CBVの場所を設定
 		dxBase->GetCommandList()->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 		// SRVのDescriptorTableの先頭を設定。2はrootParameter[2]である。
-		dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(2, changeTexture ? textureSrvHandleGPU2 : textureSrvHandleGPU1);
+		dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(2,
+			changeTexture ?
+			TextureManager::GetInstance()->GetSrvHandleGPU(modelTextureIndex) :
+			TextureManager::GetInstance()->GetSrvHandleGPU(uvCheckerIndex)
+		);
 		// DirectionalLightのCBufferの場所を設定 (PS b1, rootParameter[3]に対応)
 		dxBase->GetCommandList()->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetGPUVirtualAddress()); // directionalLightResourceはライトのCBV
 		// 描画！（DrawCall/ドローコール）
@@ -1247,7 +1248,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// インスタンス用SRVのDescriptorTableの先頭を設定。1はrootParametersForInstancing[1]である。
 		dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(1, instanceSrvHandleGPU);
 		// SRVのDescriptorTableの先頭を設定。2はrootParameter[2]である。
-		dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(2, changeTexture ? particleTextureSrvHandleGPU : textureSrvHandleGPU1);
+		dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(2,
+			changeTexture ?
+			TextureManager::GetInstance()->GetSrvHandleGPU(particleTextureIndex) :
+			TextureManager::GetInstance()->GetSrvHandleGPU(uvCheckerIndex)
+		);
 
 		// 描画！（DrawCall/ドローコール）
 		if (numParticleToDraw > 0) {
@@ -1260,7 +1265,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// 描画！（DrawCall/ドローコール）
 		if (showSprite) {
 			for (size_t i = 0; i < sprites.size(); ++i) {
-				sprites[i]->Draw(textureSrvHandleGPU1);
+
+				uint32_t targetIndex;
+				if ((i % 2) == 0) {
+					// 偶数番目のスプライトには Particle テクスチャを適用
+					targetIndex = particleTextureIndex;
+				} else {
+					// 奇数番目のスプライトには UV Checker テクスチャを適用
+					targetIndex = uvCheckerIndex;
+				}
+				// Draw() の前に、スプライトの内部状態を更新
+				sprites[i]->SetTextureIndex(targetIndex);
+
+				// 描画
+				sprites[i]->Draw();
 			}
 		}
 
@@ -1288,6 +1306,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
+
+	// TextureManagerの終了
+	TextureManager::GetInstance()->Finalize();
 
 	// Spriteの解放
 	for (size_t i = 0; i < sprites.size(); ++i) {

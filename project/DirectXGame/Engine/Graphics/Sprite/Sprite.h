@@ -3,6 +3,7 @@
 #include <wrl/client.h>
 #include <d3d12.h>
 #include <cstdint>
+#include <string>
 
 #include "../../Core/Utility/Math/MathTypes.h"
 
@@ -88,16 +89,19 @@ private: // メンバ変数
 		{0.0f, 0.0f, 0.0f}
 	};
 
+	// テクスチャ番号
+	uint32_t textureIndex_ = 0;
+
 
 public: // メンバ関数
 	// 初期化
-	void Initialize(SpriteCommon* spriteCommon);
+	void Initialize(SpriteCommon* spriteCommon, uint32_t textureIndex);
 
 	// 更新処理
 	void Update();
 
 	// 描画処理
-	void Draw(D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU);
+	void Draw();
 
 	// getter
 
@@ -146,7 +150,10 @@ public: // メンバ関数
 	void SetUvScale(const Vector3& uvScale) {
 		uvTransform_.scale = uvScale;
 	}
-
+	// テクスチャインデックスを設定するためのセッター
+	void SetTextureIndex(uint32_t index) {
+		textureIndex_ = index;
+	}
 
 private: // メンバ関数
 	// 頂点バッファとインデックスバッファの作成

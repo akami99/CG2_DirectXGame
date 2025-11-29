@@ -2,6 +2,7 @@
 #include "SpriteCommon.h"
 #include "../../Core/Utility/Math/Functions/MathUtils.h"
 #include "../../Core/Utility/Math/Matrix/MatrixGenerators.h"
+#include "../Texture/TextureManager.h"
 
 #include <cassert>
 
@@ -10,7 +11,7 @@ using namespace MathUtils;
 using namespace MathGenerators;
 
 // 初期化
-void Sprite::Initialize(SpriteCommon* spriteCommon) {
+void Sprite::Initialize(SpriteCommon* spriteCommon, uint32_t textureIndex) {
 	// NULLポインタチェック
 	assert(spriteCommon);
 	// メンバ変数にセット
@@ -24,6 +25,9 @@ void Sprite::Initialize(SpriteCommon* spriteCommon) {
 
 	// 変換行列バッファの作成
 	CreateTransformationMatrixResource();
+
+	// インデックスを代入
+	textureIndex_ = textureIndex;
 }
 
 // 更新処理
@@ -92,7 +96,7 @@ void Sprite::Update() {
 }
 
 // 描画処理
-void Sprite::Draw(D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU) {
+void Sprite::Draw() {
 	// VertexBufferとIndexBufferの設定
 	spriteCommon_->GetDX12Context()->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferView_);
 	spriteCommon_->GetDX12Context()->GetCommandList()->IASetIndexBuffer(&indexBufferView_);
@@ -103,7 +107,7 @@ void Sprite::Draw(D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU) {
 	spriteCommon_->GetDX12Context()->GetCommandList()->SetGraphicsRootConstantBufferView(1, transformationMatrixResource_->GetGPUVirtualAddress());
 
 	// SRVのDescriptorTableの先頭を設定。2はrootParameter[2]である。
-	spriteCommon_->GetDX12Context()->GetCommandList()->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU);
+	spriteCommon_->GetDX12Context()->GetCommandList()->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(textureIndex_));
 	// 描画コマンド
 	spriteCommon_->GetDX12Context()->GetCommandList()->DrawIndexedInstanced(6, 1, 0, 0, 0);
 }

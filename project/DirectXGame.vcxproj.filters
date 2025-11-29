@@ -139,6 +139,12 @@
     <Filter Include="ヘッダー ファイル\Engine\Graphics\BlendMode">
       <UniqueIdentifier>{426d7aa0-c88e-45a9-b439-9a90f78e4132}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Graphics\Texture">
+      <UniqueIdentifier>{11ad8a2d-fbfe-417a-8036-4620f3ccf7b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Graphics\Texture">
+      <UniqueIdentifier>{bda42813-a167-4c3b-8a9a-f8aac3643183}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="externals\imgui\imgui.cpp">
@@ -206,6 +212,9 @@
     </ClCompile>
     <ClCompile Include="DirectXGame\Engine\Graphics\Sprite\SpriteCommon.cpp">
       <Filter>ソース ファイル\Engine\Graphics\Sprite</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Texture\TextureManager.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\Texture</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -280,6 +289,9 @@
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\BlendMode\BlendMode.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\BlendMode</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Texture\TextureManager.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Texture</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

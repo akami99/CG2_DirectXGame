@@ -20,6 +20,8 @@ using namespace Microsoft::WRL;
 using namespace Logger;
 using namespace StringUtility;
 
+const uint32_t DX12Context::kMaxSRVCount = 512;
+
 #pragma region publicメンバ関数
 
 // 初期化
@@ -169,48 +171,48 @@ void DX12Context::PostDraw() {
 }
 
 // テクスチャリソースの生成とSRVの作成
-D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::CreateTextureResourceAndSRV(const std::string& filePath, uint32_t srvIndex) {
-	
-	std::string fullPath = filePath;
-	// 既にパスに"DirectXGame/Resources/Textures/"が含まれている場合は追加しない
-	if (filePath.find("Resources/Textures/") == std::string::npos &&
-		filePath.find("resources/textures/") == std::string::npos) {
-		fullPath = "Resources/Textures/" + filePath;
-	}
-
-	// テクスチャを読み込む
-	DirectX::ScratchImage mipImages = LoadTexture(fullPath);
-	const DirectX::TexMetadata& metadata = mipImages.GetMetadata();
-
-	// GPU上にテクスチャリソースを生成
-	ComPtr<ID3D12Resource> textureResource = CreateTextureResource(metadata);
-
-	//テクスチャリソースをアップロードし、コマンドリストに積む
-	ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(textureResource, mipImages);
-
-	// テクスチャリソース本体も保持
-	textureResources_.push_back(textureResource);
-
-	// アップロード完了まで中間リソースを保持
-	intermediateResources_.push_back(intermediateResource);
-
-	// SRVの設定
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
-	srvDesc.Format = metadata.format;
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;//2Dテクスチャ
-	srvDesc.Texture2D.MipLevels = UINT(metadata.mipLevels);
-
-	// SRVを作成するディスクリプタヒープの場所を取得
-	D3D12_CPU_DESCRIPTOR_HANDLE textureSrvHandleCPU = GetSRVCPUDescriptorHandle(srvIndex);
-	D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU = GetSRVGPUDescriptorHandle(srvIndex);
-	
-	// SRVの生成
-	device_->CreateShaderResourceView(textureResource.Get(), &srvDesc, textureSrvHandleCPU);
-
-	// GPU用のハンドルを返す
-	return textureSrvHandleGPU;
-}
+//D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::CreateTextureResourceAndSRV(const std::string& filePath, uint32_t srvIndex) {
+//	
+//	std::string fullPath = filePath;
+//	// 既にパスに"DirectXGame/Resources/Textures/"が含まれている場合は追加しない
+//	if (filePath.find("Resources/Textures/") == std::string::npos &&
+//		filePath.find("resources/textures/") == std::string::npos) {
+//		fullPath = "Resources/Textures/" + filePath;
+//	}
+//
+//	// テクスチャを読み込む
+//	DirectX::ScratchImage mipImages = LoadTexture(fullPath);
+//	const DirectX::TexMetadata& metadata = mipImages.GetMetadata();
+//
+//	// GPU上にテクスチャリソースを生成
+//	ComPtr<ID3D12Resource> textureResource = CreateTextureResource(metadata);
+//
+//	////テクスチャリソースをアップロードし、コマンドリストに積む
+//	//ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(textureResource, mipImages);
+//
+//	//// テクスチャリソース本体も保持
+//	//textureResources_.push_back(textureResource);
+//
+//	//// アップロード完了まで中間リソースを保持
+//	//intermediateResources_.push_back(intermediateResource);
+//
+//	// SRVの設定
+//	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+//	srvDesc.Format = metadata.format;
+//	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+//	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;//2Dテクスチャ
+//	srvDesc.Texture2D.MipLevels = UINT(metadata.mipLevels);
+//
+//	// SRVを作成するディスクリプタヒープの場所を取得
+//	D3D12_CPU_DESCRIPTOR_HANDLE textureSrvHandleCPU = GetSRVCPUDescriptorHandle(srvIndex);
+//	D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU = GetSRVGPUDescriptorHandle(srvIndex);
+//	
+//	// SRVの生成
+//	device_->CreateShaderResourceView(textureResource.Get(), &srvDesc, textureSrvHandleCPU);
+//
+//	// GPU用のハンドルを返す
+//	return textureSrvHandleGPU;
+//}
 
 // StructuredBuffer用のSRVを作成
 D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::CreateStructuredBufferSRV(ComPtr<ID3D12Resource> resource, uint32_t numElement, uint32_t structureByteStride, uint32_t srvIndex) {
@@ -454,7 +456,7 @@ void DX12Context::CreateDescriptorHeaps() {
 	// RTV用のヒープでディスクリプタの数は2。RTVはShader内で触るものではないので、ShaderVisubleはfalse
 	rtvDescriptorHeap_ = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 2, false);
 	// SRV用のヒープでディスクリプタの数は128。SRVはShader内で触るものなので、ShaderVisubleはtrue
-	srvDescriptorHeap_ = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128, true);
+	srvDescriptorHeap_ = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, kMaxSRVCount, true);
 	// DSV用のヒープでディスクリプタの数は1。DSVはShader内で触るものではないので、ShaderVisubleはfalse
 	dsvDescriptorHeap_ = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
 }
@@ -464,7 +466,7 @@ void DX12Context::InitializeRenderTargetView() {
 	HRESULT hr;
 
 	// SwapChainからResourceを引っ張ってくる
-	for (uint32_t i = 0; i < kSwapChainResourcesCount_; ++i) {
+	for (uint32_t i = 0; i < kSwapChainResourcesCount; ++i) {
 		hr = swapChain_->GetBuffer(i, IID_PPV_ARGS(swapChainResources_[i].ReleaseAndGetAddressOf()));
 		// うまく取得できなければ起動できない
 		assert(SUCCEEDED(hr));
@@ -482,7 +484,7 @@ void DX12Context::InitializeRenderTargetView() {
 	uint32_t rtvDescriptorSize = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	// 裏表の2つ分
-	for (uint32_t i = 0; i < kSwapChainResourcesCount_; ++i) {
+	for (uint32_t i = 0; i < kSwapChainResourcesCount; ++i) {
 		// i番目のレンダーターゲットリソースを取得
 		device_->CreateRenderTargetView(swapChainResources_[i].Get(), &rtvDesc, rtvHandle);
 
@@ -579,7 +581,7 @@ void DX12Context::InitializeImGui() {
 
 	// ImGuiのDX12初期化
 	ImGui_ImplDX12_Init(device_.Get(),
-		kSwapChainResourcesCount_,
+		kSwapChainResourcesCount,
 		DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, // RTVのFormat
 		srvDescriptorHeap_.Get(),
 		imGuiSrvHandleCPU,
@@ -660,7 +662,7 @@ void DX12Context::ExecuteInitialCommandAndSync() {
 	assert(SUCCEEDED(hr));
 
 	// 中間リソースの解放
-	intermediateResources_.clear();
+	//intermediateResources_.clear();
 }
 
 // シェーダーのコンパイル
@@ -683,17 +685,17 @@ ComPtr<IDxcBlob> DX12Context::CompileShader(const std::wstring& filePath, const 
 	hr = dxcUtils_->LoadFile(fullPath.c_str(), nullptr, &shaderSource);
 	// 読めなかったら止める
 	if (FAILED(hr)) {
-		 // 1. エラーBLOBの取得（D3DCompileの場合）
-		 ID3DBlob* errorBlob = nullptr; // D3DCompileの引数から取得
+		// 1. エラーBLOBの取得（D3DCompileの場合）
+		ID3DBlob* errorBlob = nullptr; // D3DCompileの引数から取得
 
-		 // 2. エラーメッセージのログ出力
-		 if (errorBlob) {
-		     Logger::Log((char*)errorBlob->GetBufferPointer());
-		     errorBlob->Release();
-		 } else {
-		     // hrの値をログに出力する（DXCの場合など）
-		     Logger::Log("Shader compilation failed with HRESULT: " + std::to_string(hr)); 
-		 }
+		// 2. エラーメッセージのログ出力
+		if (errorBlob) {
+			Logger::Log((char*)errorBlob->GetBufferPointer());
+			errorBlob->Release();
+		} else {
+			// hrの値をログに出力する（DXCの場合など）
+			Logger::Log("Shader compilation failed with HRESULT: " + std::to_string(hr));
+		}
 	}
 	assert(SUCCEEDED(hr));
 	// 読み込んだファイルの内容を設定する
@@ -816,6 +818,29 @@ D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::GetGPUDescriptorHandle(ComPtr<ID3D12Des
 
 #pragma endregion ハンドルのゲッター
 
+// テクスチャデータの転送
+ComPtr<ID3D12Resource> DX12Context::UploadTextureData(ComPtr<ID3D12Resource> texture, const DirectX::ScratchImage& mipImages) {
+
+	std::vector<D3D12_SUBRESOURCE_DATA> subresources;
+	DirectX::PrepareUpload(device_.Get(), mipImages.GetImages(), mipImages.GetImageCount(), mipImages.GetMetadata(), subresources);
+	uint64_t intermediateSize = GetRequiredIntermediateSize(texture.Get(), 0, UINT(subresources.size()));
+	ComPtr<ID3D12Resource> intermediateResource = CreateBufferResource(intermediateSize);
+	UpdateSubresources(commandList_.Get(), texture.Get(), intermediateResource.Get(), 0, 0, UINT(subresources.size()), subresources.data());
+
+	// Textureへの転送後は利用できるよう、D3D12_RESOURCE_STATE_COPY_DESTからD3D12_RESOURCE_STATE_GENERIC_READへResourceStateを変更する
+	D3D12_RESOURCE_BARRIER barrier{};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = texture.Get();
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
+	commandList_->ResourceBarrier(1, &barrier);
+	return intermediateResource;
+}
+
+#pragma endregion privateヘルパー関数
+
 // テクスチャリソースの生成
 ComPtr<ID3D12Resource> DX12Context::CreateTextureResource(const DirectX::TexMetadata& metadata) {
 
@@ -847,62 +872,3 @@ ComPtr<ID3D12Resource> DX12Context::CreateTextureResource(const DirectX::TexMeta
 	assert(SUCCEEDED(hr));
 	return resource;
 }
-
-// テクスチャデータの転送
-ComPtr<ID3D12Resource> DX12Context::UploadTextureData(ComPtr<ID3D12Resource> texture, const DirectX::ScratchImage& mipImages) {
-
-	std::vector<D3D12_SUBRESOURCE_DATA> subresources;
-	DirectX::PrepareUpload(device_.Get(), mipImages.GetImages(), mipImages.GetImageCount(), mipImages.GetMetadata(), subresources);
-	uint64_t intermediateSize = GetRequiredIntermediateSize(texture.Get(), 0, UINT(subresources.size()));
-	ComPtr<ID3D12Resource> intermediateResource = CreateBufferResource(intermediateSize);
-	UpdateSubresources(commandList_.Get(), texture.Get(), intermediateResource.Get(), 0, 0, UINT(subresources.size()), subresources.data());
-	
-	// Textureへの転送後は利用できるよう、D3D12_RESOURCE_STATE_COPY_DESTからD3D12_RESOURCE_STATE_GENERIC_READへResourceStateを変更する
-	D3D12_RESOURCE_BARRIER barrier{};
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = texture.Get();
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
-	commandList_->ResourceBarrier(1, &barrier);
-	return intermediateResource;
-}
-
-#pragma endregion privateヘルパー関数
-
-#pragma region public静的ヘルパー関数
-
-// テクスチャファイルの読み込み
-DirectX::ScratchImage DX12Context::LoadTexture(const std::string& filePath) {
-	std::string fullPath = filePath;
-	// 既にパスに"DirectXGame/Resources/Assets/Sounds/"が含まれている場合は追加しない
-	if (filePath.find("Resources/Textures/") == std::string::npos &&
-		filePath.find("resources/textures/") == std::string::npos) {
-		fullPath = "Resources/Textures/" + filePath;
-	}
-
-	if (!std::filesystem::exists(fullPath)) {
-		Logger::Log("ERROR: Texture file not found at path: " + fullPath);
-		assert(false && "Texture file not found!");
-	}
-	
-	HRESULT hr;
-	
-	// テクスチャを読み込んでプログラムで扱えるようにする
-
-	DirectX::ScratchImage image{};
-	std::wstring filePathW = ConvertString(fullPath);
-	hr = DirectX::LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
-	assert(SUCCEEDED(hr));
-
-	// ミップマップの作成
-	DirectX::ScratchImage mipImages{};
-	hr = DirectX::GenerateMipMaps(image.GetImages(), image.GetImageCount(), image.GetMetadata(), DirectX::TEX_FILTER_SRGB, 0, mipImages);
-	assert(SUCCEEDED(hr));
-
-	// ミップマップ付きのデータを返す
-	return mipImages;
-}
-
-#pragma endregion public静的ヘルパー関数
