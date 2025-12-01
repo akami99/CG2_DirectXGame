@@ -47,11 +47,5 @@ public:
 	const Matrix4x4& GetViewMatrix() const {
 		return viewMatrix_;
 	}
-	/*const Matrix4x4& GetViewProjectionMatrix() const {
-		return viewProjectionMatrix_;
-	}
-	const Matrix4x4& GetViewportMatrix() const {
-		return viewportMatrix_;
-	}*/
 };
 

@@ -43,11 +43,6 @@ public: // メンバ関数
 	// DirectX基底部分を取得
 	DX12Context* GetDX12Context() const { return dxBase_; }
 
-	//// 外部からRootSignatureを取得できるようにする
-	//ID3D12RootSignature* GetRootSignature() const { return rootSignature_.Get(); }
-	//// 外部からPipelineStateを取得できるようにする (ブレンドモード指定)
-	//ID3D12PipelineState* GetPipelineState(BlendState blendMode) const;
-
 private: // メンバ関数
 	// ルートシグネチャの作成
 	void CreateRootSignature();

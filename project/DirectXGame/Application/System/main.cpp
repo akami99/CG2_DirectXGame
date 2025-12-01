@@ -1,25 +1,15 @@
-//#include <Windows.h>
-//#include <cstdint>
-//#include <string>
-//#include <format>
-//#include <filesystem>
-//#include <fstream>
-//#include <chrono>
-
 #include <dxgi1_6.h>
 #include <cassert>
 #include <dbghelp.h>
 #include <strsafe.h>
 
-//#include <dxcapi.h>
 #include <vector>
 #include <numbers>
 #include <DirectXMath.h>
-//#include <iostream>
 #include <sstream>
-//#include <wrl.h>
 #include <random>
 
+// エンジン
 #include "Win32Window.h"
 #include "DX12Context.h"
 #include "D3DResourceLeakChecker.h"
@@ -28,17 +18,16 @@
 #include "TextureManager.h"
 #include "SpriteCommon.h"
 #include "Sprite.h"
+#include "Object3dCommon.h"
+#include "Object3d.h"
 #include "AudioManager.h"
 #include "DebugCamera.h"
-
+// 計算用関数など
 #include "MathTypes.h"
 #include "MathUtils.h"
 #include "MatrixGenerators.h"
-
+// ゲーム内設定用
 #include "ApplicationConfig.h"
-
-//#include "externals/DirectXTex/DirectXTex.h"
-//#include "externals/DirectXTex/d3dx12.h"
 
 #include "externals/imgui/imgui.h"
 #include "externals/imgui/imgui_impl_dx12.h"
@@ -120,7 +109,7 @@ struct ParticleInstanceData {
 	Vector4 color;                    // 色
 };// Matrix4x4(64)+Vector4(16)=80バイト
 
-#pragma endregion ここまで
+#pragma endregion 構造体定義ここまで
 
 #pragma region 関数定義
 // 関数定義
@@ -292,7 +281,7 @@ Particle MakeNewParticle(std::mt19937& randomEngine) {
 	return particle;
 }
 
-#pragma endregion ここまで
+#pragma endregion 関数定義ここまで
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -320,7 +309,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	window = new Win32Window();
 	window->Initialize();
 
-#pragma endregion ここまで
+#pragma endregion WindowsAPIの初期化ここまで
 
 #pragma region DirectXの初期化
 	// DirectXの初期化
@@ -331,7 +320,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	dxBase = new DX12Context();
 	dxBase->Initialize(window);
 
-#pragma endregion ここまで
+#pragma endregion DirectXの初期化ここまで
 
 #pragma region スプライト共通部の初期化
 	// スプライト共通部の初期化
@@ -343,7 +332,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	spriteCommon = new SpriteCommon();
 	spriteCommon->Initialize(dxBase);
 
-#pragma endregion ここまで
+#pragma endregion スプライト共通部の初期化ここまで
+
+#pragma region 3Dオブジェクト共通部の初期化
+	// 3Dオブジェクト共通部の初期化
+
+	// ポインタ
+	Object3dCommon* object3dCommon = nullptr;
+
+	// 3Dオブジェクト共通部の初期化
+	object3dCommon = new Object3dCommon();
+	object3dCommon->Initialize();
+
+#pragma endregion 3Dオブジェクト共通部の初期化ここまで
 
 #pragma region RootSignature作成
 	// RootSignature作成
@@ -360,7 +361,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	staticSamplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
 	staticSamplers[0].ShaderRegister = 0;   // レジスタ番号0を使う
 
-#pragma endregion ここまで
+#pragma endregion 共通のSampler設定ここまで
 
 #pragma region Object3d用のRootSignature作成
 	// Object3d用のRootSignature作成
@@ -420,7 +421,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	hr = dxBase->GetDevice()->CreateRootSignature(0, object3dSignatureBlob->GetBufferPointer(), object3dSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&object3dRootSignature));
 	assert(SUCCEEDED(hr));
 
-#pragma endregion ここまで
+#pragma endregion Object3d用のRootSignature作成ここまで
 
 #pragma region Particle用のRootSignature作成
 	// Particle用のRootSignature作成
@@ -481,9 +482,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	hr = dxBase->GetDevice()->CreateRootSignature(0, particleSignatureBlob->GetBufferPointer(), particleSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&particleRootSignature));
 	assert(SUCCEEDED(hr));
 
-#pragma endregion ここまで
+#pragma endregion Particle用のRootSignature作成ここまで
 
-#pragma endregion ここまで
+#pragma endregion RootSignature作成ここまで
 
 #pragma region パイプラインステート作成用設定
 
@@ -514,7 +515,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	inputLayoutDesc.pInputElementDescs = inputElementDescs;
 	inputLayoutDesc.NumElements = _countof(inputElementDescs);
 
-#pragma endregion ここまで
+#pragma endregion パイプラインステート作成用設定ここまで
 
 #pragma region RasterizerState作成
 	// RasterizerState
@@ -524,7 +525,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 三角形の中を塗りつぶす
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
 
-#pragma endregion ここまで
+#pragma endregion RasterizerState作成ここまで
 
 #pragma region ブレンドモード
 	// ブレンドモード
@@ -587,7 +588,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	blendDescs[kBlendModeScreen].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
 	blendDescs[kBlendModeScreen].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
 
-#pragma endregion ここまで
+#pragma endregion ブレンドモードここまで
 
 #pragma region Shaderコンパイル
 	// Shaderをコンパイル
@@ -602,7 +603,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ComPtr<IDxcBlob> particlePSBlob = dxBase->CompileShader(L"Particle.PS.hlsl", L"ps_6_0");
 	assert(particleVSBlob != nullptr && particlePSBlob != nullptr);
 
-#pragma endregion ここまで
+#pragma endregion Shaderコンパイルここまで
 
 #pragma region DepthStencilState設定
 	// DepthStencilStateの設定
@@ -614,7 +615,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 比較関数はLessEqual。つまり、近ければ描画される
 	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 
-#pragma endregion ここまで
+#pragma endregion DepthStencilState設定ここまで
 
 #pragma region PSO作成
 	/// ベースのPSO設定----------------------------------
@@ -644,7 +645,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 外部で宣言（クラスのメンバー変数など）
 	ComPtr<ID3D12PipelineState> object3dPsoArray[kCountOfBlendMode];
 
-#pragma endregion ここまで
+#pragma endregion Object3D用PSO共通設定ここまで
 
 #pragma region Particle用PSO共通設定
 
@@ -672,7 +673,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 外部で宣言（クラスのメンバー変数など）
 	ComPtr<ID3D12PipelineState> particlePsoArray[kCountOfBlendMode];
 
-#pragma endregion ここまで
+#pragma endregion Particle用PSO共通設定ここまで
 
 #pragma region ブレンドモードごとのPSO生成
 	// ループで各ブレンドモードのPSOを生成
@@ -713,9 +714,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		assert(SUCCEEDED(hr));
 	}
 
-#pragma endregion ここまで
+#pragma endregion ブレンドモードごとのPSO生成ここまで
 
-#pragma endregion ここまで
+#pragma endregion PSO作成ここまで
 
 #pragma region DirectInputの初期化
 	// DirectInputの初期化
@@ -723,7 +724,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Input* input = new Input();
 	input->Initialize(window);
 
-#pragma endregion ここまで
+#pragma endregion DirectInputの初期化ここまで
 
 #pragma region DebugCameraの初期化
 	// DebugCameraの初期化
@@ -731,14 +732,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	DebugCamera debugCamera;
 	debugCamera.Initialize();
 
-#pragma endregion ここまで
+#pragma endregion DebugCameraの初期化ここまで
 
 #pragma region TextureManagerの初期化
 	// TextureManagerの初期化
 
 	TextureManager::GetInstance()->Initialize(dxBase);
 
-#pragma endregion
+#pragma endregion TextureManagerの初期化ここまで
 
 #pragma region Particle用リソース作成
 	// Particle用リソース作成
@@ -776,7 +777,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		particleData[index].color = particles[index].color;
 	}
 
-#pragma endregion ここまで
+#pragma endregion Particle用リソース作成ここまで
 
 #pragma region いろいろリソース作成
 
@@ -841,7 +842,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//三角形
 	Transform object3dTransform{ {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
 
-#pragma endregion ここまで
+#pragma endregion いろいろリソース作成ここまで
 
 #pragma region テクスチャの読み込みとアップロード
 	// テクスチャの読み込みとアップロード
@@ -856,7 +857,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	dxBase->ExecuteInitialCommandAndSync();
 	TextureManager::GetInstance()->ReleaseIntermediateResources();
 
-#pragma endregion ここまで(コマンド実行済み)
+#pragma endregion テクスチャの読み込みとアップロードここまで(コマンド実行済み)
 
 	// カメラの設定
 	/*Transform cameraTransform = { { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -10.0f } };
@@ -883,9 +884,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		return 1;
 	}
 
-#pragma endregion ここまで
+#pragma endregion サウンドの初期化ここまで
 
-#pragma endregion ここまで
+#pragma endregion 基盤システムの初期化ここまで
 
 #pragma region 最初のシーンの初期化
 	// 最初のシーンの初期化
@@ -924,7 +925,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 画像の変更(particle,)
 	bool changeTexture = true;
 
-#pragma endregion ここまで
+#pragma endregion 最初のシーンの初期化ここまで
 
 	// ウィンドウのxボタンが押されるまでループ
 	// 1. ウィンドウメッセージ処理
@@ -1062,7 +1063,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui::End();
 		}
 
-#pragma endregion ここまで
+#pragma endregion UI処理ここまで
 
 		// ゲームの処理-----------------------------------------------------------------------------------
 
@@ -1183,7 +1184,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			sprites[i]->Update();
 		}
 
-#pragma endregion ここまで
+#pragma endregion 更新処理ここまで
 
 		////ここまで----------------------------------------------------------------------------------------
 
@@ -1287,7 +1288,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// 描画後処理
 		dxBase->PostDraw();
 
-#pragma endregion ここまで
+#pragma endregion 描画処理ここまで
 	}
 
 #pragma region 解放処理
@@ -1327,7 +1328,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	delete window;
 	window = nullptr;
 
-#pragma endregion ここまで
+#pragma endregion 解放処理ここまで
 
 	return 0;
 }

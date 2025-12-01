@@ -145,6 +145,12 @@
     <Filter Include="ソース ファイル\Engine\Graphics\Texture">
       <UniqueIdentifier>{bda42813-a167-4c3b-8a9a-f8aac3643183}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\Engine\Graphics\Object3d">
+      <UniqueIdentifier>{f91f8b02-0072-4e42-9bf9-e1b9d65e26bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Graphics\Object3d">
+      <UniqueIdentifier>{dc479b68-4709-42b9-9c3e-1294806aecb1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="externals\imgui\imgui.cpp">
@@ -215,6 +221,12 @@
     </ClCompile>
     <ClCompile Include="DirectXGame\Engine\Graphics\Texture\TextureManager.cpp">
       <Filter>ソース ファイル\Engine\Graphics\Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Object3d\Object3dCommon.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\Object3d</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Object3d\Object3d.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\Object3d</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -292,6 +304,12 @@
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\Texture\TextureManager.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Object3d\Object3dCommon.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Object3d</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Object3d\Object3d.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Object3d</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

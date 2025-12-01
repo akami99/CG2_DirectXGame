@@ -65,15 +65,15 @@ private: // メンバ変数
 
 	// マテリアルデータ
 	// バッファリソース
-	ComPtr<ID3D12Resource> materialResource_;
+	ComPtr<ID3D12Resource> materialResource_ = nullptr;
 	// バッファリソース内のデータを指すポインタ
 	Material* materialData_ = nullptr;
 
 	// 変換行列データ
 	// バッファリソース
-	ComPtr<ID3D12Resource> transformationMatrixResource_;
+	ComPtr<ID3D12Resource> transformationMatrixResource_ = nullptr;
 	// バッファリソース内のデータを指すポインタ
-	TransformationMatrix* transformationMatrixData_;
+	TransformationMatrix* transformationMatrixData_ = nullptr;
 
 	// スプライトの座標
 	Vector2 translate_{ 0.0f, 0.0f };
