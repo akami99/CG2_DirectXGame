@@ -890,7 +890,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region 最初のシーンの初期化
 	// 最初のシーンの初期化
+
+#pragma region スプライト
+	// スプライト
+
+	// 描画サイズ
 	const float spriteSize = 200.0f;
+	// 生成
 	std::vector<Sprite*> sprites;
 	for (uint32_t i = 0; i < 10; ++i) {
 		Sprite* newSprite = new Sprite();
@@ -914,7 +920,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	}
 
 	//スプライトの表示
-	bool showSprite = true;
+	bool showSprite = false;
+
+#pragma endregion スプライトここまで
 
 	//マテリアル
 	bool showMaterial = true;

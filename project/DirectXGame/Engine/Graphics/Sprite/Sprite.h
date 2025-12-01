@@ -172,15 +172,15 @@ public: // メンバ関数
 	}
 	// テクスチャインデックスを設定するためのセッター
 	void SetTextureIndex(const uint32_t& index);
-	// アンカーポイントの取得
+	// アンカーポイントの設定
 	void SetAnchorPoint(const Vector2& anchorPoint) {
 		anchorPoint_ = anchorPoint;
 	}
-	// 左右フリップの取得
+	// 左右フリップの設定
 	void SetFlipX(const bool& isFlipX) {
 		isFlipX_ = isFlipX;
 	}
-	// 上下フリップの取得
+	// 上下フリップの設定
 	void SetFlipY(const bool& isFlipY) {
 		isFlipY_ = isFlipY;
 	}
