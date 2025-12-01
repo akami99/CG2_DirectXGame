@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
   # masterブランチへのプッシュでも実行する
   push:
-  branches:
-    - master
+    branches:
+      - master
 
 # 検出する不要なファイルのパターンを定義する環境変数。
 # --- 重要 ---
