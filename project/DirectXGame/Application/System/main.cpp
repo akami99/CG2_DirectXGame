@@ -895,7 +895,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// スプライト
 
 	// 描画サイズ
-	const float spriteSize = 200.0f;
+	const float spriteCutSize = 64.0f;
+	const float spriteScale = 64.0f;
 	// 生成
 	std::vector<Sprite*> sprites;
 	for (uint32_t i = 0; i < 10; ++i) {
@@ -908,27 +909,33 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		} else if (i == 8) {
 			newSprite->SetFlipX(1);
 			newSprite->SetTextureLeftTop({ 0.0f, 0.0f });
-			newSprite->SetTextureSize({ 64.0f, 64.0f });
-			newSprite->SetScale({ spriteSize, spriteSize });
+			newSprite->SetTextureSize({ spriteCutSize, spriteCutSize });
+			newSprite->SetScale({ spriteScale, spriteScale });
 		} else if (i == 9) {
 			newSprite->SetTextureLeftTop({ 0.0f, 0.0f });
-			newSprite->SetTextureSize({ 64.0f, 64.0f });
-			newSprite->SetScale({ spriteSize, spriteSize });
+			newSprite->SetTextureSize({ spriteCutSize, spriteCutSize });
+			newSprite->SetScale({ spriteScale, spriteScale });
 		}
-		newSprite->SetTranslate({ float(i * spriteSize / 3), float(i * spriteSize / 3) });
+		newSprite->SetTranslate({ float(i * spriteScale / 3), float(i * spriteScale / 3) });
 		sprites.push_back(newSprite);
 	}
 
-	//スプライトの表示
+	// 表示
 	bool showSprite = false;
 
 #pragma endregion スプライトここまで
 
-	//マテリアル
-	bool showMaterial = true;
+#pragma region マテリアル
+	// マテリアル
+	Object3d* object3d = new Object3d();
+	object3d->Initialize();
 
+	// 表示
+	bool showMaterial = true;
+	// 操作
 	bool controlMaterial = true;
 
+#pragma endregion マテリアルここまで
 
 	// 画像の変更(particle,)
 	bool changeTexture = true;
@@ -1318,16 +1325,27 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// TextureManagerの終了
 	TextureManager::GetInstance()->Finalize();
 
+	// Object3dの解放
+	delete object3d;
+	object3d = nullptr;
+
+	// Object3dCommonの解放
+	delete object3dCommon;
+	object3dCommon = nullptr;
+
 	// Spriteの解放
 	for (size_t i = 0; i < sprites.size(); ++i) {
 		delete sprites[i];
+		sprites[i] = nullptr;
 	}
 
-	// SpriteBaseの解放
+	// spriteCommonの解放
 	delete spriteCommon;
+	spriteCommon = nullptr;
 
 	// DerectXの解放
 	delete dxBase;
+	dxBase = nullptr;
 
 	// WindowsAPIの終了処理
 	window->Finalize();
