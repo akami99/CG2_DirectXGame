@@ -151,6 +151,12 @@
     <Filter Include="ヘッダー ファイル\Engine\Graphics\Object3d">
       <UniqueIdentifier>{dc479b68-4709-42b9-9c3e-1294806aecb1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Graphics\PSO">
+      <UniqueIdentifier>{3275f387-2f83-498f-ac24-7369c9295dc7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Graphics\PSO">
+      <UniqueIdentifier>{0882b0a8-c1fe-4ed4-a797-cd8ca2d43778}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="externals\imgui\imgui.cpp">
@@ -227,6 +233,9 @@
     </ClCompile>
     <ClCompile Include="DirectXGame\Engine\Graphics\Object3d\Object3d.cpp">
       <Filter>ソース ファイル\Engine\Graphics\Object3d</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\PSO\PipelineManager.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\PSO</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -310,6 +319,9 @@
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\Object3d\Object3d.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Object3d</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\PSO\PipelineManager.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\PSO</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,9 +1,13 @@
 #pragma once
 
 #include <wrl/client.h>
+#include <d3d12.h>
 
-#include "API/DX12Context.h"
 #include "BlendMode/BlendMode.h"
+
+// 前方宣言
+class DX12Context;
+class PipelineManager;
 
 // スプライト共通部
 class SpriteCommon {
@@ -19,13 +23,6 @@ private: // メンバ変数
 	// DirectXデバイス
 	DX12Context* dxBase_ = nullptr;
 
-	// シェーダーバイナリ
-	ComPtr<IDxcBlob> vsBlob_; // Vertex Shader
-	ComPtr<IDxcBlob> psBlob_; // Pixel Shader
-
-	// ルートシグネチャ
-	ComPtr<ID3D12RootSignature> rootSignature_;
-
 	// グラフィックスパイプラインステート (ブレンドモードごとに配列で保持)
 	ComPtr<ID3D12PipelineState> psoArray_[BlendMode::BlendState::kCountOfBlendMode];
 
@@ -35,22 +32,12 @@ private: // メンバ変数
 
 public: // メンバ関数
 	// 初期化
-	void Initialize(DX12Context* dxBase);
+	void Initialize(DX12Context* dxBase, PipelineManager* pipelineManager);
 
 	// 共通描画設定
-	void SetCommonDrawSettings(BlendMode::BlendState currentBlendMode);
+	void SetCommonDrawSettings(BlendMode::BlendState currentBlendMode, PipelineManager* pipelineManager);
 	
 	// DirectX基底部分を取得
 	DX12Context* GetDX12Context() const { return dxBase_; }
-
-private: // メンバ関数
-	// ルートシグネチャの作成
-	void CreateRootSignature();
-
-	// グラフィックスパイプラインの生成
-	void CreatePSO();
-
-	// シェーダーの読み込み
-	void LoadShader();
 };
 

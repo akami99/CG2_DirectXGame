@@ -15,17 +15,21 @@
 #include "D3DResourceLeakChecker.h"
 #include "Logger.h"
 #include "Input.h"
-#include "TextureManager.h"
 #include "SpriteCommon.h"
 #include "Sprite.h"
 #include "Object3dCommon.h"
 #include "Object3d.h"
-#include "AudioManager.h"
 #include "DebugCamera.h"
+// 管理系
+#include "PipelineManager.h"
+#include "TextureManager.h"
+#include "AudioManager.h"
+
 // 計算用関数など
 #include "MathTypes.h"
 #include "MathUtils.h"
 #include "MatrixGenerators.h"
+
 // ゲーム内設定用
 #include "ApplicationConfig.h"
 
@@ -322,7 +326,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma endregion DirectXの初期化ここまで
 
-#pragma region スプライト共通部の初期化
+#pragma region PipelineManagerの生成と初期化
+	// PipelineManagerの生成と初期化
+
+	// ポインタ
+	PipelineManager* pipelineManager = nullptr;
+
+	// PipelineManagerの初期化
+	pipelineManager = new PipelineManager();
+	pipelineManager->Initialize(dxBase);
+
+#pragma endregion PipelineManagerの生成と初期化ここまで
+
+#pragma region スプライト共通部の生成と初期化
 	// スプライト共通部の初期化
 
 	// ポインタ
@@ -330,11 +346,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	//スプライト共通部の初期化
 	spriteCommon = new SpriteCommon();
-	spriteCommon->Initialize(dxBase);
+	spriteCommon->Initialize(dxBase, pipelineManager);
 
-#pragma endregion スプライト共通部の初期化ここまで
+#pragma endregion スプライト共通部の生成と初期化ここまで
 
-#pragma region 3Dオブジェクト共通部の初期化
+#pragma region 3Dオブジェクト共通部の生成と初期化
 	// 3Dオブジェクト共通部の初期化
 
 	// ポインタ
@@ -342,9 +358,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// 3Dオブジェクト共通部の初期化
 	object3dCommon = new Object3dCommon();
-	object3dCommon->Initialize();
+	object3dCommon->Initialize(dxBase, pipelineManager);
 
-#pragma endregion 3Dオブジェクト共通部の初期化ここまで
+#pragma endregion 3Dオブジェクト共通部の生成と初期化ここまで
 
 #pragma region RootSignature作成
 	// RootSignature作成
@@ -362,66 +378,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	staticSamplers[0].ShaderRegister = 0;   // レジスタ番号0を使う
 
 #pragma endregion 共通のSampler設定ここまで
-
-#pragma region Object3d用のRootSignature作成
-	// Object3d用のRootSignature作成
-
-	// Texture用 SRV (Pixel Shader用)
-	D3D12_DESCRIPTOR_RANGE object3dTextureSrvRange[1] = {};
-	object3dTextureSrvRange[0].BaseShaderRegister = 0;  // 0から始まる
-	object3dTextureSrvRange[0].NumDescriptors = 1;  // 数は1つ
-	object3dTextureSrvRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // SRVを使う
-	object3dTextureSrvRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // Offsetを自動計算
-
-	// RootParameter作成。PixelShaderのMaterialとVertexShaderのTransform 
-	D3D12_ROOT_PARAMETER object3dRootParameters[4] = {};
-
-	// Root Parameter 0: Pixel Shader用 Material CBV (b0)
-	object3dRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // CBVを使う(b0のbと一致する)
-	object3dRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;   // PixelShaderで使う
-	object3dRootParameters[0].Descriptor.ShaderRegister = 0;    // レジスタ番号0とバインド(b0の0と一致する。もしb11と紐づけたいなら11となる)
-
-	// Root Parameter 1: Vertex Shader用 Transform CBV (b0)
-	object3dRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;    // CBVを使う(b0のbと一致する)
-	object3dRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;   // VertexShaderで使う
-	object3dRootParameters[1].Descriptor.ShaderRegister = 0;    // レジスタ番号0
-
-	// Root Parameter 2: Pixel Shader用 Texture SRV (t0)
-	object3dRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // DescriptorTableを使う
-	object3dRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
-	object3dRootParameters[2].DescriptorTable.pDescriptorRanges = object3dTextureSrvRange;  // Tableの中身の配列を指定
-	object3dRootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(object3dTextureSrvRange); // Tableで利用する数
-
-	// Root Parameter 3: Pixel Shader用 DirectionalLight CBV (b1)
-	object3dRootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
-	object3dRootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
-	object3dRootParameters[3].Descriptor.ShaderRegister = 1;  // レジスタ番号1を使う
-
-	// object用のRootSignatureDesc
-	D3D12_ROOT_SIGNATURE_DESC object3dRootSignatureDesc{};
-	object3dRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	object3dRootSignatureDesc.pParameters = object3dRootParameters; // ルートパラメータ配列へのポインタ
-	object3dRootSignatureDesc.NumParameters = _countof(object3dRootParameters); // 配列の長さ
-	object3dRootSignatureDesc.pStaticSamplers = staticSamplers;
-	object3dRootSignatureDesc.NumStaticSamplers = _countof(staticSamplers);
-
-	// シリアライズしてバイナリにする
-	ComPtr<ID3D12RootSignature> object3dRootSignature = nullptr;
-	ComPtr<ID3DBlob> object3dSignatureBlob = nullptr;
-	ComPtr<ID3DBlob> object3dErrorBlob = nullptr;
-
-	HRESULT hr;
-
-	hr = D3D12SerializeRootSignature(&object3dRootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &object3dSignatureBlob, &object3dErrorBlob);
-	if (FAILED(hr)) {
-		Logger::Log(reinterpret_cast<char*>(object3dErrorBlob->GetBufferPointer()));
-		assert(false);
-	}
-	// バイナリを元に生成
-	hr = dxBase->GetDevice()->CreateRootSignature(0, object3dSignatureBlob->GetBufferPointer(), object3dSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&object3dRootSignature));
-	assert(SUCCEEDED(hr));
-
-#pragma endregion Object3d用のRootSignature作成ここまで
 
 #pragma region Particle用のRootSignature作成
 	// Particle用のRootSignature作成
@@ -473,6 +429,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ComPtr<ID3DBlob> particleSignatureBlob = nullptr;
 	ComPtr<ID3DBlob> particleErrorBlob = nullptr;
 
+	HRESULT hr;
+
 	hr = D3D12SerializeRootSignature(&particleRootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &particleSignatureBlob, &particleErrorBlob);
 	if (FAILED(hr)) {
 		Logger::Log(reinterpret_cast<char*>(particleErrorBlob->GetBufferPointer()));
@@ -518,7 +476,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma endregion パイプラインステート作成用設定ここまで
 
 #pragma region RasterizerState作成
-	// RasterizerState
+	// RasterizerState(particle)
 	D3D12_RASTERIZER_DESC rasterizerDesc{};
 	// 裏面をカリング
 	rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
@@ -527,76 +485,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma endregion RasterizerState作成ここまで
 
-#pragma region ブレンドモード
-	// ブレンドモード
-	int currentBlendMode = kBlendModeNormal;
-	int particleBlendMode = kBlendModeAdd;
-
-	// BlendStateの設定を配列で用意しておく
-	D3D12_BLEND_DESC blendDescs[kCountOfBlendMode] = {};
-	// ブレンド無し
-	blendDescs[kBlendModeNone].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-	blendDescs[kBlendModeNone].RenderTarget[0].BlendEnable = FALSE;
-
-	// 通常のアルファブレンド
-	blendDescs[kBlendModeNormal].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-	blendDescs[kBlendModeNormal].RenderTarget[0].BlendEnable = TRUE;
-	blendDescs[kBlendModeNormal].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA; // ソースのアルファ値
-	blendDescs[kBlendModeNormal].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
-	blendDescs[kBlendModeNormal].RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA; // 1.0f - ソースのアルファ値
-	blendDescs[kBlendModeNormal].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
-	blendDescs[kBlendModeNormal].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
-	blendDescs[kBlendModeNormal].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
-
-	// 加算ブレンド
-	blendDescs[kBlendModeAdd].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-	blendDescs[kBlendModeAdd].RenderTarget[0].BlendEnable = TRUE;
-	blendDescs[kBlendModeAdd].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA; // ソースのアルファ値
-	blendDescs[kBlendModeAdd].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
-	blendDescs[kBlendModeAdd].RenderTarget[0].DestBlend = D3D12_BLEND_ONE; // デストのアルファ値
-	blendDescs[kBlendModeAdd].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
-	blendDescs[kBlendModeAdd].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
-	blendDescs[kBlendModeAdd].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
-
-	// 減算ブレンド
-	blendDescs[kBlendModeSubtract].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-	blendDescs[kBlendModeSubtract].RenderTarget[0].BlendEnable = TRUE;
-	blendDescs[kBlendModeSubtract].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA; // ソースのアルファ値
-	blendDescs[kBlendModeSubtract].RenderTarget[0].BlendOp = D3D12_BLEND_OP_REV_SUBTRACT; // 減算
-	blendDescs[kBlendModeSubtract].RenderTarget[0].DestBlend = D3D12_BLEND_ONE; // デストのアルファ値
-	blendDescs[kBlendModeSubtract].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
-	blendDescs[kBlendModeSubtract].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
-	blendDescs[kBlendModeSubtract].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
-
-	// 乗算ブレンド
-	blendDescs[kBlendModeMultiply].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-	blendDescs[kBlendModeMultiply].RenderTarget[0].BlendEnable = TRUE;
-	blendDescs[kBlendModeMultiply].RenderTarget[0].SrcBlend = D3D12_BLEND_ZERO; // 0.0f
-	blendDescs[kBlendModeMultiply].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
-	blendDescs[kBlendModeMultiply].RenderTarget[0].DestBlend = D3D12_BLEND_SRC_COLOR; // ソースカラー値
-	blendDescs[kBlendModeMultiply].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
-	blendDescs[kBlendModeMultiply].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
-	blendDescs[kBlendModeMultiply].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
-
-	// スクリーンブレンド
-	blendDescs[kBlendModeScreen].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-	blendDescs[kBlendModeScreen].RenderTarget[0].BlendEnable = TRUE;
-	blendDescs[kBlendModeScreen].RenderTarget[0].SrcBlend = D3D12_BLEND_INV_DEST_COLOR; // デストカラー値
-	blendDescs[kBlendModeScreen].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD; // 加算
-	blendDescs[kBlendModeScreen].RenderTarget[0].DestBlend = D3D12_BLEND_ONE; // ソースアルファ値
-	blendDescs[kBlendModeScreen].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE; // ソースのアルファ値
-	blendDescs[kBlendModeScreen].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD; // 加算
-	blendDescs[kBlendModeScreen].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; // 0.0f
-
-#pragma endregion ブレンドモードここまで
-
 #pragma region Shaderコンパイル
 	// Shaderをコンパイル
-
-	// オブジェクト用
-	ComPtr<IDxcBlob> object3dVSBlob = dxBase->CompileShader(L"Object3d.VS.hlsl", L"vs_6_0");
-	ComPtr<IDxcBlob> object3dPSBlob = dxBase->CompileShader(L"Object3d.PS.hlsl", L"ps_6_0");
-	assert(object3dVSBlob != nullptr && object3dPSBlob != nullptr);
 
 	// パーティクル用
 	ComPtr<IDxcBlob> particleVSBlob = dxBase->CompileShader(L"Particle.VS.hlsl", L"vs_6_0");
@@ -619,33 +509,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region PSO作成
 	/// ベースのPSO設定----------------------------------
-
-#pragma region Object3D用PSO共通設定
-	// Object3D用PSO共通設定
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDescObject3dBase{};
-
-	// **共通設定**を一度だけセット
-	psoDescObject3dBase.pRootSignature = object3dRootSignature.Get(); // RootSignature
-	psoDescObject3dBase.InputLayout = inputLayoutDesc; // InputLayout
-	psoDescObject3dBase.VS = { object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize() }; // VertexShader
-	psoDescObject3dBase.PS = { object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize() }; // PixelShader
-	psoDescObject3dBase.RasterizerState = rasterizerDesc; // RasterizerState
-	// 書き込むRTVの情報
-	psoDescObject3dBase.NumRenderTargets = 1;
-	psoDescObject3dBase.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	psoDescObject3dBase.SampleDesc.Count = 1;
-	// DepthStencilの設定
-	psoDescObject3dBase.DepthStencilState = depthStencilDesc;
-	psoDescObject3dBase.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	// 利用するトポロジ（形状）のタイプ。三角形
-	psoDescObject3dBase.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	// どのように画面に色を打ち込むかの設定（気にしなくていい）
-	psoDescObject3dBase.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-
-	// 外部で宣言（クラスのメンバー変数など）
-	ComPtr<ID3D12PipelineState> object3dPsoArray[kCountOfBlendMode];
-
-#pragma endregion Object3D用PSO共通設定ここまで
 
 #pragma region Particle用PSO共通設定
 
@@ -683,6 +546,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// Particle用 PSO 生成 (ブレンド設定適用)
 		// ----------------------------------------------------
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDescParticle = psoDescParticleBase;
+		std::array<D3D12_BLEND_DESC, kCountOfBlendMode> blendDescs = CreateBlendStateDescs();
 
 		// Particleはアルファブレンドを多用するため、Depth書き込みは無効化
 		if (i != kBlendModeNone) { // ブレンドモードがNoneでない場合
@@ -695,22 +559,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		// PSO生成
 		hr = dxBase->GetDevice()->CreateGraphicsPipelineState(&psoDescParticle, IID_PPV_ARGS(&particlePsoArray[i]));
-		assert(SUCCEEDED(hr));
-
-		// ----------------------------------------------------
-		// Object3D用 PSO 生成 (ブレンド設定適用)
-		// ----------------------------------------------------
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDescObject = psoDescObject3dBase;
-
-		// Object3DはDepth書き込みを有効
-		// BlendModeがNone以外の場合はDepthWriteMaskを調整することもできるが、
-		// ここではベース設定（D3D12_DEPTH_WRITE_MASK_ALL）を維持
-
-		// ブレンド設定を適用
-		psoDescObject.BlendState = blendDescs[i];
-
-		// PSO生成
-		hr = dxBase->GetDevice()->CreateGraphicsPipelineState(&psoDescObject, IID_PPV_ARGS(&object3dPsoArray[i]));
 		assert(SUCCEEDED(hr));
 	}
 
@@ -890,6 +738,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region 最初のシーンの初期化
 	// 最初のシーンの初期化
+
+	// ブレンドモード
+	int currentBlendMode = kBlendModeNormal;
+	int particleBlendMode = kBlendModeAdd;
 
 #pragma region スプライト
 	// スプライト
@@ -1216,22 +1068,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		/// object3dの描画---------------------------------------
 
-		// object3d用のRootSignatureを設定
-		dxBase->GetCommandList()->SetGraphicsRootSignature(object3dRootSignature.Get());
-		// 現在のブレンドモードに応じたPSOを設定
-		if (currentBlendMode >= 0 && currentBlendMode < kCountOfBlendMode) {
-			// PSOを設定
-			dxBase->GetCommandList()->SetPipelineState(object3dPsoArray[currentBlendMode].Get());
-		} else {
-			// 不正な値の場合
-			dxBase->GetCommandList()->SetPipelineState(object3dPsoArray[kBlendModeNormal].Get());
-		}
-		// VBVを設定
-		dxBase->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferView);
-		// IBVを設定
-		//dxBase->GetCommandList()->IASetIndexBuffer(&indexBufferView);
-		// トポロジを設定
-		dxBase->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		// object3d用の設定
+		object3dCommon->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode), pipelineManager);
 		/// ルートパラメータを設定
 		// マテリアルCBVの場所を設定
 		dxBase->GetCommandList()->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
@@ -1282,7 +1120,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		/// スプライト-------------------------------
 		// スプライト用の設定
-		spriteCommon->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode));
+		spriteCommon->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode), pipelineManager);
 		// 描画！（DrawCall/ドローコール）
 		if (showSprite) {
 			for (size_t i = 0; i < sprites.size(); ++i) {
@@ -1342,6 +1180,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// spriteCommonの解放
 	delete spriteCommon;
 	spriteCommon = nullptr;
+
+	// PipelineManagerの解放
+	if (pipelineManager) {
+		delete pipelineManager;
+		pipelineManager = nullptr;
+	}
 
 	// DerectXの解放
 	delete dxBase;
