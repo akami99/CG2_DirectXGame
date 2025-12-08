@@ -1,13 +1,11 @@
-#include <dxgi1_6.h>
+#include <dxgi1_6.h> // dump
 #include <cassert>
-#include <dbghelp.h>
-#include <strsafe.h>
+#include <dbghelp.h> // dump
+#include <strsafe.h> // dump
 
-#include <vector>
-#include <numbers>
-#include <DirectXMath.h>
-#include <sstream>
-#include <random>
+//#include <vector>
+#include <numbers> //particleに使用
+#include <random>  //particleに使用
 
 // エンジン
 #include "Win32Window.h"
@@ -739,6 +737,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma region 最初のシーンの初期化
 	// 最初のシーンの初期化
 
+	// カメラ
+	bool controlCamera = true;
+
 	// ブレンドモード
 	int currentBlendMode = kBlendModeNormal;
 	int particleBlendMode = kBlendModeAdd;
@@ -785,12 +786,30 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 表示
 	bool showMaterial = true;
 	// 操作
-	bool controlMaterial = true;
+	bool controlMaterial = false;
 
 #pragma endregion マテリアルここまで
 
+#pragma region パーティクル
+
+	// ※カリングがoffになっていないのなら表裏を反転し、billboardMatrixの初期化、更新時にbackToFrontMatrixを掛ける
+	//Matrix4x4 backToFrontMatrix = MakeRotateYMatrix(std::numbers::pi_v<float>);
+	// カメラの回転を適用する
+	Matrix4x4 billboardMatrix = debugCamera.GetWorldMatrix();
+	billboardMatrix.m[3][0] = 0.0f; // 平行移動成分はいらない
+	billboardMatrix.m[3][1] = 0.0f;
+	billboardMatrix.m[3][2] = 0.0f;
+
+	// 回転
+	Vector3 particleRotation{};
+
+	// ビルボードの適用
+	bool useBillboard = true;
+
 	// 画像の変更(particle,)
 	bool changeTexture = true;
+
+#pragma endregion パーティクルここまで
 
 #pragma endregion 最初のシーンの初期化ここまで
 
@@ -825,6 +844,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// グローバル設定
 		ImGui::Separator();
 		if (ImGui::TreeNode("Global Settings")) {
+			ImGui::Checkbox("controlCamera", &controlCamera);
 			ImGui::Combo("BlendMode", &currentBlendMode, "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
 			ImGui::TreePop();
 		}
@@ -843,7 +863,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		ImGui::Separator();
 		if (ImGui::TreeNode("Particle")) {
+			ImGui::Checkbox("useBillboard", &useBillboard);
 			ImGui::Checkbox("changeTexture", &changeTexture);
+			ImGui::SliderFloat3("rotateParticleZ", &particleRotation.x, -6.28f, 6.28f);
 			if (ImGui::Button("Reload Particle")) {
 				generateParticle = true;
 			}
@@ -983,8 +1005,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//object3dTransform.rotate.y += 0.01f;
 
 		// カメラの更新
-		if (!controlMaterial) {
-			debugCamera.Update(*input);
+		if (controlCamera) {
+			debugCamera.Update(*input); // ※操作が微妙なので調整しておく
 		}
 		currentViewMatrix = debugCamera.GetViewMatrix();
 
@@ -1021,10 +1043,32 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 				particles[index].transform.translate = particles[index].transform.translate + object3dTransform.translate;
 			}
 
+			// 回転の適用
+			if (useBillboard) {
+				particles[index].transform.rotate = {};
+				particles[index].transform.rotate.z = particleRotation.z;
+			} else {
+				particles[index].transform.rotate = particleRotation;
+			}
+
 			// パーティクルのワールド行列とWVP行列を計算して転送
 
 			// 行列の計算
-			Matrix4x4 particleWorldMatrix = MakeAffineMatrix(particles[index].transform.scale, particles[index].transform.rotate, particles[index].transform.translate);
+			billboardMatrix = debugCamera.GetWorldMatrix();
+			billboardMatrix.m[3][0] = 0.0f; // 平行移動成分はいらない
+			billboardMatrix.m[3][1] = 0.0f;
+			billboardMatrix.m[3][2] = 0.0f;
+
+			Matrix4x4 particleWorldMatrix = MakeIdentity4x4();
+			Matrix4x4 particleScaleMatrix = MakeScaleMatrix(particles[index].transform.scale);
+			Matrix4x4 particleRotateMatrix = MakeRotateXYZMatrix(particles[index].transform.rotate);
+			Matrix4x4 particleTranslateMatrix = MakeTranslationMatrix(particles[index].transform.translate);
+			
+			if (useBillboard) {
+				particleWorldMatrix = particleScaleMatrix * particleRotateMatrix * billboardMatrix * particleTranslateMatrix;
+			} else {
+				particleWorldMatrix = MakeAffineMatrix(particles[index].transform.scale, particles[index].transform.rotate, particles[index].transform.translate);
+			}
 			Matrix4x4 particleWVPMatrix = Multiply(particleWorldMatrix, Multiply(currentViewMatrix, object3dProjectionMatrix));
 
 			// 転送

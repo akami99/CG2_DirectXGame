@@ -44,6 +44,10 @@ public:
 	void Update(Input& input);
 
 	// getter
+	const Matrix4x4& GetWorldMatrix() const {
+		return worldMatrix_;
+	}
+
 	const Matrix4x4& GetViewMatrix() const {
 		return viewMatrix_;
 	}

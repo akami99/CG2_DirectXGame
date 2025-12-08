@@ -59,6 +59,19 @@ namespace MathGenerators {
 		return result;
 	}
 
+	// XYZ回転行列
+	Matrix4x4 MakeRotateXYZMatrix(const Vector3& rotate) {
+		// 回転行列の作成と結合
+		Matrix4x4 rotateX = MakeRotateXMatrix(rotate.x);
+		Matrix4x4 rotateY = MakeRotateYMatrix(rotate.y);
+		Matrix4x4 rotateZ = MakeRotateZMatrix(rotate.z);
+
+		// X,Y,Z軸の回転をまとめる
+		Matrix4x4 rotateMatrix = rotateX * (rotateY * rotateZ);
+
+		return rotateMatrix;
+	}
+
 	// アフィン変換行列の生成
 
 	// 平行移動行列

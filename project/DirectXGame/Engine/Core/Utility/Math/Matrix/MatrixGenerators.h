@@ -32,6 +32,13 @@ namespace MathGenerators {
 	/// <returns>Z軸回転行列</returns>
 	Matrix4x4 MakeRotateZMatrix(float angle);
 
+	/// <summary>
+	/// XYZ軸回転行列
+	/// </summary>
+	/// <param name="rotate">回転角</param>
+	/// <returns>回転行列</returns>
+	Matrix4x4 MakeRotateXYZMatrix(const Vector3& rotate);
+
 	// アフィン変換行列の生成
 
 	/// <summary>
