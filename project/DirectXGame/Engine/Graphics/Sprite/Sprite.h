@@ -6,6 +6,7 @@
 #include <string>
 
 #include "../../Core/Utility/Math/MathTypes.h"
+#include"../GraphicsTypes.h"
 
 // 前方宣言
 class SpriteCommon;
@@ -21,35 +22,6 @@ private: // namespace省略のためのusing宣言
 #pragma endregion
 
 private: // メンバ変数
-
-	// 頂点データの構造体
-	struct VertexData {
-		Vector4 position;                 // ワールド座標系での位置
-		Vector2 texcoord;                 // UV座標
-		Vector3 normal;                   // 法線ベクトル
-	};// 16+8+12=36バイト。float*4+float*2+float*3
-
-	// マテリアルの構造体
-	struct Material {
-		Vector4 color;                    // マテリアルの色
-		int32_t enableLighting;           // ライティングの有効・無効フラグ
-		float padding[3];                 // 16バイトのアライメントを確保するためのパディング
-		Matrix4x4 uvTransform;            // UV変換行列
-	};// Vector4(16)+int32_t(4)=20バイト + float*3(12)=32バイト
-
-	// 変換行列をまとめた構造体
-	struct TransformationMatrix {
-		Matrix4x4 WVP;                    // ワールドビュー射影行列
-		Matrix4x4 World;                  // ワールド行列
-	};// Matrix4x4*2=128バイト
-
-	// 変換行列を構成するための構造体(s,r,t)
-	struct Transform {
-		Vector3 scale;                    // スケーリング
-		Vector3 rotate;                   // 回転
-		Vector3 translate;                // 平行移動
-	};// Vector3*3=36バイト
-
 	SpriteCommon* spriteCommon_ = nullptr;
 
 	// 頂点データ

@@ -323,6 +323,18 @@
     <ClInclude Include="DirectXGame\Engine\Graphics\PSO\PipelineManager.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\PSO</Filter>
     </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\GraphicsTypes.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\LightTypes.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\ModelTypes.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\ParticleTypes.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="externals\imgui\LICENSE.txt">

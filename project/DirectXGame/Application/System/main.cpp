@@ -23,6 +23,12 @@
 #include "TextureManager.h"
 #include "AudioManager.h"
 
+// グラフィック関連の構造体
+#include "GraphicsTypes.h"
+#include "LightTypes.h"
+#include "ModelTypes.h"
+#include "ParticleTypes.h"
+
 // 計算用関数など
 #include "MathTypes.h"
 #include "MathUtils.h"
@@ -44,89 +50,6 @@
 using namespace MathUtils;
 using namespace MathGenerators;
 using namespace BlendMode;
-
-#pragma region 構造体定義
-// 構造体定義
-
-// 頂点データの構造体(Spriteにも有り)
-struct VertexData {
-	Vector4 position;                 // ワールド座標系での位置
-	Vector2 texcoord;                 // UV座標
-	Vector3 normal;                   // 法線ベクトル
-};// 16+8+12=36バイト。float*4+float*2+float*3
-
-// 変換行列を構成するための構造体(s,r,t)
-struct Transform {
-	Vector3 scale;                    // スケーリング
-	Vector3 rotate;                   // 回転
-	Vector3 translate;                // 平行移動
-};// Vector3*3=36バイト
-
-// マテリアルの構造体(Spriteにも有り)
-struct Material {
-	Vector4 color;                    // マテリアルの色
-	int32_t enableLighting;           // ライティングの有効・無効フラグ
-	float padding[3];                 // 16バイトのアライメントを確保するためのパディング
-	Matrix4x4 uvTransform;            // UV変換行列
-};// Vector4(16)+int32_t(4)=20バイト + float*3(12)=32バイト
-
-// DirectionalLightの構造体
-struct DirectionalLight {
-	Vector4 color;                    // ライトの色
-	Vector3 direction;                // ライトの向き(正規化する)
-	float _padding;                   // 16バイトのアライメントを確保するためのパディング
-	float intensity;                  // 輝度
-};// Vector4(16)+Vector3(12)+float(4)=32バイト + float(4)=36バイト
-
-// パーティクルの構造体
-struct Particle {
-	Transform transform;              // 変換行列
-	Vector3 velocity;                 // 速度
-	Vector4 color;                    // 色
-	float lifeTime;                   // 生存時間
-	float currentTime;                // 経過時間
-}; // Transform(36)+Vector3(12)+Vector4(16)=64バイト
-
-// 変換行列をまとめた構造体
-struct TransformationMatrix {
-	Matrix4x4 WVP;                    // ワールドビュー射影行列
-	Matrix4x4 World;                  // ワールド行列
-};// Matrix4x4*2=128バイト
-
-// マテリアルデータの構造体
-struct MaterialData {
-	std::string textureFilePath;      // テクスチャファイルパス
-};
-
-// モデルデータの構造体
-struct ModelData {
-	std::vector<VertexData> vertices; // 頂点データ配列
-	MaterialData material;  		  // マテリアルデータ
-};
-
-// パーティクルインスタンスデータの構造体
-struct ParticleInstanceData {
-	Matrix4x4 WVP;                    // ワールドビュー射影行列
-	Matrix4x4 World;                  // ワールド行列
-	Vector4 color;                    // 色
-};// Matrix4x4(64)+Vector4(16)=80バイト
-
-// パーティクルのエミッタ
-struct Emitter {
-	Transform transform;              // エミッタのTransform
-	uint32_t count;                   // 発生数
-	float frequency;                  // 発生頻度
-	float frequencyTime;              // 頻度用時刻
-	// 初期色、初速度、生存期間などをいじれたり、
-	// emitterの生存期間、emitterの形状の設定、rotate/scaleの利用、範囲の描画もできると使いやすい。
-};
-
-struct AccelerationField {
-	Vector3 acceleration;             // 加速度
-	AABB area;                        // 範囲
-};
-
-#pragma endregion 構造体定義ここまで
 
 #pragma region 関数定義
 // 関数定義

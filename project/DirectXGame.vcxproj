@@ -235,6 +235,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="DirectXGame\Engine\Graphics\Camera\DebugCamera.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\API\DX12Context.h" />
     <ClInclude Include="DirectXGame\Engine\Core\Utility\Math\Functions\MathUtils.h" />
+    <ClInclude Include="DirectXGame\Engine\Graphics\GraphicsTypes.h" />
+    <ClInclude Include="DirectXGame\Engine\Graphics\LightTypes.h" />
+    <ClInclude Include="DirectXGame\Engine\Graphics\ModelTypes.h" />
+    <ClInclude Include="DirectXGame\Engine\Graphics\ParticleTypes.h" />
     <ClInclude Include="externals\imgui\imconfig.h" />
     <ClInclude Include="externals\imgui\imgui.h" />
     <ClInclude Include="externals\imgui\imgui_impl_dx12.h" />
