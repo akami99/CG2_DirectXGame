@@ -1,6 +1,7 @@
 #include "../Functions/MathUtils.h"
 #include <cmath> // sqrtf
 #include <cassert> // assert
+#include <algorithm> // clamp
 
 namespace MathUtils {
 	// 基本的なベクトル演算
@@ -55,6 +56,13 @@ namespace MathUtils {
 		return result;
 	}
 
+	// 距離の二乗を計算する関数（ルート計算を省くことで高速化）
+	float LengthSq(const Vector3& v) {
+		float result;
+		result = v.x * v.x + v.y * v.y + v.z * v.z;
+		return result;
+	}
+
 	// 正規化
 	Vector3 Normalize(const Vector3& v) {
 		Vector3 result;
@@ -90,6 +98,19 @@ namespace MathUtils {
 		return result;
 	}
 
+	// Vector3をAABB内にクランプし、AABB上の最も近い点を求める
+	Vector3 GetClosestPointOnAABB(const AABB& aabb, const Vector3& point) {
+		Vector3 closestPoint;
+		// X軸
+		closestPoint.x = std::clamp(point.x, aabb.min.x, aabb.max.x);
+		// Y軸
+		closestPoint.y = std::clamp(point.y, aabb.min.y, aabb.max.y);
+		// Z軸
+		closestPoint.z = std::clamp(point.z, aabb.min.z, aabb.max.z);
+
+		return closestPoint;
+	}
+
 	// 球との衝突判定を行う関数
 	bool IsCollision(const Sphere& sphere, const Plane& plane) {
 		// 平面の法線ベクトルを正規化
@@ -98,6 +119,45 @@ namespace MathUtils {
 		float distance = Dot(plane.normal, sphere.center) + plane.distance;
 		// 球の半径と平面までの距離を比較
 		return distance <= sphere.radius;
+	}
+
+	// AABBとVector3（点）の衝突判定関数
+	bool IsCollision(const AABB& aabb, const Vector3& point) {
+		// 点の各座標がAABBの対応する軸のminとmaxの間にあるかを確認する
+		if (point.x >= aabb.min.x && point.x <= aabb.max.x &&
+			point.y >= aabb.min.y && point.y <= aabb.max.y &&
+			point.z >= aabb.min.z && point.z <= aabb.max.z) {
+			return true; // 衝突（点が入っている）
+		}
+		return false; // 衝突していない
+	}
+
+	// AABBとSphereの衝突判定関数
+	bool IsCollision(const AABB& aabb, const Sphere& sphere) {
+		// 1. AABB上の、Sphereの中心に最も近い点 Q を見つける
+		Vector3 closestPoint = GetClosestPointOnAABB(aabb, sphere.center);
+
+		// 2. 最も近い点 Q と Sphereの中心 P の距離の二乗を計算する
+		// P = sphere.center, Q = closestPoint
+		Vector3 vectorQP = sphere.center - closestPoint;
+		float distanceSq = LengthSq(vectorQP);
+
+		// 3. 距離の二乗が、半径の二乗以下であれば衝突
+		// ルート計算(sqrt)を省くことで処理を高速化
+		float radiusSq = sphere.radius * sphere.radius;
+
+		return distanceSq <= radiusSq;
+	}
+
+	// AABBとAABBの衝突判定関数
+	bool IsCollision(const AABB& aabb1, const AABB& aabb2) {
+		// AABBの衝突判定は、各軸での重なりを確認する
+		if (aabb1.max.x >= aabb2.min.x && aabb1.min.x <= aabb2.max.x &&
+			aabb1.max.y >= aabb2.min.y && aabb1.min.y <= aabb2.max.y &&
+			aabb1.max.z >= aabb2.min.z && aabb1.min.z <= aabb2.max.z) {
+			return true; // 衝突している
+		}
+		return false; // 衝突していない
 	}
 
 	// ベクトルを法線方向に投影する関数

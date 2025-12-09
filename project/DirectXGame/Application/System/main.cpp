@@ -121,6 +121,11 @@ struct Emitter {
 	// emitterの生存期間、emitterの形状の設定、rotate/scaleの利用、範囲の描画もできると使いやすい。
 };
 
+struct AccelerationField {
+	Vector3 acceleration;             // 加速度
+	AABB area;                        // 範囲
+};
+
 #pragma endregion 構造体定義ここまで
 
 #pragma region 関数定義
@@ -824,13 +829,26 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 回転
 	Vector3 particleRotation{};
 
+	// 更新
+	bool isUpdate = true;
+
 	// ビルボードの適用
 	bool useBillboard = true;
 
 	// 画像の変更(particle,)
 	bool changeTexture = true;
 
+	// パーティクルの生成
 	bool generateParticle = false;
+
+#pragma region フィールドの設定
+
+	AccelerationField accelerationField;
+	accelerationField.acceleration = { 15.0f, 0.0f, 0.0f };
+	accelerationField.area.min = { -1.0f, -1.0f, -1.0f };
+	accelerationField.area.max = { 1.0f, 1.0f, 1.0f };
+
+#pragma endregion フィールドの設定ここまで
 
 #pragma endregion パーティクルここまで
 
@@ -886,6 +904,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		ImGui::Separator();
 		if (ImGui::TreeNode("Particle")) {
+			ImGui::Checkbox("update", &isUpdate);
 			ImGui::Checkbox("useBillboard", &useBillboard);
 			ImGui::Checkbox("changeTexture", &changeTexture);
 			ImGui::SliderFloat("EmitterFrequency", &emitter.frequency, 0.01f, 1.0f);
@@ -1059,15 +1078,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		for (std::list<Particle>::iterator particleIterator = particles.begin();
 			particleIterator != particles.end(); /* ++particleIterator はループ内で制御 */) {
 
+			// Fieldの範囲内のParticleには加速度を適用する
+			if (isUpdate) {
+				if (IsCollision(accelerationField.area, (*particleIterator).transform.translate)) {
+					(*particleIterator).velocity += accelerationField.acceleration * kDeltaTime;
+				}
+			}
 			// パーティクル実体の更新処理
-			particleIterator->transform.translate += (particleIterator->velocity * kDeltaTime);
-			particleIterator->currentTime += kDeltaTime; // 経過時間を加算
+			(*particleIterator).transform.translate += (*particleIterator).velocity * kDeltaTime;
+			(*particleIterator).currentTime += kDeltaTime; // 経過時間を加算
 
 			// アルファ値を計算 (透明化の処理)
-			float alpha = 1.0f - (particleIterator->currentTime / particleIterator->lifeTime);
+			float alpha = 1.0f - ((*particleIterator).currentTime / (*particleIterator).lifeTime);
 
 			// 寿命が尽きた場合の処理
-			if (particleIterator->currentTime >= particleIterator->lifeTime) {
+			if ((*particleIterator).currentTime >= (*particleIterator).lifeTime) {
 				// 寿命が尽きた場合、リストから削除する
 				// list::erase の戻り値は、削除された要素の次の要素を指すイテレータ
 				particleIterator = particles.erase(particleIterator);
@@ -1082,10 +1107,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			if (currentLiveIndex < kNumMaxParticle) {
 				// 回転の適用
 				if (useBillboard) {
-					particleIterator->transform.rotate = {};
-					particleIterator->transform.rotate.z = particleRotation.z;
+					(*particleIterator).transform.rotate = {};
+					(*particleIterator).transform.rotate.z = particleRotation.z;
 				} else {
-					particleIterator->transform.rotate = particleRotation;
+					(*particleIterator).transform.rotate = particleRotation;
 				}
 
 				// パーティクルのワールド行列とWVP行列を計算して転送
@@ -1097,22 +1122,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 				billboardMatrix.m[3][2] = 0.0f;
 
 				Matrix4x4 particleWorldMatrix = MakeIdentity4x4();
-				Matrix4x4 particleScaleMatrix = MakeScaleMatrix(particleIterator->transform.scale);
-				Matrix4x4 particleRotateMatrix = MakeRotateXYZMatrix(particleIterator->transform.rotate);
-				Matrix4x4 particleTranslateMatrix = MakeTranslationMatrix(particleIterator->transform.translate);
+				Matrix4x4 particleScaleMatrix = MakeScaleMatrix((*particleIterator).transform.scale);
+				Matrix4x4 particleRotateMatrix = MakeRotateXYZMatrix((*particleIterator).transform.rotate);
+				Matrix4x4 particleTranslateMatrix = MakeTranslationMatrix((*particleIterator).transform.translate);
 
 				if (useBillboard) {
 					particleWorldMatrix = particleScaleMatrix * particleRotateMatrix * billboardMatrix * particleTranslateMatrix;
 				} else {
-					particleWorldMatrix = MakeAffineMatrix(particleIterator->transform.scale, particleIterator->transform.rotate, particleIterator->transform.translate);
+					particleWorldMatrix = MakeAffineMatrix((*particleIterator).transform.scale, (*particleIterator).transform.rotate, (*particleIterator).transform.translate);
 				}
 				Matrix4x4 particleWVPMatrix = Multiply(particleWorldMatrix, Multiply(currentViewMatrix, object3dProjectionMatrix));
 
 				// 転送
-			// currentLiveIndex をインデックスとして使用し、GPUバッファにデータを詰める
+			    // currentLiveIndex をインデックスとして使用し、GPUバッファにデータを詰める
 				particleData[currentLiveIndex].WVP = particleWVPMatrix;
 				particleData[currentLiveIndex].World = particleWorldMatrix;
-				particleData[currentLiveIndex].color = particleIterator->color; // イテレータからcolorを取得
+				particleData[currentLiveIndex].color = (*particleIterator).color; // イテレータからcolorを取得
 
 				// 計算したアルファ値を適用
 				particleData[currentLiveIndex].color.w = alpha; // 徐々に透明にする	

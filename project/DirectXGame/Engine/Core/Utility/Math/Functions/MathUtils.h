@@ -57,6 +57,13 @@ namespace MathUtils {
 	float Length(const Vector3& v);
 
 	/// <summary>
+	/// 距離の二乗を計算する関数（ルート計算を省くことで高速化）
+	/// </summary>
+	/// <param name="v">ベクトル</param>
+	/// <returns>距離の二乗</returns>
+	float LengthSq(const Vector3& v);
+
+	/// <summary>
 	/// 正規化
 	/// </summary>
 	/// <param name="v">ベクトル</param>
@@ -79,12 +86,44 @@ namespace MathUtils {
 	Vector3 Reflect(const Vector3& input, const Vector3& normal);
 
 	/// <summary>
+	/// Vector3をAABB内にクランプし、AABB上の最も近い点を求める
+	/// </summary>
+	/// <param name="aabb">対象のAABB</param>
+	/// <param name="point">対象の点</param>
+	/// <returns>AABB上の最も近い点</returns>
+	Vector3 GetClosestPointOnAABB(const AABB& aabb, const Vector3& point);
+
+	/// <summary>
 	/// 球との衝突判定を行う関数
 	/// </summary>
-	/// <param name="sphere">球</param>
-	/// <param name="plane">平面</param>
+	/// <param name="sphere">判定対象のSphere</param>
+	/// <param name="plane">判定対象平面</param>
 	/// <returns>衝突判定</returns>
 	bool IsCollision(const Sphere& sphere, const Plane& plane);
+
+	/// <summary>
+	/// AABBとVector3（点）の衝突判定
+	/// </summary>
+	/// <param name="aabb">判定対象のAABB</param>
+	/// <param name="point">判定対象の点</param>
+	/// <returns></returns>
+	bool IsCollision(const AABB& aabb, const Vector3& point);
+
+	/// <summary>
+	/// AABBとSphereの衝突判定
+	/// </summary>
+	/// <param name="aabb">判定対象のAABB</param>
+	/// <param name="sphere">判定対象のSphere</param>
+	/// <returns>衝突判定</returns>
+	bool IsCollision(const AABB& aabb, const Sphere& sphere);
+
+	/// <summary>
+    /// AABBとAABBの衝突判定関数
+    /// </summary>
+    /// <param name="aabb1">判定対象のAABB</param>
+    /// <param name="aabb2">判定対象のAABB</param>
+    /// <returns>衝突判定</returns>
+	bool IsCollision(const AABB& aabb1, const AABB& aabb2);
 
 	/// <summary>
 	/// ベクトルを法線方向に投影する関数
