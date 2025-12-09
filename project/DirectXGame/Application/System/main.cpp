@@ -111,6 +111,16 @@ struct ParticleInstanceData {
 	Vector4 color;                    // 色
 };// Matrix4x4(64)+Vector4(16)=80バイト
 
+// パーティクルのエミッタ
+struct Emitter {
+	Transform transform;              // エミッタのTransform
+	uint32_t count;                   // 発生数
+	float frequency;                  // 発生頻度
+	float frequencyTime;              // 頻度用時刻
+	// 初期色、初速度、生存期間などをいじれたり、
+	// emitterの生存期間、emitterの形状の設定、rotate/scaleの利用、範囲の描画もできると使いやすい。
+};
+
 #pragma endregion 構造体定義ここまで
 
 #pragma region 関数定義
@@ -261,7 +271,7 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& fileN
 }
 
 // パーティクル生成関数
-Particle MakeNewParticle(std::mt19937& randomEngine) {
+Particle MakeNewParticle(std::mt19937& randomEngine, const Vector3& translate) {
 	// ランダムな速度ベクトルを生成
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -274,13 +284,23 @@ Particle MakeNewParticle(std::mt19937& randomEngine) {
 	particle.lifeTime = distTime(randomEngine);
 	particle.currentTime = 0.0f;
 	// ランダムに設定
-	particle.transform.translate = { distribution(randomEngine), distribution(randomEngine), distribution(randomEngine) };
+	Vector3 randomTranslate{ distribution(randomEngine), distribution(randomEngine), distribution(randomEngine) };
+	particle.transform.translate = translate + randomTranslate;
 
-	particle.velocity = { distribution(randomEngine), distribution(randomEngine), distribution(randomEngine) };
+	particle.velocity = { distribution(randomEngine), distribution(randomEngine), distribution(randomEngine) }; // 指定できても良い
 
-	particle.color = { distribution(randomEngine), distribution(randomEngine), distribution(randomEngine), 1.0f };
+	particle.color = { distribution(randomEngine), distribution(randomEngine), distribution(randomEngine), 1.0f }; // 基準色から幅を取る際はHSVで出来ると良い
 
 	return particle;
+}
+
+// エミッタに合わせてパーティクルを生成しリストを取得
+std::list<Particle> Emit(const Emitter& emitter, std::mt19937& randomEngine) {
+	std::list<Particle> particles;
+	for (uint32_t count = 0; count < emitter.count; ++count) {
+		particles.push_back(MakeNewParticle(randomEngine, emitter.transform.translate));
+	}
+	return particles;
 }
 
 #pragma endregion 関数定義ここまで
@@ -591,7 +611,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// Particle用リソース作成
 
 	// Particle最大数
-	const uint32_t kNumMaxParticle = 20;
+	const uint32_t kNumMaxParticle = 100;
 	// Particle用のTransformationMatrixリソースを作る
 	ComPtr<ID3D12Resource> particleResource = dxBase->CreateBufferResource(sizeof(ParticleInstanceData) * kNumMaxParticle);
 	// 書き込むためのアドレスを取得
@@ -610,18 +630,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	static std::random_device particleSeedGenerator;
 	static std::mt19937 particleRandomEngine(particleSeedGenerator());
 
+	// ランダムの範囲
 	std::uniform_real_distribution<float> particleDist(-1.0f, 1.0f);
 
-	Particle particles[kNumMaxParticle];
-
-	bool generateParticle = false;
-
-	for (uint32_t index = 0; index < kNumMaxParticle; ++index) {
-		particles[index] = MakeNewParticle(particleRandomEngine);
-
-		// 色をGPUに転送
-		particleData[index].color = particles[index].color;
-	}
+	// パーティクルのリスト
+	std::list<Particle> particles;
 
 #pragma endregion Particle用リソース作成ここまで
 
@@ -800,6 +813,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	billboardMatrix.m[3][1] = 0.0f;
 	billboardMatrix.m[3][2] = 0.0f;
 
+	Emitter emitter{};
+	emitter.count = 3;
+	emitter.frequency = 0.2f; // 0.2秒ごとに発生
+	emitter.frequencyTime = 0.0f; // 発生頻度用の時刻、0で初期化
+	emitter.transform.translate = { 0.0f, 0.0f, 0.0f };
+	emitter.transform.rotate = { 0.0f, 0.0f, 0.0f };
+	emitter.transform.scale = { 1.0f, 1.0f, 1.0f };
+
 	// 回転
 	Vector3 particleRotation{};
 
@@ -808,6 +829,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// 画像の変更(particle,)
 	bool changeTexture = true;
+
+	bool generateParticle = false;
 
 #pragma endregion パーティクルここまで
 
@@ -865,8 +888,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (ImGui::TreeNode("Particle")) {
 			ImGui::Checkbox("useBillboard", &useBillboard);
 			ImGui::Checkbox("changeTexture", &changeTexture);
+			ImGui::SliderFloat("EmitterFrequency", &emitter.frequency, 0.01f, 1.0f);
+			ImGui::DragFloat3("EmitterTranslate", &emitter.transform.translate.x, 0.01f, -100.0f, 100.0f);
 			ImGui::SliderFloat3("rotateParticleZ", &particleRotation.x, -6.28f, 6.28f);
-			if (ImGui::Button("Reload Particle")) {
+			if (ImGui::Button("Generate Particle(SPACE)")) {
 				generateParticle = true;
 			}
 			ImGui::Combo("ParticleBlendMode", &particleBlendMode, "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
@@ -948,7 +973,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui::Text("UP/DOWN: Scale Up/Down");
 			ImGui::Text("C/Z: Rotate Left/Right");
 			ImGui::Text("X: Reset Rotation");
-			ImGui::Text("Space: Generate Particle");
 			ImGui::End();
 		}
 
@@ -1002,8 +1026,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 
-		//object3dTransform.rotate.y += 0.01f;
-
 		// カメラの更新
 		if (controlCamera) {
 			debugCamera.Update(*input); // ※操作が微妙なので調整しておく
@@ -1020,66 +1042,86 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		}
 
 		if (generateParticle) {
-			for (uint32_t index = 0; index < kNumMaxParticle; ++index) {
-				particles[index] = MakeNewParticle(particleRandomEngine);
-				// 発生位置をオブジェクトの位置に合わせる
-				particles[index].transform.translate = particles[index].transform.translate + object3dTransform.translate;
-			}
+			//　パーティクルを発生させる
+			particles.splice(particles.end(), Emit(emitter, particleRandomEngine));
+
 			generateParticle = false;
 		}
 
-		for (uint32_t index = 0; index < kNumMaxParticle; ++index) {
-			// パーティクル実体の更新
-			particles[index].transform.translate = particles[index].transform.translate + (particles[index].velocity * kDeltaTime);
-			particles[index].currentTime += kDeltaTime; // 経過時間を加算
+		emitter.frequencyTime += kDeltaTime; // 時刻を進める
+		if (emitter.frequency <= emitter.frequencyTime) { // 頻度より大きいなら発生
+			//　パーティクルを発生させる
+			particles.splice(particles.end(), Emit(emitter, particleRandomEngine));
+			emitter.frequencyTime -= emitter.frequency; // 余計に過ぎた時間も加味して頻度計算する
+		}
+
+        // 既存のパーティクルを更新し、寿命が尽きたものは削除し、GPUへデータを転送する
+		for (std::list<Particle>::iterator particleIterator = particles.begin();
+			particleIterator != particles.end(); /* ++particleIterator はループ内で制御 */) {
+
+			// パーティクル実体の更新処理
+			particleIterator->transform.translate += (particleIterator->velocity * kDeltaTime);
+			particleIterator->currentTime += kDeltaTime; // 経過時間を加算
 
 			// アルファ値を計算 (透明化の処理)
-			float alpha = 1.0f - (particles[index].currentTime / particles[index].lifeTime);
+			float alpha = 1.0f - (particleIterator->currentTime / particleIterator->lifeTime);
 
-			if (particles[index].currentTime >= particles[index].lifeTime) {
-				// 寿命が尽きた場合、新しいパーティクルとして再初期化（リサイクル）
-				particles[index] = MakeNewParticle(particleRandomEngine);
-				// 発生位置をオブジェクトの位置に合わせる
-				particles[index].transform.translate = particles[index].transform.translate + object3dTransform.translate;
+			// 寿命が尽きた場合の処理
+			if (particleIterator->currentTime >= particleIterator->lifeTime) {
+				// 寿命が尽きた場合、リストから削除する
+				// list::erase の戻り値は、削除された要素の次の要素を指すイテレータ
+				particleIterator = particles.erase(particleIterator);
+				// continue で次のループへ進み、++currentLiveIndexとGPU転送はスキップする
+				continue;
 			}
 
-			// 回転の適用
-			if (useBillboard) {
-				particles[index].transform.rotate = {};
-				particles[index].transform.rotate.z = particleRotation.z;
-			} else {
-				particles[index].transform.rotate = particleRotation;
+			// GPU転送処理は、有効なパーティクル（削除されなかったもの）のみを対象とし、
+			// currentLiveIndex（GPUバッファのインデックス）を使用
+
+			// GPU最大数チェック,GPUバッファのオーバーフローを防ぐ
+			if (currentLiveIndex < kNumMaxParticle) {
+				// 回転の適用
+				if (useBillboard) {
+					particleIterator->transform.rotate = {};
+					particleIterator->transform.rotate.z = particleRotation.z;
+				} else {
+					particleIterator->transform.rotate = particleRotation;
+				}
+
+				// パーティクルのワールド行列とWVP行列を計算して転送
+
+				// 行列の計算
+				billboardMatrix = debugCamera.GetWorldMatrix();
+				billboardMatrix.m[3][0] = 0.0f; // 平行移動成分はいらない
+				billboardMatrix.m[3][1] = 0.0f;
+				billboardMatrix.m[3][2] = 0.0f;
+
+				Matrix4x4 particleWorldMatrix = MakeIdentity4x4();
+				Matrix4x4 particleScaleMatrix = MakeScaleMatrix(particleIterator->transform.scale);
+				Matrix4x4 particleRotateMatrix = MakeRotateXYZMatrix(particleIterator->transform.rotate);
+				Matrix4x4 particleTranslateMatrix = MakeTranslationMatrix(particleIterator->transform.translate);
+
+				if (useBillboard) {
+					particleWorldMatrix = particleScaleMatrix * particleRotateMatrix * billboardMatrix * particleTranslateMatrix;
+				} else {
+					particleWorldMatrix = MakeAffineMatrix(particleIterator->transform.scale, particleIterator->transform.rotate, particleIterator->transform.translate);
+				}
+				Matrix4x4 particleWVPMatrix = Multiply(particleWorldMatrix, Multiply(currentViewMatrix, object3dProjectionMatrix));
+
+				// 転送
+			// currentLiveIndex をインデックスとして使用し、GPUバッファにデータを詰める
+				particleData[currentLiveIndex].WVP = particleWVPMatrix;
+				particleData[currentLiveIndex].World = particleWorldMatrix;
+				particleData[currentLiveIndex].color = particleIterator->color; // イテレータからcolorを取得
+
+				// 計算したアルファ値を適用
+				particleData[currentLiveIndex].color.w = alpha; // 徐々に透明にする	
+
+				currentLiveIndex++; // 有効なパーティクル数をカウント
 			}
 
-			// パーティクルのワールド行列とWVP行列を計算して転送
-
-			// 行列の計算
-			billboardMatrix = debugCamera.GetWorldMatrix();
-			billboardMatrix.m[3][0] = 0.0f; // 平行移動成分はいらない
-			billboardMatrix.m[3][1] = 0.0f;
-			billboardMatrix.m[3][2] = 0.0f;
-
-			Matrix4x4 particleWorldMatrix = MakeIdentity4x4();
-			Matrix4x4 particleScaleMatrix = MakeScaleMatrix(particles[index].transform.scale);
-			Matrix4x4 particleRotateMatrix = MakeRotateXYZMatrix(particles[index].transform.rotate);
-			Matrix4x4 particleTranslateMatrix = MakeTranslationMatrix(particles[index].transform.translate);
-			
-			if (useBillboard) {
-				particleWorldMatrix = particleScaleMatrix * particleRotateMatrix * billboardMatrix * particleTranslateMatrix;
-			} else {
-				particleWorldMatrix = MakeAffineMatrix(particles[index].transform.scale, particles[index].transform.rotate, particles[index].transform.translate);
-			}
-			Matrix4x4 particleWVPMatrix = Multiply(particleWorldMatrix, Multiply(currentViewMatrix, object3dProjectionMatrix));
-
-			// 転送
-			particleData[currentLiveIndex].WVP = particleWVPMatrix;
-			particleData[currentLiveIndex].World = particleWorldMatrix;
-			particleData[currentLiveIndex].color = particles[index].color;
-
-			// 計算したアルファ値を適用
-			particleData[currentLiveIndex].color.w = alpha; // 徐々に透明にする	
-
-			currentLiveIndex++; // 有効なパーティクル数をカウント
+			// 4. 次の要素へ進める（削除されなかった場合のみ）
+			++particleIterator;
 		}
 		// 描画数を更新
 		uint32_t numParticleToDraw = currentLiveIndex;
