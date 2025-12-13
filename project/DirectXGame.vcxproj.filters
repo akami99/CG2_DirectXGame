@@ -157,6 +157,12 @@
     <Filter Include="ソース ファイル\Engine\Graphics\PSO">
       <UniqueIdentifier>{0882b0a8-c1fe-4ed4-a797-cd8ca2d43778}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\Engine\Graphics\Model">
+      <UniqueIdentifier>{74e47adc-c4b5-4496-ad45-9aeb221a561c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Graphics\Model">
+      <UniqueIdentifier>{ab838250-838a-43e2-8f64-30bdc5e77840}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="externals\imgui\imgui.cpp">
@@ -236,6 +242,12 @@
     </ClCompile>
     <ClCompile Include="DirectXGame\Engine\Graphics\PSO\PipelineManager.cpp">
       <Filter>ソース ファイル\Engine\Graphics\PSO</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Model\Model.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Model\ModelCommon.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\Model</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -324,16 +336,22 @@
       <Filter>ヘッダー ファイル\Engine\Graphics\PSO</Filter>
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\GraphicsTypes.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\LightTypes.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Model\Model.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Model</Filter>
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\ModelTypes.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\ParticleTypes.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Model\ModelCommon.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Model</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

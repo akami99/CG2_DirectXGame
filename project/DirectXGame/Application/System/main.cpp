@@ -14,6 +14,8 @@
 #include "DebugCamera.h"
 #include "Input.h"
 #include "Logger.h"
+#include "Model.h"
+#include "ModelCommon.h"
 #include "Object3d.h"
 #include "Object3dCommon.h"
 #include "Sprite.h"
@@ -216,6 +218,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   object3dCommon->Initialize(dxBase, pipelineManager);
 
 #pragma endregion 3Dオブジェクト共通部の生成と初期化ここまで
+
+#pragma region モデル共通部の生成と初期化
+  // モデルの初期化
+
+  // ポインタ
+  ModelCommon *modelCommon = nullptr;
+
+  // モデルの初期化
+  modelCommon = new ModelCommon();
+  modelCommon->Initialize(dxBase);
+
+#pragma endregion モデル共通部の生成と初期化ここまで
 
 #pragma region RootSignature作成
   // RootSignature作成
@@ -513,12 +527,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma endregion Particle用リソース作成ここまで
 
-#pragma region マテリアル
-  // マテリアル
-  Object3d *object3d = new Object3d();
-  object3d->Initialize(object3dCommon);
+#pragma region モデル
+  // モデル
+  Model *model = new Model();
+  model->Initialize(modelCommon);
 
-#pragma endregion マテリアルここまで
+#pragma endregion モデルここまで
 
 #pragma region テクスチャの読み込みとアップロード
   // テクスチャの読み込みとアップロード
@@ -561,23 +575,50 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma region 最初のシーンの初期化
   // 最初のシーンの初期化
 
-  // カメラ
-  Vector3 gameCameraRotate = object3d->GetCameraRotation();
-  Vector3 gameCameraTranslate = object3d->GetCameraTranslate();
-
-  bool useDebugCamera = true;
-  bool isSavedCamera = true;
-
-  // ブレンドモード
-  int currentBlendMode = kBlendModeNormal;
-  int particleBlendMode = kBlendModeAdd;
-
 #pragma region マテリアル
+// マテリアル
+
+// 1つ目のオブジェクト
+  Object3d *object3d_1 = new Object3d(); // object3dをobject3d_1に変更
+  object3d_1->Initialize(object3dCommon);
+  
+  // モデルの設定
+  object3d_1->SetModel(model);
+  // オブジェクトの位置を設定
+  object3d_1->SetTranslate({ -2.0f, 0.0f, 0.0f });
+
+  // 2つ目のオブジェクトを新規作成
+  Object3d *object3d_2 = new Object3d();
+  object3d_2->Initialize(object3dCommon);
+  
+  // モデルの設定
+  object3d_2->SetModel(model);
+  // オブジェクトの位置を設定
+  object3d_2->SetTranslate({ 2.0f, 0.0f, 0.0f });
+
+  // Object3dを格納するstd::vectorを作成
+  std::vector<Object3d *> object3ds;
+  object3ds.push_back(object3d_1);
+  object3ds.push_back(object3d_2);
 
   // 表示
   bool showMaterial = true;
 
 #pragma endregion マテリアルここまで
+
+#pragma region カメラ
+  // カメラ
+  Vector3 gameCameraRotate = object3d_1->GetCameraRotation();
+  Vector3 gameCameraTranslate = object3d_1->GetCameraTranslate();
+
+  bool useDebugCamera = true;
+  bool isSavedCamera = true;
+
+#pragma endregion カメラここまで
+
+  // ブレンドモード
+  int currentBlendMode = kBlendModeNormal;
+  int particleBlendMode = kBlendModeAdd;
 
 #pragma region スプライト
   // スプライト
@@ -701,44 +742,60 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     ImGui::Separator();
     if (ImGui::TreeNode("Object3d")) {
-      Vector3 scale = object3d->GetScale();
-      Vector3 rotate = object3d->GetRotation();
-      Vector3 translate = object3d->GetTranslate();
-      Vector4 color = object3d->GetColor();
-      uint32_t enableLighting = object3d->IsEnableLighting();
+        ImGui::Checkbox("showMaterial", &showMaterial);
 
-      ImGui::Checkbox("showMaterial", &showMaterial);
-      ImGui::DragFloat3("scale", &scale.x, 0.01f);
-      ImGui::DragFloat3("rotate", &rotate.x, 0.01f);
-      ImGui::DragFloat3("translate", &translate.x, 0.01f);
+        // ここからループ処理
+        for (size_t i = 0; i < object3ds.size(); ++i) {
+            Object3d *object3d = object3ds[i]; // 現在のオブジェクトを取得
 
-      ImGui::ColorEdit4("color", &color.x);
+            // ノードのラベルを動的に生成
+            std::string label = "Object3d " + std::to_string(i + 1);
 
-      ImGui::CheckboxFlags("enableLighting", &enableLighting, 1 << 0);
+            if (ImGui::TreeNode(label.c_str())) {
+                Vector3 scale = object3d->GetScale();
+                Vector3 rotate = object3d->GetRotation();
+                Vector3 translate = object3d->GetTranslate();
+                // Vector4 color = object3d->GetColor();
+                // uint32_t enableLighting = object3d->IsEnableLighting();
 
-      object3d->SetScale(scale);
-      object3d->SetRotation(rotate);
-      object3d->SetTranslate(translate);
-      object3d->SetColor(color);
-      object3d->SetEnableLighting(enableLighting);
+                ImGui::DragFloat3("scale", &scale.x, 0.01f);
+                ImGui::DragFloat3("rotate", &rotate.x, 0.01f);
+                ImGui::DragFloat3("translate", &translate.x, 0.01f);
 
-      ImGui::Separator();
-      if (ImGui::TreeNode("Light")) {
-        Vector4 color = object3d->GetDirectionalLightColor();
-        Vector3 direction = object3d->GetDirectionalLightDirection();
-        float intensity = object3d->GetDirectionalLightIntensity();
+                // ImGui::ColorEdit4("color", &color.x);
 
-        ImGui::ColorEdit4("colorLight", &color.x);
-        ImGui::DragFloat3("directionLight", &direction.x, 0.01f);
-        ImGui::DragFloat("intensityLight", &intensity, 0.01f);
+                // ImGui::CheckboxFlags("enableLighting", &enableLighting, 1 << 0);
 
-        object3d->SetDirectionalLightColor(color);
-        object3d->SetRotation(rotate);
-        object3d->SetDirectionalLightIntensity(intensity);
+                object3d->SetScale(scale);
+                object3d->SetRotation(rotate);
+                object3d->SetTranslate(translate);
+                // object3d->SetColor(color);
+                // object3d->SetEnableLighting(enableLighting);
+
+                ImGui::Separator();
+
+                if (ImGui::TreeNode(("Light_" + std::to_string(i + 1)).c_str())) {
+                    Vector4 color = object3d->GetDirectionalLightColor();
+                    Vector3 direction = object3d->GetDirectionalLightDirection();
+                    float intensity = object3d->GetDirectionalLightIntensity();
+
+                    ImGui::ColorEdit4("colorLight", &color.x);
+                    ImGui::DragFloat3("directionLight", &direction.x, 0.01f);
+                    ImGui::DragFloat("intensityLight", &intensity, 0.01f);
+
+                    object3d->SetDirectionalLightColor(color);
+                    // object3d->SetRotation(rotate);
+                    object3d->SetDirectionalLightDirection(direction);
+                    object3d->SetDirectionalLightIntensity(intensity);
+
+                    ImGui::TreePop();
+                }
+                ImGui::TreePop();
+            }
+        }
+        // ループ処理ここまで
 
         ImGui::TreePop();
-      }
-      ImGui::TreePop();
     }
 
     ImGui::Separator();
@@ -847,9 +904,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     if (!useDebugCamera) {
 
-      Vector3 scale = object3d->GetScale();
-      Vector3 rotate = object3d->GetRotation();
-      Vector3 translate = object3d->GetTranslate();
+      Vector3 scale = object3d_1->GetScale();
+      Vector3 rotate = object3d_1->GetRotation();
+      Vector3 translate = object3d_1->GetTranslate();
 
       if (input->IsKeyDown(DIK_A)) { // Aキーが押されている間は左移動
         translate.x -= 0.1f;
@@ -886,9 +943,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         rotate.y = 0.0f;
       }
 
-      object3d->SetScale(scale);
-      object3d->SetRotation(rotate);
-      object3d->SetTranslate(translate);
+      object3d_1->SetScale(scale);
+      object3d_1->SetRotation(rotate);
+      object3d_1->SetTranslate(translate);
     }
 
     // カメラの更新
@@ -898,19 +955,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     // デバッグカメラを使うならオブジェクトに渡す
     if (useDebugCamera) {
       if (!isSavedCamera) {
-        gameCameraRotate = object3d->GetCameraRotation();
-        gameCameraTranslate = object3d->GetCameraTranslate();
+        gameCameraRotate = object3d_1->GetCameraRotation();
+        gameCameraTranslate = object3d_1->GetCameraTranslate();
 
         isSavedCamera = true;
       }
 
       debugCamera.Update(*input); // ※操作が微妙なので調整しておく
 
-      object3d->SetCameraRotation(debugCamera.GetRotation());
-      object3d->SetCameraTranslate(debugCamera.GetTranslate());
+      object3d_1->SetCameraRotation(debugCamera.GetRotation());
+      object3d_1->SetCameraTranslate(debugCamera.GetTranslate());
+      object3d_2->SetCameraRotation(debugCamera.GetRotation());
+      object3d_2->SetCameraTranslate(debugCamera.GetTranslate());
     } else if (isSavedCamera) {
-      object3d->SetCameraRotation(gameCameraRotate);
-      object3d->SetCameraTranslate(gameCameraTranslate);
+      object3d_1->SetCameraRotation(gameCameraRotate);
+      object3d_1->SetCameraTranslate(gameCameraTranslate);
+      object3d_2->SetCameraRotation(gameCameraRotate);
+      object3d_2->SetCameraTranslate(gameCameraTranslate);
 
       isSavedCamera = false;
     }
@@ -1040,7 +1101,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     // uint32_t numParticleToDraw = currentLiveIndex;
 
     // オブジェクト
-    object3d->Update();
+    object3d_1->Update();
+    object3d_2->Update();
 
     // スプライト
     for (size_t i = 0; i < sprites.size(); ++i) {
@@ -1071,7 +1133,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     // 描画！（DrawCall/ドローコール）
     if (showMaterial) {
-      object3d->Draw();
+      object3d_1->Draw();
+      object3d_2->Draw();
     }
     // commandList->DrawIndexedInstanced(totalIndexCount, 1, 0, 0, 0); // 引数を
     // totalIndexCount に変更
@@ -1162,9 +1225,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   // TextureManagerの終了
   TextureManager::GetInstance()->Finalize();
 
+  // Modelの解放
+  delete model;
+  model = nullptr;
+
+  // ModelCommonの解放
+  delete modelCommon;
+  modelCommon = nullptr;
+
   // Object3dの解放
-  delete object3d;
-  object3d = nullptr;
+  delete object3d_1;
+  object3d_1 = nullptr;
+  delete object3d_2;
+  object3d_2 = nullptr;
 
   // Object3dCommonの解放
   delete object3dCommon;
