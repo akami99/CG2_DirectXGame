@@ -108,10 +108,11 @@ const DirectX::TexMetadata &TextureManager::GetMetaData(uint32_t textureIndex) {
   return textureData.metadata;
 }
 
+// テクスチャロード
 uint32_t TextureManager::LoadTexture(const std::string &filePath) {
 
   std::string fullPath = filePath;
-  // 既にパスに"DirectXGame/Resources/Assets/Sounds/"が含まれている場合は追加しない
+  // 既にパスに"Resources/Textures/"が含まれている場合は追加しない
   if (filePath.find("Resources/Textures/") == std::string::npos &&
       filePath.find("resources/textures/") == std::string::npos) {
     fullPath = "Resources/Textures/" + filePath;
@@ -151,6 +152,8 @@ uint32_t TextureManager::LoadTexture(const std::string &filePath) {
                                 image.GetMetadata(), DirectX::TEX_FILTER_SRGB,
                                 0, mipImages);
   assert(SUCCEEDED(hr));
+
+  Log("INFO: Loaded texture at path: " + fullPath + "\n");
 
   // テクスチャデータを追加
   textureDatas_.resize(textureDatas_.size() + 1);
@@ -194,5 +197,5 @@ void TextureManager::ReleaseIntermediateResources() {
     textureData.intermediateResource.Reset();
   }
 
-  Logger::Log("INFO: All intermediate texture resources have been released.");
+  Logger::Log("INFO: All intermediate texture resources have been released.\n");
 }

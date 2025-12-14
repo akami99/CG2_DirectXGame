@@ -3,6 +3,7 @@
 #include "Model/Model.h"
 #include "Object3dCommon.h"
 #include "Texture/TextureManager.h"
+#include "Model/ModelManager.h"
 
 #include "Math/Functions/MathUtils.h"
 #include "Math/Matrix/MatrixGenerators.h"
@@ -71,6 +72,11 @@ void Object3d::Draw() {
   if (model_) {
     model_->Draw();
   }
+}
+
+void Object3d::SetModel(const std::string &filepath) {
+    // モデルを検索してセットする
+    model_ = ModelManager::GetInstance()->FindModel(filepath);
 }
 
 // 変換行列バッファの作成

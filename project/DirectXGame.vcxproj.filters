@@ -249,6 +249,9 @@
     <ClCompile Include="DirectXGame\Engine\Graphics\Model\ModelCommon.cpp">
       <Filter>ソース ファイル\Engine\Graphics\Model</Filter>
     </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Model\ModelManager.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\Model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="externals\imgui\imconfig.h">
@@ -351,6 +354,9 @@
       <Filter>ヘッダー ファイル\Engine\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\Model\ModelCommon.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Model\ModelManager.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Model</Filter>
     </ClInclude>
   </ItemGroup>

@@ -16,12 +16,14 @@ using namespace Microsoft::WRL;
 using namespace MathUtils;
 using namespace MathGenerators;
 
-void Model::Initialize(ModelCommon *modelCommon) {
+void Model::Initialize(ModelCommon *modelCommon,
+                       const std::string &directoryPath,
+                       const std::string &filename) {
   // 引数で受け取ってメンバ変数に記録する
   modelCommon_ = modelCommon;
 
   // モデル読み込み
-  LoadObjFile("plane", "plane.obj");
+  LoadObjFile(directoryPath, filename);
 
   // 頂点データを作成する
   CreateVertexResource();

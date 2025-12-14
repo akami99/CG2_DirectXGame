@@ -23,6 +23,7 @@
 #include "Win32Window.h"
 // 管理系
 #include "AudioManager.h"
+#include "ModelManager.h"
 #include "PipelineManager.h"
 #include "TextureManager.h"
 
@@ -218,18 +219,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   object3dCommon->Initialize(dxBase, pipelineManager);
 
 #pragma endregion 3Dオブジェクト共通部の生成と初期化ここまで
-
-#pragma region モデル共通部の生成と初期化
-  // モデルの初期化
-
-  // ポインタ
-  ModelCommon *modelCommon = nullptr;
-
-  // モデルの初期化
-  modelCommon = new ModelCommon();
-  modelCommon->Initialize(dxBase);
-
-#pragma endregion モデル共通部の生成と初期化ここまで
 
 #pragma region RootSignature作成
   // RootSignature作成
@@ -493,6 +482,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma endregion TextureManagerの初期化ここまで
 
+#pragma region ModelManagerの初期化
+  // ModelManagerの初期化
+
+  ModelManager::GetInstance()->Initialize(dxBase);
+
+#pragma endregion ModelManagerの初期化ここまで
+
 #pragma region Particle用リソース作成
   // Particle用リソース作成
 
@@ -527,12 +523,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma endregion Particle用リソース作成ここまで
 
-#pragma region モデル
-  // モデル
-  Model *model = new Model();
-  model->Initialize(modelCommon);
+#pragma endregion 基盤システムの初期化ここまで
 
-#pragma endregion モデルここまで
+#pragma region 最初のシーンの初期化
+
+#pragma region モデルの読み込みとアップロード
+  // モデルの読み込みとアップロード
+
+  // モデルのパスを保持
+  const std::string planeModel = ("plane.obj");
+  const std::string axisModel = ("axis.obj");
+
+  // .objファイルからモデルを呼び込む
+  ModelManager::GetInstance()->LoadModel("plane", planeModel);
+  ModelManager::GetInstance()->LoadModel("axis", axisModel);
+
+#pragma endregion モデルの読み込みとアップロードここまで
 
 #pragma region テクスチャの読み込みとアップロード
   // テクスチャの読み込みとアップロード
@@ -569,32 +575,28 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   }
 
 #pragma endregion サウンドの初期化ここまで
-
-#pragma endregion 基盤システムの初期化ここまで
-
-#pragma region 最初のシーンの初期化
   // 最初のシーンの初期化
 
 #pragma region マテリアル
-// マテリアル
+  // マテリアル
 
-// 1つ目のオブジェクト
+  // 1つ目のオブジェクト
   Object3d *object3d_1 = new Object3d(); // object3dをobject3d_1に変更
   object3d_1->Initialize(object3dCommon);
-  
+
   // モデルの設定
-  object3d_1->SetModel(model);
+  object3d_1->SetModel(planeModel);
   // オブジェクトの位置を設定
-  object3d_1->SetTranslate({ -2.0f, 0.0f, 0.0f });
+  object3d_1->SetTranslate({-2.0f, 0.0f, 0.0f});
 
   // 2つ目のオブジェクトを新規作成
   Object3d *object3d_2 = new Object3d();
   object3d_2->Initialize(object3dCommon);
-  
+
   // モデルの設定
-  object3d_2->SetModel(model);
+  object3d_2->SetModel(axisModel);
   // オブジェクトの位置を設定
-  object3d_2->SetTranslate({ 2.0f, 0.0f, 0.0f });
+  object3d_2->SetTranslate({2.0f, 0.0f, 0.0f});
 
   // Object3dを格納するstd::vectorを作成
   std::vector<Object3d *> object3ds;
@@ -742,60 +744,60 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     ImGui::Separator();
     if (ImGui::TreeNode("Object3d")) {
-        ImGui::Checkbox("showMaterial", &showMaterial);
+      ImGui::Checkbox("showMaterial", &showMaterial);
 
-        // ここからループ処理
-        for (size_t i = 0; i < object3ds.size(); ++i) {
-            Object3d *object3d = object3ds[i]; // 現在のオブジェクトを取得
+      // ここからループ処理
+      for (size_t i = 0; i < object3ds.size(); ++i) {
+        Object3d *object3d = object3ds[i]; // 現在のオブジェクトを取得
 
-            // ノードのラベルを動的に生成
-            std::string label = "Object3d " + std::to_string(i + 1);
+        // ノードのラベルを動的に生成
+        std::string label = "Object3d " + std::to_string(i + 1);
 
-            if (ImGui::TreeNode(label.c_str())) {
-                Vector3 scale = object3d->GetScale();
-                Vector3 rotate = object3d->GetRotation();
-                Vector3 translate = object3d->GetTranslate();
-                // Vector4 color = object3d->GetColor();
-                // uint32_t enableLighting = object3d->IsEnableLighting();
+        if (ImGui::TreeNode(label.c_str())) {
+          Vector3 scale = object3d->GetScale();
+          Vector3 rotate = object3d->GetRotation();
+          Vector3 translate = object3d->GetTranslate();
+          // Vector4 color = object3d->GetColor();
+          // uint32_t enableLighting = object3d->IsEnableLighting();
 
-                ImGui::DragFloat3("scale", &scale.x, 0.01f);
-                ImGui::DragFloat3("rotate", &rotate.x, 0.01f);
-                ImGui::DragFloat3("translate", &translate.x, 0.01f);
+          ImGui::DragFloat3("scale", &scale.x, 0.01f);
+          ImGui::DragFloat3("rotate", &rotate.x, 0.01f);
+          ImGui::DragFloat3("translate", &translate.x, 0.01f);
 
-                // ImGui::ColorEdit4("color", &color.x);
+          // ImGui::ColorEdit4("color", &color.x);
 
-                // ImGui::CheckboxFlags("enableLighting", &enableLighting, 1 << 0);
+          // ImGui::CheckboxFlags("enableLighting", &enableLighting, 1 << 0);
 
-                object3d->SetScale(scale);
-                object3d->SetRotation(rotate);
-                object3d->SetTranslate(translate);
-                // object3d->SetColor(color);
-                // object3d->SetEnableLighting(enableLighting);
+          object3d->SetScale(scale);
+          object3d->SetRotation(rotate);
+          object3d->SetTranslate(translate);
+          // object3d->SetColor(color);
+          // object3d->SetEnableLighting(enableLighting);
 
-                ImGui::Separator();
+          ImGui::Separator();
 
-                if (ImGui::TreeNode(("Light_" + std::to_string(i + 1)).c_str())) {
-                    Vector4 color = object3d->GetDirectionalLightColor();
-                    Vector3 direction = object3d->GetDirectionalLightDirection();
-                    float intensity = object3d->GetDirectionalLightIntensity();
+          if (ImGui::TreeNode(("Light_" + std::to_string(i + 1)).c_str())) {
+            Vector4 color = object3d->GetDirectionalLightColor();
+            Vector3 direction = object3d->GetDirectionalLightDirection();
+            float intensity = object3d->GetDirectionalLightIntensity();
 
-                    ImGui::ColorEdit4("colorLight", &color.x);
-                    ImGui::DragFloat3("directionLight", &direction.x, 0.01f);
-                    ImGui::DragFloat("intensityLight", &intensity, 0.01f);
+            ImGui::ColorEdit4("colorLight", &color.x);
+            ImGui::DragFloat3("directionLight", &direction.x, 0.01f);
+            ImGui::DragFloat("intensityLight", &intensity, 0.01f);
 
-                    object3d->SetDirectionalLightColor(color);
-                    // object3d->SetRotation(rotate);
-                    object3d->SetDirectionalLightDirection(direction);
-                    object3d->SetDirectionalLightIntensity(intensity);
+            object3d->SetDirectionalLightColor(color);
+            // object3d->SetRotation(rotate);
+            object3d->SetDirectionalLightDirection(direction);
+            object3d->SetDirectionalLightIntensity(intensity);
 
-                    ImGui::TreePop();
-                }
-                ImGui::TreePop();
-            }
+            ImGui::TreePop();
+          }
+          ImGui::TreePop();
         }
-        // ループ処理ここまで
+      }
+      // ループ処理ここまで
 
-        ImGui::TreePop();
+      ImGui::TreePop();
     }
 
     ImGui::Separator();
@@ -1222,16 +1224,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   ImGui_ImplWin32_Shutdown();
   ImGui::DestroyContext();
 
+  // ModelManagerの終了
+  ModelManager::GetInstance()->Finalize();
+
   // TextureManagerの終了
   TextureManager::GetInstance()->Finalize();
-
-  // Modelの解放
-  delete model;
-  model = nullptr;
-
-  // ModelCommonの解放
-  delete modelCommon;
-  modelCommon = nullptr;
 
   // Object3dの解放
   delete object3d_1;

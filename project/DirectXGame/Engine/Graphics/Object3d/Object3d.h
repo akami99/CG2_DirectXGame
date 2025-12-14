@@ -5,6 +5,7 @@
 
 #include <d3d12.h>
 #include <wrl/client.h>
+#include <string>
 
 // 前方宣言
 class Object3dCommon;
@@ -86,6 +87,7 @@ public: // メンバ関数
 
   // モデルの設定
   void SetModel(Model *model) { model_ = model; };
+  void SetModel(const std::string &filepath);
 
   // 座標の設定
   void SetTranslate(const Vector3 &translate) {

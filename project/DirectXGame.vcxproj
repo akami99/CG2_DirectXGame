@@ -178,6 +178,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="DirectXGame\Engine\Graphics\PSO\PipelineManager.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\Model\Model.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\Model\ModelCommon.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Graphics\Model\ModelManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Particle.PS.hlsl">
@@ -264,6 +265,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="DirectXGame\Engine\Graphics\PSO\PipelineManager.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\Model\Model.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\Model\ModelCommon.h" />
+    <ClInclude Include="DirectXGame\Engine\Graphics\Model\ModelManager.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="externals\imgui\LICENSE.txt" />
