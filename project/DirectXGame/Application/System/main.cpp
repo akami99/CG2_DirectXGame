@@ -9,6 +9,7 @@
 #include <random>  //particleに使用
 
 // エンジン
+#include "Camera.h"
 #include "D3DResourceLeakChecker.h"
 #include "DX12Context.h"
 #include "DebugCamera.h"
@@ -526,6 +527,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma endregion 基盤システムの初期化ここまで
 
 #pragma region 最初のシーンの初期化
+  // 最初のシーンの初期化
+
+#pragma region カメラ
+  // カメラ
+
+  // 生成
+  Camera *camera = new Camera();
+  camera->SetRotate({0.0f, 0.0f, 0.0f});
+  camera->SetTranslate({0.0f, 0.0f, -10.0f});
+  object3dCommon->SetDefaultCamera(camera);
+
+  Vector3 gameCameraRotate = camera->GetRotate();
+  Vector3 gameCameraTranslate = camera->GetTranslate();
+
+  bool useDebugCamera = false;
+
+#pragma endregion カメラここまで
 
 #pragma region モデルの読み込みとアップロード
   // モデルの読み込みとアップロード
@@ -575,7 +593,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   }
 
 #pragma endregion サウンドの初期化ここまで
-  // 最初のシーンの初期化
 
 #pragma region マテリアル
   // マテリアル
@@ -607,16 +624,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   bool showMaterial = true;
 
 #pragma endregion マテリアルここまで
-
-#pragma region カメラ
-  // カメラ
-  Vector3 gameCameraRotate = object3d_1->GetCameraRotation();
-  Vector3 gameCameraTranslate = object3d_1->GetCameraTranslate();
-
-  bool useDebugCamera = true;
-  bool isSavedCamera = true;
-
-#pragma endregion カメラここまで
 
   // ブレンドモード
   int currentBlendMode = kBlendModeNormal;
@@ -739,6 +746,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       ImGui::Checkbox("useDebugCamera", &useDebugCamera);
       ImGui::Combo("BlendMode", &currentBlendMode,
                    "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
+      ImGui::TreePop();
+    }
+
+    ImGui::Separator();
+    if (ImGui::TreeNode("GameCamera")) {
+
+      ImGui::DragFloat3("rotate", &gameCameraRotate.x, 0.01f);
+      ImGui::DragFloat3("translate", &gameCameraTranslate.x, 0.01f);
+
       ImGui::TreePop();
     }
 
@@ -878,15 +894,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     ImGui::End();
 
-    // 移動モード用の操作説明(画面左上)
+    // gameCameraモード用の操作説明(画面左上)
     if (!useDebugCamera) {
       ImGui::SetNextWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_Once);
-      ImGui::Begin("Control Material Mode");
+      ImGui::Begin("Game Camera Control");
       ImGui::Text("A/D: Left/Right");
       ImGui::Text("W/S: Up/Down");
       ImGui::Text("Q/E: Forward/Backward");
-      ImGui::Text("UP/DOWN: Scale Up/Down");
-      ImGui::Text("C/Z: Rotate Left/Right");
+      ImGui::Text("Z/C: Rotate Left/Right");
       ImGui::Text("X: Reset Rotation");
       ImGui::End();
     }
@@ -900,85 +915,55 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     // inputを更新
     input->Update();
 
-    // キーボードの入力処理
-
     audioManager.CleanupFinishedVoices(); // 完了した音声のクリーンアップ
-
-    if (!useDebugCamera) {
-
-      Vector3 scale = object3d_1->GetScale();
-      Vector3 rotate = object3d_1->GetRotation();
-      Vector3 translate = object3d_1->GetTranslate();
-
-      if (input->IsKeyDown(DIK_A)) { // Aキーが押されている間は左移動
-        translate.x -= 0.1f;
-      }
-      if (input->IsKeyDown(DIK_D)) { // Dキーが押されている間は右移動
-        translate.x += 0.1f;
-      }
-      if (input->IsKeyDown(DIK_W)) { // Wキーが押されている間は上移動
-        translate.y += 0.1f;
-      }
-      if (input->IsKeyDown(DIK_S)) { // Sキーが押されている間は下移動
-        translate.y -= 0.1f;
-      }
-      if (input->IsKeyDown(DIK_Q)) { // Qキーが押されている間は前進
-        translate.z += 0.1f;
-      }
-      if (input->IsKeyDown(DIK_E)) { // Eキーが押されている間は後退
-        translate.z -= 0.1f;
-      }
-
-      if (input->IsKeyDown(DIK_UP)) { // 上キーが押されている間は拡大
-        scale += Vector3(0.01f, 0.01f, 0.01f);
-      }
-      if (input->IsKeyDown(DIK_DOWN)) { // 下キーが押されている間は縮小
-        scale -= Vector3(0.01f, 0.01f, 0.01f);
-      }
-      if (input->IsKeyDown(DIK_C)) { // Cキーが押されている間は左に回転
-        rotate.y -= 0.02f;
-      }
-      if (input->IsKeyDown(DIK_Z)) { // Zキーが押されている間は右に回転
-        rotate.y += 0.02f;
-      }
-      if (input->IsKeyReleased(DIK_X)) { // Xキーが離されたら回転をリセット
-        rotate.y = 0.0f;
-      }
-
-      object3d_1->SetScale(scale);
-      object3d_1->SetRotation(rotate);
-      object3d_1->SetTranslate(translate);
-    }
 
     // カメラの更新
 
-    // デバッグカメラ
+    if (!useDebugCamera) {// ※カメラマネージャーを作っておく
 
-    // デバッグカメラを使うならオブジェクトに渡す
-    if (useDebugCamera) {
-      if (!isSavedCamera) {
-        gameCameraRotate = object3d_1->GetCameraRotation();
-        gameCameraTranslate = object3d_1->GetCameraTranslate();
-
-        isSavedCamera = true;
+      if (input->IsKeyDown(DIK_A)) { // Aキーが押されている間は左移動
+        gameCameraTranslate.x -= 0.1f;
+      }
+      if (input->IsKeyDown(DIK_D)) { // Dキーが押されている間は右移動
+        gameCameraTranslate.x += 0.1f;
+      }
+      if (input->IsKeyDown(DIK_W)) { // Wキーが押されている間は上移動
+        gameCameraTranslate.y += 0.1f;
+      }
+      if (input->IsKeyDown(DIK_S)) { // Sキーが押されている間は下移動
+        gameCameraTranslate.y -= 0.1f;
+      }
+      if (input->IsKeyDown(DIK_Q)) { // Qキーが押されている間は前進
+        gameCameraTranslate.z += 0.1f;
+      }
+      if (input->IsKeyDown(DIK_E)) { // Eキーが押されている間は後退
+        gameCameraTranslate.z -= 0.1f;
       }
 
-      debugCamera.Update(*input); // ※操作が微妙なので調整しておく
-
-      object3d_1->SetCameraRotation(debugCamera.GetRotation());
-      object3d_1->SetCameraTranslate(debugCamera.GetTranslate());
-      object3d_2->SetCameraRotation(debugCamera.GetRotation());
-      object3d_2->SetCameraTranslate(debugCamera.GetTranslate());
-    } else if (isSavedCamera) {
-      object3d_1->SetCameraRotation(gameCameraRotate);
-      object3d_1->SetCameraTranslate(gameCameraTranslate);
-      object3d_2->SetCameraRotation(gameCameraRotate);
-      object3d_2->SetCameraTranslate(gameCameraTranslate);
-
-      isSavedCamera = false;
+      if (input->IsKeyDown(DIK_C)) { // Cキーが押されている間は右に回転
+        gameCameraRotate.y += 0.02f;
+      }
+      if (input->IsKeyDown(DIK_Z)) { // Zキーが押されている間は左に回転
+        gameCameraRotate.y -= 0.02f;
+      }
+      if (input->IsKeyReleased(DIK_X)) { // Xキーが離されたら回転をリセット
+        gameCameraRotate.y = 0.0f;
+      }
     }
 
-    // currentViewMatrix = debugCamera.GetViewMatrix();
+    if (useDebugCamera) {
+      // デバッグカメラ
+      debugCamera.Update(*input); // ※操作が微妙なので調整しておく
+
+      camera->SetRotate(debugCamera.GetRotation());
+      camera->SetTranslate(debugCamera.GetTranslate());
+    } else {
+      // カメラ
+      camera->SetRotate(gameCameraRotate);
+      camera->SetTranslate(gameCameraTranslate);
+    }
+
+    camera->Update();
 
     //// particle用データの更新
 
@@ -1245,6 +1230,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     delete sprites[i];
     sprites[i] = nullptr;
   }
+
+  // cameraの解放
+  delete camera;
+  camera = nullptr;
 
   // spriteCommonの解放
   delete spriteCommon;

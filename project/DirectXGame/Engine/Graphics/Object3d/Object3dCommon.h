@@ -8,6 +8,7 @@
 // 前方宣言
 class DX12Context;
 class PipelineManager;
+class Camera;
 
 // 3Dオブジェクト共通部
 class Object3dCommon {
@@ -27,6 +28,9 @@ private: // メンバ変数
   ComPtr<ID3D12PipelineState>
       psoArray_[BlendMode::BlendState::kCountOfBlendMode];
 
+  // デフォルトカメラ
+  Camera *defaultCamera_ = nullptr;
+
 public: // メンバ関数
   // 初期化
   void Initialize(DX12Context *dxBase, PipelineManager *pipelineManager);
@@ -34,7 +38,16 @@ public: // メンバ関数
   // 共通描画設定
   void SetCommonDrawSettings(BlendMode::BlendState currentBlendMode,
                              PipelineManager *pipelineManager);
+  // getter
+
+  // デフォルトカメラの取得
+  Camera *GetDefaultCamera() const { return defaultCamera_; };
 
   // DirectX基底部分を取得
   DX12Context *GetDX12Context() const { return dxBase_; }
+
+  // setter
+
+  // デフォルトカメラの設定
+  void SetDefaultCamera(Camera *camera) { defaultCamera_ = camera; };
 };

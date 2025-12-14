@@ -10,6 +10,7 @@
 // 前方宣言
 class Object3dCommon;
 class Model;
+class Camera;
 
 // 3Dオブジェクト
 class Object3d {
@@ -26,6 +27,8 @@ private: // メンバ変数
   Object3dCommon *object3dCommon_ = nullptr;
   // モデルのポインタ
   Model *model_ = nullptr;
+  // カメラのポインタ
+  Camera *camera_ = nullptr;
 
   // 変換行列データ
   // バッファリソース
@@ -41,8 +44,7 @@ private: // メンバ変数
   // Transform変数を作る
   Transform transform_ = {
       {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}};
-  Transform cameraTransform_ = {
-      {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -10.0f}};
+
 
 public: // メンバ関数
   // 初期化
@@ -63,12 +65,6 @@ public: // メンバ関数
   // スケールの取得
   const Vector3 &GetScale() const { return transform_.scale; }
 
-  // カメラの座標の取得
-  const Vector3 &GetCameraTranslate() const {
-    return cameraTransform_.translate;
-  }
-  // カメラの回転の取得
-  const Vector3 &GetCameraRotation() const { return cameraTransform_.rotate; }
 
   // DirectionalLightの色の取得
   const Vector4 &GetDirectionalLightColor() const {
@@ -89,6 +85,9 @@ public: // メンバ関数
   void SetModel(Model *model) { model_ = model; };
   void SetModel(const std::string &filepath);
 
+  // カメラの設定
+  void SetCamera(Camera *camera) { camera_ = camera; };
+
   // 座標の設定
   void SetTranslate(const Vector3 &translate) {
     transform_.translate = translate;
@@ -97,15 +96,6 @@ public: // メンバ関数
   void SetRotation(const Vector3 &rotation) { transform_.rotate = rotation; }
   // スケールの設定
   void SetScale(const Vector3 &scale) { transform_.scale = scale; }
-
-  // カメラの座標の設定
-  void SetCameraTranslate(const Vector3 &translate) {
-    cameraTransform_.translate = translate;
-  }
-  // カメラの回転の設定
-  void SetCameraRotation(const Vector3 &rotation) {
-    cameraTransform_.rotate = rotation;
-  }
 
   // DirectionalLightの色の設定
   void SetDirectionalLightColor(const Vector4 &color) {

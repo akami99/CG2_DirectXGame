@@ -1,9 +1,10 @@
 #include "Object3d.h"
 #include "API/DX12Context.h"
+#include "Camera/Camera.h"
 #include "Model/Model.h"
+#include "Model/ModelManager.h"
 #include "Object3dCommon.h"
 #include "Texture/TextureManager.h"
-#include "Model/ModelManager.h"
 
 #include "Math/Functions/MathUtils.h"
 #include "Math/Matrix/MatrixGenerators.h"
@@ -17,6 +18,8 @@ using namespace MathGenerators;
 void Object3d::Initialize(Object3dCommon *object3dCommon) {
   // 引数で受け取ってメンバ変数に記録する
   object3dCommon_ = object3dCommon;
+
+  camera_ = object3dCommon_->GetDefaultCamera();
 
   // 変換行列バッファの作成
   CreateTransformationMatrixResource();
@@ -34,18 +37,15 @@ void Object3d::Update() {
   // Transform情報から変換行列を作る
   Matrix4x4 worldMatrix = MakeAffineMatrix(transform_.scale, transform_.rotate,
                                            transform_.translate);
-  // cameraTransformからcameraMatrixを作る
-  Matrix4x4 cameraMatrix =
-      MakeAffineMatrix(cameraTransform_.scale, cameraTransform_.rotate,
-                       cameraTransform_.translate);
-  // cameraMatrixからViewMatrixを作る
-  Matrix4x4 viewMatrix = Inverse(cameraMatrix);
-  // ProjectionMatrixを作って透視投影行列を書き込む
-  Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(
-      0.45f,
-      float(Win32Window::kClientWidth) / float(Win32Window::kClientHeight),
-      0.1f, 100.0f);
-  Matrix4x4 wvpMatrix = worldMatrix * viewMatrix * projectionMatrix;
+
+  Matrix4x4 wvpMatrix;
+  if (camera_) {
+    const Matrix4x4 &viewProjectionMatrix = camera_->GetViewProjectionMatrix();
+    wvpMatrix = worldMatrix * viewProjectionMatrix;
+  } else {
+    wvpMatrix = worldMatrix;
+  }
+
   transformationMatrixData_->WVP =
       wvpMatrix; // World-View-Projection行列をWVPメンバーに入れる
   transformationMatrixData_->World =
@@ -75,8 +75,8 @@ void Object3d::Draw() {
 }
 
 void Object3d::SetModel(const std::string &filepath) {
-    // モデルを検索してセットする
-    model_ = ModelManager::GetInstance()->FindModel(filepath);
+  // モデルを検索してセットする
+  model_ = ModelManager::GetInstance()->FindModel(filepath);
 }
 
 // 変換行列バッファの作成
