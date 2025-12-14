@@ -2,11 +2,13 @@
 
 #include <d3d12.h>
 #include <filesystem>
+#include <unordered_map>
 #include <wrl/client.h>
 
 #include "externals/DirectXTex/DirectXTex.h"
 
 class DX12Context;
+class SrvManager;
 
 // テクスチャマネージャー(シングルトン)
 class TextureManager {
@@ -21,9 +23,9 @@ private: // namespace省略のためのusing宣言
 private: // メンバ変数
   // テクスチャ1枚分のデータ
   struct TextureData {
-    std::string filePath;
     DirectX::TexMetadata metadata;
     ComPtr<ID3D12Resource> resource;
+    uint32_t srvIndex;
     D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU;
     D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU;
     ComPtr<ID3D12Resource> intermediateResource;
@@ -32,37 +34,36 @@ private: // メンバ変数
   static TextureManager *instance_;
 
   // テクスチャデータ
-  std::vector<TextureData> textureDatas_;
+  std::unordered_map<std::string, TextureData>
+      textureDatas_; // キーの順番を保つならunordered_mapの方が高速
 
   DX12Context *dxBase_ = nullptr;
 
-  // SRVインデックスの開始番号
-  static uint32_t kSRVIndexTop;
+  SrvManager *srvManager_ = nullptr;
 
 public: // メンバ関数
   // 初期化
-  void Initialize(DX12Context *dxBase);
+  void Initialize(DX12Context *dxBase, SrvManager *srvManager);
 
   // シングルトンインスタンスの取得
   static TextureManager *GetInstance();
   // 終了(この後にGetInstance()するとまたnewするので注意)
   void Finalize();
 
-  // SRVインデックスの開始番号
-  uint32_t GetTextureIndexByFilePath(const std::string &filePath);
+  // SRVインデックスの取得
+  uint32_t GetSrvIndex(const std::string &filePath);
 
   // テクスチャ番号からGPUハンドルを取得
-  D3D12_GPU_DESCRIPTOR_HANDLE GetSrvHandleGPU(uint32_t textureIndex);
+  D3D12_GPU_DESCRIPTOR_HANDLE GetSrvHandleGPU(const std::string &filePath);
 
   // メタデータを取得
-  const DirectX::TexMetadata &GetMetaData(uint32_t textureIndex);
+  const DirectX::TexMetadata &GetMetaData(const std::string &filePath);
 
   /// <summary>
   /// テクスチャファイルの読み込み
   /// </summary>
   /// <param name="filePath">テクスチャファイルのパス</param>
-  /// <returns>テクスチャインデックス< /returns>
-  uint32_t LoadTexture(const std::string &filePath);
+  void LoadTexture(const std::string &filePath);
 
   /// <summary>
   /// 中間リソースをまとめて解放する

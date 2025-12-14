@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <d3d12.h>
 #include <wrl/client.h>
-// #include <string>
+#include <string>
 
 #include "../../Core/Utility/Math/MathTypes.h"
 #include "../GraphicsTypes.h"
@@ -58,8 +58,8 @@ private: // メンバ変数
   Transform uvTransform_{
       {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}};
 
-  // テクスチャ番号
-  uint32_t textureIndex_ = 0;
+  // テクスチャファイルパス
+  std::string textureFilePath_;
 
   // アンカーポイント
   Vector2 anchorPoint_ = {0.0f, 0.0f};
@@ -74,7 +74,7 @@ private: // メンバ変数
 
 public: // メンバ関数
   // 初期化
-  void Initialize(SpriteCommon *spriteCommon, uint32_t textureIndex);
+  void Initialize(SpriteCommon *spriteCommon, const std::string &filePath);
 
   // 更新処理
   void Update();
@@ -129,8 +129,8 @@ public: // メンバ関数
   }
   // UVスケールの設定
   void SetUvScale(const Vector3 &uvScale) { uvTransform_.scale = uvScale; }
-  // テクスチャインデックスを設定するためのセッター
-  void SetTextureIndex(const uint32_t &index);
+  // テクスチャを設定するためのセッター
+  void SetTexture(const std::string &filePath);
   // アンカーポイントの設定
   void SetAnchorPoint(const Vector2 &anchorPoint) {
     anchorPoint_ = anchorPoint;

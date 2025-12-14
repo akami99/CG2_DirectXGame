@@ -21,10 +21,6 @@ public: // namespace省略のためのusing宣言
 
 #pragma endregion
 
-public: // メンバ変数
-  // 最大SRV数(最大テクスチャ枚数)
-  static const uint32_t kMaxSRVCount;
-
 private: // メンバ変数
 #pragma region privateメンバ変数
 
@@ -54,11 +50,9 @@ private: // メンバ変数
 
   // 各種デスクリプタヒープサイズ
   uint32_t descriptorSizeRTV_ = 0; // RTV用
-  uint32_t descriptorSizeSRV_ = 0; // SRV/UAV/CBV用
   uint32_t descriptorSizeDSV_ = 0; // DSV用
   // 各種デスクリプタヒープ
   ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap_ = nullptr; // RTV用
-  ComPtr<ID3D12DescriptorHeap> srvDescriptorHeap_ = nullptr; // SRV/UAV/CBV用
   ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap_ = nullptr; // DSV用
 
   // レンダーターゲットビュー
@@ -97,19 +91,6 @@ public: // メンバ関数
   // 描画後処理
   void PostDraw();
 
-  /// <summary>
-  /// StructuredBuffer用のSRVを作成
-  /// </summary>
-  /// <param name="resource">StructuredBufferのID3D12Resource</param>
-  /// <param name="numElement">格納されている要素（インスタンス）の数</param>
-  /// <param name="structureByteStride">構造体（要素）のバイトサイズ</param>
-  /// <param name="srvIndex">デスクリプタヒープ上のインデックス</param>
-  /// <returns>GPU用のデスクリプタハンドル</returns>
-  D3D12_GPU_DESCRIPTOR_HANDLE
-  CreateStructuredBufferSRV(ComPtr<ID3D12Resource> resource,
-                            uint32_t numElement, uint32_t structureByteStride,
-                            uint32_t srvIndex);
-
 #pragma region ゲッター
 
   // 各種DirectXオブジェクトのゲッター
@@ -119,18 +100,6 @@ public: // メンバ関数
   /// </summary>
   /// <param name="index">取得するRTVのインデックス</param>
   D3D12_CPU_DESCRIPTOR_HANDLE GetRTVCPUDescriptorHandle(uint32_t index);
-
-  /// <summary>
-  /// SRVの指定したインデックスのCPUディスクリプタハンドルを取得
-  /// </summary>
-  /// <param name="index">取得するSRVのインデックス</param>
-  D3D12_CPU_DESCRIPTOR_HANDLE GetSRVCPUDescriptorHandle(uint32_t index);
-
-  /// <summary>
-  /// SRVの指定したインデックスのGPUディスクリプタハンドルを取得
-  /// </summary>
-  /// <param name="index">取得するSRVのインデックス</param>
-  D3D12_GPU_DESCRIPTOR_HANDLE GetSRVGPUDescriptorHandle(uint32_t index);
 
   /// <summary>
   /// DSVの指定したインデックスのCPUディスクリプタハンドルを取得
@@ -176,7 +145,7 @@ private: // メンバ関数
   // DXCコンパイラの生成
   void CreateDXCCompiler();
   // ImGuiの初期化
-  void InitializeImGui();
+  //void InitializeImGui();
 
 #pragma region 60FPS固定用
 
@@ -232,12 +201,6 @@ public: // ヘルパー関数
   UploadTextureData(ComPtr<ID3D12Resource> texture,
                     const DirectX::ScratchImage &mipImages);
 
-#pragma endregion publicヘルパー関数
-private: // ヘルパー関数
-#pragma region privateヘルパー関数
-
-#pragma region デスクリプタ
-
   /// <summary>
   /// デスクリプタヒープを生成する
   /// </summary>
@@ -248,6 +211,12 @@ private: // ヘルパー関数
   ComPtr<ID3D12DescriptorHeap>
   CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors,
                        bool shaderVisible);
+
+#pragma endregion publicヘルパー関数
+private: // ヘルパー関数
+#pragma region privateヘルパー関数
+
+#pragma region デスクリプタ
 
 #pragma region ハンドルのゲッター
 

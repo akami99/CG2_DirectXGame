@@ -32,8 +32,10 @@ void Model::Initialize(ModelCommon *modelCommon,
   CreateMaterialResource();
 
   // .objの参照しているテクスチャファイル読み込み、インデックスを代入
-  modelData_.material.textureIndex = TextureManager::GetInstance()->LoadTexture(
+  TextureManager::GetInstance()->LoadTexture(
       modelData_.material.textureFilePath);
+
+  modelData_.material.textureIndex = TextureManager::GetInstance()->GetSrvIndex(modelData_.material.textureFilePath);
 }
 
 // 描画処理
@@ -51,7 +53,7 @@ void Model::Draw() {
       ->GetCommandList()
       ->SetGraphicsRootDescriptorTable(
           2, TextureManager::GetInstance()->GetSrvHandleGPU(
-                 modelData_.material.textureIndex));
+                 modelData_.material.textureFilePath));
   // 描画コマンド
   modelCommon_->GetDX12Context()->GetCommandList()->DrawInstanced(
       UINT(modelData_.vertices.size()), 1, 0, 0);

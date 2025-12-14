@@ -34,11 +34,11 @@ void DebugCamera::Initialize() {
 void DebugCamera::Update(Input &input) {
   // デバッグ用ImGuiウィンドウ
 
-  // 初期表示位置を設定(画面左上)
-  ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);
+  //// 初期表示位置を設定(画面左上)
+  //ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);
 
-  ImGui::Begin("Debug Camera Control");
-  ImGui::Text("Mode Change: TAB");
+  //ImGui::Begin("Debug Camera Control");
+  //ImGui::Text("Mode Change: TAB");
   // TABキー入力でモードを切り替える
   if (input.IsKeyTriggered(DIK_TAB)) {
     isOrbitMode_ = !isOrbitMode_;
@@ -203,16 +203,16 @@ void DebugCamera::Update(Input &input) {
     Vector3 rotatedOffset = TransformVector(localOffset, matRot_);
     translation_ = target_ + rotatedOffset;
 
-    ImGui::Text("Mode: Orbit Camera");
-    ImGui::Text("Target: (%.2f, %.2f, %.2f)", target_.x, target_.y, target_.z);
-    ImGui::Text("Orbit Distance: %.2f", orbitDistance_);
+    //ImGui::Text("Mode: Orbit Camera");
+    //ImGui::Text("Target: (%.2f, %.2f, %.2f)", target_.x, target_.y, target_.z);
+    //ImGui::Text("Orbit Distance: %.2f", orbitDistance_);
 
-    // 操作説明
-    ImGui::Text("W/S + LSHIFT: Pivot Up/Down");
-    ImGui::Text("A/D + LSHIFT: Pivot Left/Right");
-    ImGui::Text("W/S: Move Target Forward/Backward");
-    ImGui::Text("A/D: Move Target Left/Right");
-    ImGui::Text("R/F: Move Target Up/Down");
+    //// 操作説明
+    //ImGui::Text("W/S + LSHIFT: Pivot Up/Down");
+    //ImGui::Text("A/D + LSHIFT: Pivot Left/Right");
+    //ImGui::Text("W/S: Move Target Forward/Backward");
+    //ImGui::Text("A/D: Move Target Left/Right");
+    //ImGui::Text("R/F: Move Target Up/Down");
 
   } else {
     // --- 一人称視点 (First-Person Camera) ロジック ---
@@ -276,13 +276,13 @@ void DebugCamera::Update(Input &input) {
     // ワールド座標系での移動量を現在位置に加算
     translation_ += worldMove;
 
-    ImGui::Text("Mode: First-Person Camera");
-    // 操作説明
-    ImGui::Text("W/S + LSHIFT: Pitch Up/Down");
-    ImGui::Text("A/D + LSHIFT: Yaw Left/Right");
-    ImGui::Text("W/S: Move Forward/Backward");
-    ImGui::Text("A/D: Move Left/Right");
-    ImGui::Text("R/F: Move Up/Down\n\n\n\n");
+    //ImGui::Text("Mode: First-Person Camera");
+    //// 操作説明
+    //ImGui::Text("W/S + LSHIFT: Pitch Up/Down");
+    //ImGui::Text("A/D + LSHIFT: Yaw Left/Right");
+    //ImGui::Text("W/S: Move Forward/Backward");
+    //ImGui::Text("A/D: Move Left/Right");
+    //ImGui::Text("R/F: Move Up/Down\n\n\n\n");
   }
 
   // --- 共通の処理 ---
@@ -292,7 +292,7 @@ void DebugCamera::Update(Input &input) {
   // ビュー行列を更新
   viewMatrix_ = Inverse(worldMatrix_);
 
-  ImGui::Separator();
+ /* ImGui::Separator();
   ImGui::Text("Translation: (%.2f, %.2f, %.2f)", translation_.x, translation_.y,
               translation_.z);
   ImGui::Text("Rotation: (%.2f, %.2f, %.2f)", rotation_.x, rotation_.y,
@@ -320,5 +320,5 @@ void DebugCamera::Update(Input &input) {
       matRot_.m[1][0], matRot_.m[1][1], matRot_.m[1][2], matRot_.m[1][3],
       matRot_.m[2][0], matRot_.m[2][1], matRot_.m[2][2], matRot_.m[2][3],
       matRot_.m[3][0], matRot_.m[3][1], matRot_.m[3][2], matRot_.m[3][3]);
-  ImGui::End();
+  ImGui::End();*/
 }

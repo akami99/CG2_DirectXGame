@@ -13,7 +13,8 @@ using namespace MathUtils;
 using namespace MathGenerators;
 
 // 初期化
-void Sprite::Initialize(SpriteCommon *spriteCommon, uint32_t textureIndex) {
+void Sprite::Initialize(SpriteCommon *spriteCommon,
+                        const std::string &filePath) {
   // NULLポインタチェック
   assert(spriteCommon);
   // メンバ変数にセット
@@ -29,7 +30,7 @@ void Sprite::Initialize(SpriteCommon *spriteCommon, uint32_t textureIndex) {
   CreateTransformationMatrixResource();
 
   // インデックスを代入
-  textureIndex_ = textureIndex;
+  textureFilePath_ = filePath;
 
   // テクスチャサイズをイメージに合わせる
   AdjustTextureSize();
@@ -57,7 +58,7 @@ void Sprite::Update() {
 
   // テクスチャ範囲指定
   const DirectX::TexMetadata &metadata =
-      TextureManager::GetInstance()->GetMetaData(textureIndex_);
+      TextureManager::GetInstance()->GetMetaData(textureFilePath_);
   float texLeft = textureLeftTop_.x / metadata.width;
   float texRight = (textureLeftTop_.x + textureSize_.x) / metadata.width;
   float texTop = textureLeftTop_.y / metadata.height;
@@ -155,15 +156,15 @@ void Sprite::Draw() {
   spriteCommon_->GetDX12Context()
       ->GetCommandList()
       ->SetGraphicsRootDescriptorTable(
-          2, TextureManager::GetInstance()->GetSrvHandleGPU(textureIndex_));
+          2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_));
   // 描画コマンド
   spriteCommon_->GetDX12Context()->GetCommandList()->DrawIndexedInstanced(
       6, 1, 0, 0, 0);
 }
 
-void Sprite::SetTextureIndex(const uint32_t &index) {
+void Sprite::SetTexture(const std::string &filePath) {
 
-  textureIndex_ = index;
+  textureFilePath_ = filePath;
 
   // テクスチャが変わったので、切り出しサイズを新しいテクスチャに合わせる
   AdjustTextureSize();
@@ -273,7 +274,7 @@ void Sprite::CreateTransformationMatrixResource() {
 void Sprite::AdjustTextureSize() {
   // テクスチャメタデータを取得
   const DirectX::TexMetadata &metadata =
-      TextureManager::GetInstance()->GetMetaData(textureIndex_);
+      TextureManager::GetInstance()->GetMetaData(textureFilePath_);
 
   textureSize_.x = static_cast<float>(metadata.width);
   textureSize_.y = static_cast<float>(metadata.height);

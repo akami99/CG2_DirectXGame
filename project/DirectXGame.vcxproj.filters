@@ -255,6 +255,9 @@
     <ClCompile Include="DirectXGame\Engine\Graphics\Camera\Camera.cpp">
       <Filter>ソース ファイル\Engine\Graphics\Camera</Filter>
     </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\SRV\SrvManager.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="externals\imgui\imconfig.h">
@@ -364,6 +367,9 @@
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\Camera\Camera.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\SRV\SrvManager.h">
+      <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -2,6 +2,7 @@
 #include "../../Core/Utility/Logger/Logger.h"
 #include "../../Core/Utility/String/StringUtility.h"
 #include "../Graphics/API/DX12Context.h"
+#include "../SRV/SrvManager.h"
 
 using namespace Logger;
 using namespace StringUtility;
@@ -9,15 +10,14 @@ using namespace Microsoft::WRL;
 
 TextureManager *TextureManager::instance_ = nullptr;
 
-// ImGuiで0版を利用するため、1番から使用
-uint32_t TextureManager::kSRVIndexTop = 1;
-
 // 初期化
-void TextureManager::Initialize(DX12Context *dxBase) {
-  // SRVの数と同数
-  textureDatas_.reserve(DX12Context::kMaxSRVCount);
-
+void TextureManager::Initialize(DX12Context *dxBase, SrvManager *srvManager) {
   dxBase_ = dxBase;
+
+  srvManager_ = srvManager;
+
+  // SRVの数と同数
+  textureDatas_.reserve(SrvManager::kMaxSRVCount);
 }
 
 // シングルトンインスタンスの取得
@@ -35,81 +35,90 @@ void TextureManager::Finalize() {
 }
 
 // SRVインデックスの開始番号
-uint32_t
-TextureManager::GetTextureIndexByFilePath(const std::string &filePath) {
+uint32_t TextureManager::GetSrvIndex(const std::string &filePath) {
   std::string fullPath = filePath;
-  // 既にパスに"Resources/Assets/Sounds/"が含まれている場合は追加しない
+  // 既にパスに"Resources/Textures/"が含まれている場合は追加しない
   if (filePath.find("Resources/Textures/") == std::string::npos &&
       filePath.find("resources/textures/") == std::string::npos) {
     fullPath = "Resources/Textures/" + filePath;
   }
 
-  if (!std::filesystem::exists(fullPath)) {
-    Logger::Log("ERROR: Texture file not found at path: " + fullPath);
-    assert(false && "Texture file not found!");
-  }
-
   // 読み込み済みテクスチャを検索
-  auto it = std::find_if(textureDatas_.begin(), textureDatas_.end(),
-                         [&](TextureData &textureData) {
-                           return textureData.filePath == fullPath;
-                         });
+  auto it = textureDatas_.find(fullPath);
+
+  // ロード済みならインデックスを返す
   if (it != textureDatas_.end()) {
     // 読み込み済みなら要素番号を返す
-    uint32_t textureIndex =
-        static_cast<uint32_t>(std::distance(textureDatas_.begin(), it));
-    return textureIndex + kSRVIndexTop;
+    return it->second.srvIndex;
   }
 
-  assert(0);
+  // ロードされていなかったらエラーとして処理する
+  Logger::Log("ERROR: Texture not loaded for path: " + fullPath);
+  assert(false && "Texture not loaded!");
   return 0;
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE
-TextureManager::GetSrvHandleGPU(uint32_t textureIndex) {
-  // SRVインデックスを配列インデックスに変換
-  // kSRVIndexTop (1) 未満の場合、arrayIndexは0未満になるため、
-  // kSRVIndexTopでの最小値チェックを先に行う。
-  assert(textureIndex >= kSRVIndexTop &&
-         "Error: texture index is the reserved index (0)!");
-
-  uint32_t arrayIndex = textureIndex - kSRVIndexTop;
+TextureManager::GetSrvHandleGPU(const std::string &filePath) {
 
   // 配列の境界チェック（arrayIndexが配列のサイズ未満であることを確認）
-  assert(arrayIndex < textureDatas_.size() &&
+  assert(srvManager_->AllocatableTexture() &&
          "Error: texture array index out of bounds!");
 
-  // テクスチャデータの参照を取得
-  // arrayIndex を使用してアクセスする
-  const TextureData &textureData = textureDatas_[arrayIndex];
+  std::string fullPath = filePath;
+  // 既にパスに"Resources/Textures/"が含まれている場合は追加しない
+  if (filePath.find("Resources/Textures/") == std::string::npos &&
+      filePath.find("resources/textures/") == std::string::npos) {
+      fullPath = "Resources/Textures/" + filePath;
+  }
 
-  // GPUハンドルを返却
-  return textureData.srvHandleGPU;
+  // 読み込み済みテクスチャを検索
+  auto it = textureDatas_.find(fullPath);
+
+  // データが見つかったか確認
+  if (it == textureDatas_.end()) {
+    Logger::Log("ERROR: Requested texture not found in map: " + fullPath);
+    assert(false && "Texture data not found!");
+    // エラー処理として、適切なデフォルト値やエラーテクスチャのハンドルを返す
+    return D3D12_GPU_DESCRIPTOR_HANDLE{};
+  }
+
+  // 見つかった要素 (it->second) からハンドルを返す
+  return it->second.srvHandleGPU;
 }
 
-const DirectX::TexMetadata &TextureManager::GetMetaData(uint32_t textureIndex) {
-  // SRVインデックスを配列インデックスに変換
-  // kSRVIndexTop (1) 未満の場合、arrayIndexは0未満になるため、
-  // kSRVIndexTopでの最小値チェックを先に行う。
-  assert(textureIndex >= kSRVIndexTop &&
-         "Error: texture index is the reserved index (0)!");
-
-  uint32_t arrayIndex = textureIndex - kSRVIndexTop;
-
+const DirectX::TexMetadata &
+TextureManager::GetMetaData(const std::string &filePath) {
   // 配列の境界チェック（arrayIndexが配列のサイズ未満であることを確認）
-  assert(arrayIndex < textureDatas_.size() &&
+  assert(srvManager_->AllocatableTexture() &&
          "Error: texture array index out of bounds!");
 
-  // テクスチャデータの参照を取得
-  // arrayIndex を使用してアクセスする
-  const TextureData &textureData = textureDatas_[arrayIndex];
+  std::string fullPath = filePath;
+  // 既にパスに"Resources/Textures/"が含まれている場合は追加しない
+  if (filePath.find("Resources/Textures/") == std::string::npos &&
+      filePath.find("resources/textures/") == std::string::npos) {
+      fullPath = "Resources/Textures/" + filePath;
+  }
 
-  // GPUハンドルを返却
-  return textureData.metadata;
+  // 読み込み済みテクスチャを検索
+  auto it = textureDatas_.find(fullPath);
+
+  // データが見つかったか確認
+  if (it == textureDatas_.end()) {
+    Logger::Log("ERROR: Requested texture not found in map: " + fullPath);
+    assert(false && "Texture data not found!");
+    // エラー処理として、適切なエラーメタデータを返す（ここでは簡略化）
+    // 実際にはデフォルトの静的なエラー用メタデータを返すのが望ましい
+    static DirectX::TexMetadata errorMetadata{};
+    return errorMetadata;
+  }
+
+  // 見つかった要素 (it->second) からメタデータを返す
+  return it->second.metadata;
 }
 
 // テクスチャロード
-uint32_t TextureManager::LoadTexture(const std::string &filePath) {
+void TextureManager::LoadTexture(const std::string &filePath) {
 
   std::string fullPath = filePath;
   // 既にパスに"Resources/Textures/"が含まれている場合は追加しない
@@ -121,21 +130,18 @@ uint32_t TextureManager::LoadTexture(const std::string &filePath) {
   if (!std::filesystem::exists(fullPath)) {
     Logger::Log("ERROR: Texture file not found at path: " + fullPath);
     assert(false && "Texture file not found!");
+    return;
   }
 
   // 読み込み済みテクスチャを検索
-  auto it = std::find_if(textureDatas_.begin(), textureDatas_.end(),
-                         [&](TextureData &textureData) {
-                           return textureData.filePath == fullPath;
-                         });
+  auto it = textureDatas_.find(fullPath);
+
   if (it != textureDatas_.end()) {
-    uint32_t arrayIndex =
-        static_cast<uint32_t>(std::distance(textureDatas_.begin(), it));
-    return arrayIndex + kSRVIndexTop;
+    return;
   }
 
   // テクスチャ枚数上限チェック
-  assert(textureDatas_.size() + kSRVIndexTop < DX12Context::kMaxSRVCount);
+  assert(srvManager_->AllocatableTexture());
 
   HRESULT hr;
 
@@ -156,45 +162,32 @@ uint32_t TextureManager::LoadTexture(const std::string &filePath) {
   Log("INFO: Loaded texture at path: " + fullPath + "\n");
 
   // テクスチャデータを追加
-  textureDatas_.resize(textureDatas_.size() + 1);
-  // 追加したテクスチャデータの参照を取得する
-  TextureData &textureData = textureDatas_.back();
+  TextureData &textureData = textureDatas_[fullPath];
 
-  textureData.filePath = fullPath;
   textureData.metadata = mipImages.GetMetadata();
   textureData.resource = dxBase_->CreateTextureResource(textureData.metadata);
 
-  // テクスチャデータの要素数番号をSRVのインデックスとする
-  uint32_t srvIndex =
-      static_cast<uint32_t>(textureDatas_.size() - 1) + kSRVIndexTop;
-  // ↑DX12Contextから各種ヒープをヒープマネージャーとして別クラスに分離して、
-  // ヒープから確保・解放する機能を実装したい。
+  // SRV確保
+  textureData.srvIndex = srvManager_->Allocate();
+  textureData.srvHandleCPU =
+      srvManager_->GetCPUDescriptorHandle(textureData.srvIndex);
+  textureData.srvHandleGPU =
+      srvManager_->GetGPUDescriptorHandle(textureData.srvIndex);
 
-  textureData.srvHandleCPU = dxBase_->GetSRVCPUDescriptorHandle(srvIndex);
-  textureData.srvHandleGPU = dxBase_->GetSRVGPUDescriptorHandle(srvIndex);
-
-  D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
-  srvDesc.Format = textureData.metadata.format;
-  srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-  srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // 2Dテクスチャ
-  srvDesc.Texture2D.MipLevels = UINT(textureData.metadata.mipLevels);
-
-  // SRVの生成
-  dxBase_->GetDevice()->CreateShaderResourceView(
-      textureData.resource.Get(), &srvDesc, textureData.srvHandleCPU);
+  srvManager_->CreateSRVForTexture(
+      textureData.srvIndex, textureData.resource, textureData.metadata.format,
+      UINT(textureData.metadata.mipLevels));
 
   // テクスチャリソースをアップロードし、コマンドリストに積む
   textureData.intermediateResource =
       dxBase_->UploadTextureData(textureData.resource, mipImages);
-
-  return srvIndex;
 }
 
 // 中間リソースをまとめて解放する
 void TextureManager::ReleaseIntermediateResources() {
-  for (TextureData &textureData : textureDatas_) {
+  for (auto &pair : textureDatas_) {
     // intermediateResourceを解放
-    textureData.intermediateResource.Reset();
+    pair.second.intermediateResource.Reset();
   }
 
   Logger::Log("INFO: All intermediate texture resources have been released.\n");

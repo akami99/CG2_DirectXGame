@@ -2,19 +2,8 @@
 
 #include "../GraphicsTypes.h"
 
-#include <d3d12.h>
-#include <wrl/client.h>
-
 // カメラ
 class Camera {
-private: // namespace省略のためのusing宣言
-#pragma region using宣言
-
-  // Microsoft::WRL::ComPtrをComPtrで省略
-  template <class T> using ComPtr = Microsoft::WRL::ComPtr<T>;
-
-#pragma endregion
-
 private: // メンバ変数
   Transform transform_{};
   // ワールド行列

@@ -20,8 +20,6 @@ using namespace Microsoft::WRL;
 using namespace Logger;
 using namespace StringUtility;
 
-const uint32_t DX12Context::kMaxSRVCount = 512;
-
 #pragma region publicメンバ関数
 
 // 初期化
@@ -69,7 +67,7 @@ void DX12Context::Initialize(Win32Window *window) {
   CreateDXCCompiler();
 
   // ImGuiの初期化
-  InitializeImGui();
+  //InitializeImGui();
 
   Log("Complete Initialize DX12Context!!!\n"); // 初期化完了のログをだす
 }
@@ -81,12 +79,16 @@ void DX12Context::PreDraw() {
 
   HRESULT hr;
 
+  // コマンドリストをリセット
+  hr = commandAllocator_->Reset();
+  assert(SUCCEEDED(hr));
+
   // コマンドリストを記録可能な状態にリセット
   hr = commandList_->Reset(commandAllocator_.Get(), nullptr);
   assert(SUCCEEDED(hr));
 
   // ImGuiの内部コマンドを生成する
-  ImGui::Render();
+  //ImGui::Render();
 
   // バックバッファのインデックスを取得
   UINT backBufferIndex = swapChain_->GetCurrentBackBufferIndex();
@@ -119,13 +121,6 @@ void DX12Context::PreDraw() {
   commandList_->ClearDepthStencilView(dsvHandle_, D3D12_CLEAR_FLAG_DEPTH, 1.0f,
                                       0, 0, nullptr);
 
-  // 描画用のDescriptorHeapの設定
-  // "生のポインタ配列"を作成(ComPtrだとスマートポインタなので変えないように！)
-  ID3D12DescriptorHeap *descriptorHeaps[] = {srvDescriptorHeap_.Get()};
-
-  // 生のポインタ配列をSetDescriptorHeapsに渡す
-  commandList_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
   // ビューポート領域を設定
   commandList_->RSSetViewports(1, &viewport_);
 
@@ -137,7 +132,7 @@ void DX12Context::PreDraw() {
 void DX12Context::PostDraw() {
 
   // 実際のcommandListのImGuiの描画コマンドを積む
-  ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList_.Get());
+  //ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList_.Get());
 
   // バックバッファのインデックスを取得
   UINT backBufferIndex = swapChain_->GetCurrentBackBufferIndex();
@@ -157,41 +152,35 @@ void DX12Context::PostDraw() {
   commandList_->ResourceBarrier(1, &barrier);
 
   // コマンドリストの実行と完了まで待つ
-  ExecuteInitialCommandAndSync();
+  //ExecuteInitialCommandAndSync();
 
-  // FPS固定用の更新
+  // コマンドリストを閉じる (Open -> Closed)
+  HRESULT hr = commandList_->Close();
+  assert(SUCCEEDED(hr));
+
+  // コマンドを実行させる (Closed -> Executing)
+  ID3D12CommandList *commandLists[] = { commandList_.Get() };
+  commandQueue_->ExecuteCommandLists(1, commandLists);
+
+  // コマンドキューにシグナルを送信し、Fence値を更新
+  fenceValue_++;
+  hr = commandQueue_->Signal(fence_.Get(), fenceValue_);
+  assert(SUCCEEDED(hr));
+
+  // Fenceの値が指定したSignal値にたどり着いているか確認する
+  if (fence_->GetCompletedValue() < fenceValue_) {
+      // GPUがSignalを完了するまで待機するようにイベントを設定し、待つ
+      hr = fence_->SetEventOnCompletion(fenceValue_, fenceEvent_);
+      assert(SUCCEEDED(hr));
+      // イベントを待つ (この関数で Present の完了を待機し、FPS固定と同期を行う)
+      WaitForSingleObject(fenceEvent_, INFINITE);
+  }
+
+  // FPS固定用の更新（これはどこでも良い）
   UpdateFixFPS();
 
-  // GPUとOSに画面の交換を行うよう通知する
+  // Present
   swapChain_->Present(1, 0);
-}
-
-// StructuredBuffer用のSRVを作成
-D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::CreateStructuredBufferSRV(
-    ComPtr<ID3D12Resource> resource, uint32_t numElement,
-    uint32_t structureByteStride, uint32_t srvIndex) {
-  // SRVの設定
-  D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
-  srvDesc.Format = DXGI_FORMAT_UNKNOWN; // StructuredBufferの場合はUNKNOWN
-  srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-  srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER; // バッファとして扱う
-  srvDesc.Buffer.FirstElement = 0;                    // 最初の要素位置
-  srvDesc.Buffer.NumElements = numElement;            // 要素数
-  srvDesc.Buffer.StructureByteStride =
-      structureByteStride; // 構造体（要素）のバイトサイズ
-  srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE; // 特にフラグは無し
-
-  // SRVを作成するディスクリプタヒープの場所を取得
-  D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU =
-      GetSRVCPUDescriptorHandle(srvIndex);
-  D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU =
-      GetSRVGPUDescriptorHandle(srvIndex);
-
-  // SRVの生成
-  device_->CreateShaderResourceView(resource.Get(), &srvDesc, srvHandleCPU);
-
-  // GPU用のハンドルを返す
-  return srvHandleGPU;
 }
 
 #pragma endregion 描画処理
@@ -201,16 +190,6 @@ D3D12_GPU_DESCRIPTOR_HANDLE DX12Context::CreateStructuredBufferSRV(
 D3D12_CPU_DESCRIPTOR_HANDLE
 DX12Context::GetRTVCPUDescriptorHandle(uint32_t index) {
   return GetCPUDescriptorHandle(rtvDescriptorHeap_, descriptorSizeRTV_, index);
-}
-
-D3D12_CPU_DESCRIPTOR_HANDLE
-DX12Context::GetSRVCPUDescriptorHandle(uint32_t index) {
-  return GetCPUDescriptorHandle(srvDescriptorHeap_, descriptorSizeSRV_, index);
-}
-
-D3D12_GPU_DESCRIPTOR_HANDLE
-DX12Context::GetSRVGPUDescriptorHandle(uint32_t index) {
-  return GetGPUDescriptorHandle(srvDescriptorHeap_, descriptorSizeSRV_, index);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE
@@ -427,17 +406,12 @@ void DX12Context::CreateDescriptorHeaps() {
   // DiscriptorSizeを取得しておく
   descriptorSizeRTV_ =
       device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-  descriptorSizeSRV_ = device_->GetDescriptorHandleIncrementSize(
-      D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
   descriptorSizeDSV_ =
       device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
   // RTV用のヒープでディスクリプタの数は2。RTVはShader内で触るものではないので、ShaderVisubleはfalse
   rtvDescriptorHeap_ =
       CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 2, false);
-  // SRV用のヒープでディスクリプタの数は128。SRVはShader内で触るものなので、ShaderVisubleはtrue
-  srvDescriptorHeap_ = CreateDescriptorHeap(
-      D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, kMaxSRVCount, true);
   // DSV用のヒープでディスクリプタの数は1。DSVはShader内で触るものではないので、ShaderVisubleはfalse
   dsvDescriptorHeap_ =
       CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
@@ -554,27 +528,27 @@ void DX12Context::CreateDXCCompiler() {
 }
 
 // ImGuiの初期化
-void DX12Context::InitializeImGui() {
-  // ImGuiの初期化
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGui::StyleColorsDark();
-  ImGui_ImplWin32_Init(window_->GetHwnd());
-
-  // 先頭のSRVハンドルを取得
-  D3D12_CPU_DESCRIPTOR_HANDLE imGuiSrvHandleCPU =
-      GetCPUDescriptorHandle(srvDescriptorHeap_, descriptorSizeSRV_, 0);
-  D3D12_GPU_DESCRIPTOR_HANDLE imGuiSrvHandleGPU =
-      GetGPUDescriptorHandle(srvDescriptorHeap_, descriptorSizeSRV_, 0);
-
-  // ImGuiのDX12初期化
-  ImGui_ImplDX12_Init(device_.Get(), kSwapChainResourcesCount,
-                      DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, // RTVのFormat
-                      srvDescriptorHeap_.Get(), imGuiSrvHandleCPU,
-                      imGuiSrvHandleGPU);
-
-  // フォントを設定する場合はここに追加
-}
+//void DX12Context::InitializeImGui() {
+//  // ImGuiの初期化
+//  IMGUI_CHECKVERSION();
+//  ImGui::CreateContext();
+//  ImGui::StyleColorsDark();
+//  ImGui_ImplWin32_Init(window_->GetHwnd());
+//
+//  // 先頭のSRVハンドルを取得
+//  D3D12_CPU_DESCRIPTOR_HANDLE imGuiSrvHandleCPU =
+//      GetCPUDescriptorHandle(srvDescriptorHeap_, descriptorSizeSRV_, 0);
+//  D3D12_GPU_DESCRIPTOR_HANDLE imGuiSrvHandleGPU =
+//      GetGPUDescriptorHandle(srvDescriptorHeap_, descriptorSizeSRV_, 0);
+//
+//  // ImGuiのDX12初期化
+//  ImGui_ImplDX12_Init(device_.Get(), kSwapChainResourcesCount,
+//                      DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, // RTVのFormat
+//                      srvDescriptorHeap_.Get(), imGuiSrvHandleCPU,
+//                      imGuiSrvHandleGPU);
+//
+//  // フォントを設定する場合はここに追加
+//}
 
 #pragma region 60FPS固定用
 
@@ -624,8 +598,8 @@ void DX12Context::ExecuteInitialCommandAndSync() {
   assert(SUCCEEDED(hr));
 
   // GPUにコマンドリストの実行を行わせる
-  ComPtr<ID3D12CommandList> commandLists[] = {commandList_};
-  commandQueue_->ExecuteCommandLists(1, commandLists->GetAddressOf());
+  ID3D12CommandList *commandLists[] = {commandList_.Get()};
+  commandQueue_->ExecuteCommandLists(1, commandLists);
 
   // Fenceの値を更新
   fenceValue_++;
@@ -832,6 +806,7 @@ DX12Context::UploadTextureData(ComPtr<ID3D12Resource> texture,
       GetRequiredIntermediateSize(texture.Get(), 0, UINT(subresources.size()));
   ComPtr<ID3D12Resource> intermediateResource =
       CreateBufferResource(intermediateSize);
+
   UpdateSubresources(commandList_.Get(), texture.Get(),
                      intermediateResource.Get(), 0, 0,
                      UINT(subresources.size()), subresources.data());
