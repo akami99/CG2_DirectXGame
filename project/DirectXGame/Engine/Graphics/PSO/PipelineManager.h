@@ -28,6 +28,10 @@ private: // メンバ変数
   ComPtr<IDxcBlob> psBlob3D_;                   // Pixel Shader
   ComPtr<ID3D12RootSignature> rootSignature3D_; // ルートシグネチャ
 
+  ComPtr<IDxcBlob> vsBlobParticle_;                   // Vertex Shader
+  ComPtr<IDxcBlob> psBlobParticle_;                   // Pixel Shader
+  ComPtr<ID3D12RootSignature> rootSignatureParticle_; // ルートシグネチャ
+
 public: // メンバ関数
   // 初期化(シェーダーとルートシグネチャのロード/生成を実行)
   void Initialize(DX12Context *dxBase);
@@ -35,6 +39,9 @@ public: // メンバ関数
   // Sprite用のグラフィックスパイプラインを生成して返す関数
   ComPtr<ID3D12PipelineState>
   CreateSpritePSO(const D3D12_BLEND_DESC &blendDesc);
+
+  ComPtr<ID3D12PipelineState>
+      CreateParticlePSO(const D3D12_BLEND_DESC &blendDesc);
 
   // 3D用のグラフィックスパイプラインを生成して返す関数
   ComPtr<ID3D12PipelineState> CreateObject3dPSO(
@@ -54,6 +61,10 @@ public: // メンバ関数
   // Object3dCommon用
   ID3D12RootSignature *Get3DRootSignature() const {
     return rootSignature3D_.Get();
+  }
+
+  ID3D12RootSignature *GetParticleRootSignature() const {
+      return rootSignatureParticle_.Get();
   }
 
 private: // メンバ関数

@@ -163,6 +163,18 @@
     <Filter Include="ヘッダー ファイル\Engine\Graphics\Model">
       <UniqueIdentifier>{ab838250-838a-43e2-8f64-30bdc5e77840}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\Engine\Graphics\Particle">
+      <UniqueIdentifier>{3ad6fb09-e402-4d9c-b28c-670a3547f308}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Graphics\SRV">
+      <UniqueIdentifier>{1d30edfa-a5ec-4a67-84de-96e3e6a44be2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Graphics\SRV">
+      <UniqueIdentifier>{a9a2eaf8-ed97-4b61-85d2-a6d83c8cd9e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Graphics\Particle">
+      <UniqueIdentifier>{5fd3f799-0374-41d8-a397-aae41ad05ba2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="externals\imgui\imgui.cpp">
@@ -255,8 +267,11 @@
     <ClCompile Include="DirectXGame\Engine\Graphics\Camera\Camera.cpp">
       <Filter>ソース ファイル\Engine\Graphics\Camera</Filter>
     </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Particle\ParticleManager.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\Particle</Filter>
+    </ClCompile>
     <ClCompile Include="DirectXGame\Engine\Graphics\SRV\SrvManager.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\Engine\Graphics\SRV</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -369,7 +384,10 @@
       <Filter>ヘッダー ファイル\Engine\Graphics\Camera</Filter>
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\SRV\SrvManager.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine\Graphics\SRV</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Particle\ParticleManager.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Particle</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

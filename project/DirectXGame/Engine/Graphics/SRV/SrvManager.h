@@ -48,6 +48,12 @@ public: // メンバ関数
   void SetGraphicRootDescriptorTable(UINT RootParameterIndex,
                                      uint32_t srvIndex);
 
+  // SrvManager.h
+  /// <summary>
+  /// 次に使用するSRVインデックスを取得
+  /// </summary>
+  uint32_t GetNewIndex();
+
   /// <summary>
   /// SRVの指定したインデックスのCPUディスクリプタハンドルを取得
   /// </summary>

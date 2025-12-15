@@ -78,6 +78,97 @@ PipelineManager::CreateSpritePSO(const D3D12_BLEND_DESC &blendDesc) {
   return pso;
 }
 
+ComPtr<ID3D12PipelineState>
+PipelineManager::CreateParticlePSO(const D3D12_BLEND_DESC &blendDesc) {
+
+    // ---------------------------------------------------------------------
+    // I. サブステートの定義 (BlendState, RasterizerState, DepthStencilState, InputLayout)
+    // ---------------------------------------------------------------------
+
+    // 1. InputLayout (頂点レイアウト)
+    D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
+    inputElementDescs[0].SemanticName = "POSITION";
+    inputElementDescs[0].SemanticIndex = 0;
+    inputElementDescs[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    inputElementDescs[0].InputSlot = 0;
+    inputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+    inputElementDescs[0].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+    inputElementDescs[0].InstanceDataStepRate = 0;
+
+    inputElementDescs[1].SemanticName = "TEXCOORD";
+    inputElementDescs[1].SemanticIndex = 0;
+    inputElementDescs[1].Format = DXGI_FORMAT_R32G32_FLOAT;
+    inputElementDescs[1].InputSlot = 0;
+    inputElementDescs[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+    inputElementDescs[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+    inputElementDescs[1].InstanceDataStepRate = 0;
+
+    inputElementDescs[2].SemanticName = "NORMAL";
+    inputElementDescs[2].SemanticIndex = 0;
+    inputElementDescs[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+    inputElementDescs[2].InputSlot = 0;
+    inputElementDescs[2].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+    inputElementDescs[2].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+    inputElementDescs[2].InstanceDataStepRate = 0;
+
+    D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
+    inputLayoutDesc.pInputElementDescs = inputElementDescs;
+    inputLayoutDesc.NumElements = _countof(inputElementDescs);
+
+
+    // 2. RasterizerState (ラスタライザ設定)
+    D3D12_RASTERIZER_DESC rasterizerDesc{};
+    rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE; // 裏面カリング無効
+    rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID; // 三角形の中を塗りつぶす
+
+
+    // 3. DepthStencilState (深度/ステンシル設定)
+    D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
+    depthStencilDesc.DepthEnable = true; // 深度テスト有効 (3D描画のため)
+    depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; // 深度書き込み無効 (ブレンドのため)
+    depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL; // 比較関数
+
+
+    // ---------------------------------------------------------------------
+    // II. グラフィックスパイプラインステート (PSO) の構築
+    // ---------------------------------------------------------------------
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
+
+    // シェーダとシグネチャ (パイプラインの核となる部分)
+    psoDesc.pRootSignature = rootSignatureParticle_.Get();
+    psoDesc.VS = { vsBlobParticle_->GetBufferPointer(), vsBlobParticle_->GetBufferSize() };
+    psoDesc.PS = { psBlobParticle_->GetBufferPointer(), psBlobParticle_->GetBufferSize() };
+
+    // ステート設定 (I. で定義したサブステートを適用)
+    psoDesc.InputLayout = inputLayoutDesc;
+    psoDesc.BlendState = blendDesc;
+    psoDesc.RasterizerState = rasterizerDesc;
+    psoDesc.DepthStencilState = depthStencilDesc;
+
+    // レンダリング設定 (RT/DSVフォーマット、トポロジ)
+    psoDesc.NumRenderTargets = 1;
+    psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+    psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+    // サンプリング設定 (固定値)
+    psoDesc.SampleDesc.Count = 1;
+    psoDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+
+
+    // ---------------------------------------------------------------------
+    // III. PSOの生成
+    // ---------------------------------------------------------------------
+
+    ComPtr<ID3D12PipelineState> pso;
+    HRESULT hr = dxBase_->GetDevice()->CreateGraphicsPipelineState(
+        &psoDesc, IID_PPV_ARGS(&pso));
+    assert(SUCCEEDED(hr));
+
+    return pso;
+}
+
 ComPtr<ID3D12PipelineState> PipelineManager::CreateObject3dPSO(
     const D3D12_INPUT_ELEMENT_DESC *inputLayout, uint32_t numElements,
     const D3D12_RASTERIZER_DESC &rasterizerDesc,
@@ -132,11 +223,11 @@ void PipelineManager::LoadShader() {
   psBlob3D_ = dxBase_->CompileShader(L"Object3d.PS.hlsl", L"ps_6_0");
   assert(psBlob3D_ != nullptr);
 
-  //// パーティクル用
-  // ComPtr<IDxcBlob> particleVSBlob =
-  // dxBase->CompileShader(L"Particle.VS.hlsl", L"vs_6_0"); ComPtr<IDxcBlob>
-  // particlePSBlob = dxBase->CompileShader(L"Particle.PS.hlsl", L"ps_6_0");
-  // assert(particleVSBlob != nullptr && particlePSBlob != nullptr);
+  // パーティクル用
+  vsBlobParticle_ = dxBase_->CompileShader(L"Particle.VS.hlsl", L"vs_6_0");
+  assert(vsBlobParticle_ != nullptr);
+  psBlobParticle_ = dxBase_->CompileShader(L"Particle.PS.hlsl", L"ps_6_0");
+  assert(psBlobParticle_ != nullptr);
 }
 
 // ルートシグネチャの作成
@@ -300,4 +391,83 @@ void PipelineManager::CreateRootSignature() {
   assert(SUCCEEDED(hr));
 
 #pragma endregion Object3d用のRootSignature作成ここまで
+
+#pragma region Particle用のRootSignature作成
+  // Particle用のRootSignature作成
+
+  // Particle用 SRV (Vertex Shader用)
+  D3D12_DESCRIPTOR_RANGE particleInstancingSrvRange[1] = {};
+  particleInstancingSrvRange[0].BaseShaderRegister = 0; // t0
+  particleInstancingSrvRange[0].NumDescriptors = 1;     // 数は1つ
+  particleInstancingSrvRange[0].RangeType =
+      D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // SRVを使う
+  particleInstancingSrvRange[0].OffsetInDescriptorsFromTableStart =
+      D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+  // テクスチャ用 SRV (Pixel Shader用)
+  D3D12_DESCRIPTOR_RANGE particleTextureSrvRange[1] = {};
+  particleTextureSrvRange[0].BaseShaderRegister = 0; // t0 (Texture)
+  particleTextureSrvRange[0].NumDescriptors = 1;     // 数は1つ
+  particleTextureSrvRange[0].RangeType =
+      D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // SRVを使う
+  particleTextureSrvRange[0].OffsetInDescriptorsFromTableStart =
+      D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+  // RootParameter作成。PixelShaderのMaterialとVertexShaderのTransform
+  D3D12_ROOT_PARAMETER particleRootParameters[3] = {};
+
+  // Root Parameter 0: Pixel Shader用 Material CBV (b0)
+  particleRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+  particleRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+  particleRootParameters[0].Descriptor.ShaderRegister = 0; // b0
+
+  // Root Parameter 1: Vertex Shader用 Instancing SRV (t0)
+  particleRootParameters[1].ParameterType =
+      D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+  particleRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+  particleRootParameters[1].DescriptorTable.pDescriptorRanges =
+      particleInstancingSrvRange;
+  particleRootParameters[1].DescriptorTable.NumDescriptorRanges =
+      _countof(particleInstancingSrvRange);
+
+  // Root Parameter 2: Pixel Shader用 Texture SRV (t0)
+  particleRootParameters[2].ParameterType =
+      D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+  particleRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+  particleRootParameters[2].DescriptorTable.pDescriptorRanges =
+      particleTextureSrvRange;
+  particleRootParameters[2].DescriptorTable.NumDescriptorRanges =
+      _countof(particleTextureSrvRange);
+
+  // Particle用のRootSignatureDesc
+  D3D12_ROOT_SIGNATURE_DESC particleRootSignatureDesc{};
+  particleRootSignatureDesc.Flags =
+      D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+  particleRootSignatureDesc.pParameters =
+      particleRootParameters; // ルートパラメータ配列へのポインタ
+  particleRootSignatureDesc.NumParameters =
+      _countof(particleRootParameters); // 配列の長さ (3)
+  particleRootSignatureDesc.pStaticSamplers = staticSamplers;
+  particleRootSignatureDesc.NumStaticSamplers = _countof(staticSamplers);
+
+  // シリアライズしてバイナリにする
+  ComPtr<ID3DBlob> particleSignatureBlob = nullptr;
+  ComPtr<ID3DBlob> particleErrorBlob = nullptr;
+
+  hr = D3D12SerializeRootSignature(&particleRootSignatureDesc,
+                                   D3D_ROOT_SIGNATURE_VERSION_1,
+                                   &particleSignatureBlob, &particleErrorBlob);
+  if (FAILED(hr)) {
+    Logger::Log(
+        reinterpret_cast<char *>(particleErrorBlob->GetBufferPointer()));
+    assert(false);
+  }
+  // バイナリを元に生成
+  hr = dxBase_->GetDevice()->CreateRootSignature(
+      0, particleSignatureBlob->GetBufferPointer(),
+      particleSignatureBlob->GetBufferSize(),
+      IID_PPV_ARGS(&rootSignatureParticle_));
+  assert(SUCCEEDED(hr));
+
+#pragma endregion Particle用のRootSignature作成ここまで
 }

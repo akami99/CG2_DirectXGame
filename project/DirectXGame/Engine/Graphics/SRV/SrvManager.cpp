@@ -58,6 +58,11 @@ void SrvManager::SetGraphicRootDescriptorTable(UINT RootParameterIndex,
       RootParameterIndex, GetGPUDescriptorHandle(srvIndex));
 }
 
+uint32_t SrvManager::GetNewIndex() {
+    assert(useIndex_ < kMaxSRVCount);
+    return useIndex_++;
+}
+
 // SRVの指定したインデックスのCPUディスクリプタハンドルを取得
 D3D12_CPU_DESCRIPTOR_HANDLE
 SrvManager::GetCPUDescriptorHandle(uint32_t index) {
