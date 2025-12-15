@@ -3,6 +3,7 @@
 #include "BlendMode/BlendMode.h"
 #include "ModelTypes.h"
 #include "ParticleTypes.h"
+#include "ParticleEmitter.h"
 
 #include <d3d12.h>
 #include <random>
@@ -37,10 +38,8 @@ private: // メンバ変数
     uint32_t instanceCount; // インスタンス数
     ParticleInstanceData *mappedData =
         nullptr; // インスタンシングデータを書き込むためのポインタ
+    ParticleEmitter emitter;
   };
-  // D3D12_GPU_DESCRIPTOR_HANDLE instanceSrvHandleGPU =
-  //     dxBase->CreateStructuredBufferSRV(particleResource, kNumMaxParticle,
-  //                                       sizeof(ParticleInstanceData), 4);
   std::unordered_map<std::string, ParticleGroup> particleGroups_{};
 
   static ParticleManager *instance_;
@@ -81,15 +80,20 @@ public: // メンバ関数
                            const std::string &textureFilePath);
 
   // パーティクルの発生 (Emit)
-  void Emit(const std::string &name, const Emitter &emitter);
+  void Emit(const std::string &name, const Vector3 &translate, uint32_t count);
+
+  // パーティクル生成関数
+  Particle MakeNewParticle(const Vector3 &translate);
 
   // 更新処理
-  void Update(const Camera &camera);
+  void Update(const Camera &camera, bool &isUpdate, bool &useBillboard);
 
   // 描画処理
   void Draw(BlendMode::BlendState blendMode);
 
   static ParticleManager *GetInstance();
+
+  void SetEmitter(const std::string &name, const ParticleEmitter &emitter);
 
   // 解放処理
   void ReleaseIntermediateResources();

@@ -22,6 +22,7 @@
 #include "Sprite.h"
 #include "SpriteCommon.h"
 #include "Win32Window.h"
+#include "ParticleEmitter.h"
 // 管理系
 #include "AudioManager.h"
 #include "ModelManager.h"
@@ -311,17 +312,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
   // パーティクルグループの作成
   const std::string particleTexturePath = "circle.png";
+  const std::string particleGroupName = "default";
   TextureManager::GetInstance()->LoadTexture(particleTexturePath);
-  ParticleManager::GetInstance()->CreateParticleGroup("default",
+  ParticleManager::GetInstance()->CreateParticleGroup(particleGroupName,
                                                       particleTexturePath);
 
-  // ※カリングがoffになっていないのなら表裏を反転し、billboardMatrixの初期化、更新時にbackToFrontMatrixを掛ける
-  // Matrix4x4 backToFrontMatrix = MakeRotateYMatrix(std::numbers::pi_v<float>);
-  // カメラの回転を適用する
-  Matrix4x4 billboardMatrix = debugCamera.GetWorldMatrix();
-  billboardMatrix.m[3][0] = 0.0f; // 平行移動成分はいらない
-  billboardMatrix.m[3][1] = 0.0f;
-  billboardMatrix.m[3][2] = 0.0f;
+  // エミッターの設定と登録
+  ParticleEmitter defaultEmitter(
+      Transform{ {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {-1.0f, 1.0f, 0.0f} },
+      3,         // count: 1回で3個生成
+      0.2f       // frequency: 0.2秒ごとに発生
+  );
+
+  ParticleManager::GetInstance()->SetEmitter(particleGroupName, defaultEmitter);
 
   // 回転
   Vector3 particleRotation{};
@@ -336,7 +339,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   bool changeTexture = true;
 
   // パーティクルの生成
-  bool generateParticle = false;
+  //bool generateParticle = false;
 
 #pragma endregion パーティクルここまで
 
@@ -403,7 +406,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   object3ds.push_back(object3d_2);
 
   // 表示
-  bool showMaterial = false;
+  bool showMaterial = true;
 
 #pragma endregion マテリアルここまで
 
@@ -710,136 +713,26 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     camera->Update();
 
-    // particle用データの更新
+    // ----------------------------------------------------
+    // パーティクルシステム全体の更新
+    // ----------------------------------------------------
 
-    // 現在有効なインスタンスデータを、GPU転送用バッファ(particleData)のどこに詰めるかを示すインデックス
-    // uint32_t currentLiveIndex = 0;
+    // 頻度計算、パーティクル実体の更新、寿命チェック、GPUデータ転送の全てが
+    // ParticleManager::Updateの中で行われる。
+    ParticleManager::GetInstance()->Update(*camera, isUpdate, useBillboard);
 
+    // ----------------------------------------------------
+    // スペースキーでの手動 Emit（デバッグ/テスト用）
+    // ----------------------------------------------------
     if (input->IsKeyTriggered(DIK_SPACE)) {
-      Emitter emitter{};
-      emitter.count = 3;
-      emitter.frequency = 0.2f;     // 0.2秒ごとに発生
-      emitter.frequencyTime = 0.0f; // 発生頻度用の時刻、0で初期化
-      emitter.transform.translate = {0.0f, 0.0f, 0.0f};
-      emitter.transform.rotate = {0.0f, 0.0f, 0.0f};
-      emitter.transform.scale = {1.0f, 1.0f, 1.0f};
+        // エミッターの Transform, count を直接指定して、一度だけEmitを呼び出す
 
-      ParticleManager::GetInstance()->Emit("default", emitter);
+        // 例: プレイヤー位置 {10.0f, 0.0f, 0.0f} から、10個のパーティクルを一度に生成
+        Vector3 playerPos = { 0.0f, 0.0f, 0.0f };
+        uint32_t burstCount = 10;
 
-      generateParticle = true;
+        ParticleManager::GetInstance()->Emit(particleGroupName, playerPos, burstCount);
     }
-    ParticleManager::GetInstance()->Update(*camera);
-
-    // if (generateParticle) {
-    //   // 　パーティクルを発生させる
-    //   particles.splice(particles.end(), Emit(emitter, particleRandomEngine));
-
-    //  generateParticle = false;
-    //}
-
-    // emitter.frequencyTime += kDeltaTime;              // 時刻を進める
-    // if (emitter.frequency <= emitter.frequencyTime) { //
-    // 頻度より大きいなら発生
-    //   // 　パーティクルを発生させる
-    //   particles.splice(particles.end(), Emit(emitter, particleRandomEngine));
-    //   emitter.frequencyTime -=
-    //       emitter.frequency; // 余計に過ぎた時間も加味して頻度計算する
-    // }
-
-    ////
-    ///既存のパーティクルを更新し、寿命が尽きたものは削除し、GPUへデータを転送する
-    // for (std::list<Particle>::iterator particleIterator = particles.begin();
-    //	particleIterator != particles.end(); /* ++particleIterator
-    //  はループ内で制御 */) {
-
-    //  // Fieldの範囲内のParticleには加速度を適用する
-    //  if (isUpdate) {
-    //    if (IsCollision(accelerationField.area,
-    //                    (*particleIterator).transform.translate)) {
-    //      (*particleIterator).velocity +=
-    //          accelerationField.acceleration * kDeltaTime;
-    //    }
-    //  }
-    //  // パーティクル実体の更新処理
-    //  (*particleIterator).transform.translate +=
-    //      (*particleIterator).velocity * kDeltaTime;
-    //  (*particleIterator).currentTime += kDeltaTime; // 経過時間を加算
-
-    //  // アルファ値を計算 (透明化の処理)
-    //  float alpha = 1.0f - ((*particleIterator).currentTime /
-    //                        (*particleIterator).lifeTime);
-
-    //  // 寿命が尽きた場合の処理
-    //  if ((*particleIterator).currentTime >= (*particleIterator).lifeTime) {
-    //    // 寿命が尽きた場合、リストから削除する
-    //    // list::erase の戻り値は、削除された要素の次の要素を指すイテレータ
-    //    particleIterator = particles.erase(particleIterator);
-    //    // continueで次のループへ進み、++
-    //    // currentLiveIndexとGPU転送はスキップする continue;
-    //  }
-
-    //  //
-    //  GPU転送処理は、有効なパーティクル（削除されなかったもの）のみを対象とし、
-    //  //  currentLiveIndex（GPUバッファのインデックス）を使用
-
-    //  // GPU最大数チェック,GPUバッファのオーバーフローを防ぐ
-    //  if (currentLiveIndex < kNumMaxParticle) {
-    //    // 回転の適用
-    //    if (useBillboard) {
-    //      (*particleIterator).transform.rotate = {};
-    //      (*particleIterator).transform.rotate.z = particleRotation.z;
-    //    } else {
-    //      (*particleIterator).transform.rotate = particleRotation;
-    //    }
-
-    //    // パーティクルのワールド行列とWVP行列を計算して転送
-
-    //    // 行列の計算
-    //    billboardMatrix = debugCamera.GetWorldMatrix();
-    //    billboardMatrix.m[3][0] = 0.0f; // 平行移動成分はいらない
-    //    billboardMatrix.m[3][1] = 0.0f;
-    //    billboardMatrix.m[3][2] = 0.0f;
-
-    //    Matrix4x4 particleWorldMatrix = MakeIdentity4x4();
-    //    Matrix4x4 particleScaleMatrix =
-    //        MakeScaleMatrix((*particleIterator).transform.scale);
-    //    Matrix4x4 particleRotateMatrix =
-    //        MakeRotateXYZMatrix((*particleIterator).transform.rotate);
-    //    Matrix4x4 particleTranslateMatrix =
-    //        MakeTranslationMatrix((*particleIterator).transform.translate);
-
-    //    if (useBillboard) {
-    //      particleWorldMatrix = particleScaleMatrix * particleRotateMatrix *
-    //                            billboardMatrix * particleTranslateMatrix;
-    //    } else {
-    //      particleWorldMatrix =
-    //          MakeAffineMatrix((*particleIterator).transform.scale,
-    //                           (*particleIterator).transform.rotate,
-    //                           (*particleIterator).transform.translate);
-    //    }
-    //    Matrix4x4 particleWVPMatrix =
-    //        Multiply(particleWorldMatrix,
-    //                 Multiply(currentViewMatrix, object3dProjectionMatrix));
-
-    //    // 転送
-    //    // currentLiveIndex
-    //    // をインデックスとして使用し、GPUバッファにデータを詰める
-    //    particleData[currentLiveIndex].WVP = particleWVPMatrix;
-    //    particleData[currentLiveIndex].World = particleWorldMatrix;
-    //    particleData[currentLiveIndex].color =
-    //        (*particleIterator).color; // イテレータからcolorを取得
-
-    //    // 計算したアルファ値を適用
-    //    particleData[currentLiveIndex].color.w = alpha; // 徐々に透明にする
-
-    //    currentLiveIndex++; // 有効なパーティクル数をカウント
-    //  }
-
-    //  // 4. 次の要素へ進める（削除されなかった場合のみ）
-    //  ++particleIterator;
-    //}
-    // 描画数を更新
-    // uint32_t numParticleToDraw = currentLiveIndex;
 
     // オブジェクト
     object3d_1->Update();
@@ -883,29 +776,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     /// Particle描画---------------------------------------
 
-    //// RootSignatureを設定
-    // dxBase->GetCommandList()->SetGraphicsRootSignature(
-    //     particleRootSignature.Get());
-    //// 現在のブレンドモードに応じたPSOを設定
-    // if (particleBlendMode >= 0 && particleBlendMode < kCountOfBlendMode) {
-    //   // PSOを設定
-    //   dxBase->GetCommandList()->SetPipelineState(
-    //       particlePsoArray[particleBlendMode].Get());
-    // } else {
-    //   // 不正な値の場合
-    //   dxBase->GetCommandList()->SetPipelineState(
-    //       particlePsoArray[kBlendModeNormal].Get());
-    // }
-    //// VBVを設定
-    // dxBase->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferView);
-    //// トポロジを設定
-    // dxBase->GetCommandList()->IASetPrimitiveTopology(
-    //     D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    ///// ルートパラメータを設定
-    //// マテリアルCBVの場所を設定
-    // dxBase->GetCommandList()->SetGraphicsRootConstantBufferView(
-    //     0, materialResource->GetGPUVirtualAddress());
-    ////
     ///インスタンス用SRVのDescriptorTableの先頭を設定。1はrootParametersForInstancing[1]である。
     // dxBase->GetCommandList()->SetGraphicsRootDescriptorTable(
     //     1, instanceSrvHandleGPU);

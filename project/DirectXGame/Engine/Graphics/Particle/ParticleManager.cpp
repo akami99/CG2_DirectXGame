@@ -31,6 +31,25 @@ ParticleManager *ParticleManager::GetInstance() {
   return instance_;
 }
 
+void ParticleManager::SetEmitter(const std::string &name,
+                                 const ParticleEmitter &emitter) {
+    // 1. 該当するパーティクルグループを検索
+    auto it = particleGroups_.find(name);
+
+    if (it == particleGroups_.end()) {
+        // グループが見つからない場合はエラーまたはログ出力
+        Logger::Log("Error: Particle group '" + name + "' not found when setting emitter.");
+        return;
+    }
+
+    // 2. グループ内の emitter メンバに、渡された emitter インスタンスをコピー
+    ParticleGroup &group = it->second;
+    group.emitter = emitter;
+
+    // 3. (Optional) 頻度時刻をリセット（すぐに発生を開始させたい場合）
+    group.emitter.frequencyTime = 0.0f;
+}
+
 void ParticleManager::ReleaseIntermediateResources() {
   // GPUがコマンド実行を完了した後、保持していたアップロードリソースをクリアする
   intermediateResources_.clear();
@@ -274,66 +293,75 @@ void ParticleManager::CreateParticleGroup(const std::string &name,
   particleGroups_.emplace(name, std::move(newGroup));
 }
 
-void ParticleManager::Emit(const std::string &name, const Emitter &emitter) {
-  // 登録済みのパーティクルグループ名かチェックしてassert
-  assert(particleGroups_.count(name) > 0);
+void ParticleManager::Emit(const std::string &name, const Vector3 &translate,
+                           uint32_t count) {
+  // 該当するパーティクルグループを検索
+  auto it = particleGroups_.find(name);
+  if (it == particleGroups_.end()) {
+    // グループが見つからない場合は処理を中止 (またはエラー処理)
+    return;
+  }
 
-  ParticleGroup &group = particleGroups_.at(name);
+  ParticleGroup &group = it->second;
 
-  // 速度と寿命の分布を定義 (メンバ変数でないならここで定義)
-  std::uniform_real_distribution<float> distVelocity(-1.0f, 1.0f);
-  std::uniform_real_distribution<float> distTime(1.0f, 3.0f);
-  std::uniform_real_distribution<float> distColor(0.0f, 1.0f);
-  //
-  // 新たなパーティクルを生成し、指定されたパーティクルグループに登録
-  for (uint32_t count = 0; count < emitter.count; ++count) {
-    if (group.particles.size() >= kNumMaxParticle) {
-      // 最大数を超えたら生成しない
-      break;
-    }
+  // 指定された個数だけパーティクルを生成
+  for (uint32_t i = 0; i < count; ++i) {
+    // MakeNewParticle でランダムな初期値を持つパーティクルを生成
+    Particle newParticle = MakeNewParticle(translate);
 
-    Particle particle;
-
-    // -------------------
-    // トランスフォーム
-    // -------------------
-    particle.transform.scale = {1.0f, 1.0f, 1.0f};
-    particle.transform.rotate = {0.0f, 0.0f, 0.0f};
-
-    // 位置設定 (emitter.transform.translate
-    // を基点にランダムなオフセットを加える)
-    Vector3 randomTranslate{distVelocity(randomEngine_),
-                            distVelocity(randomEngine_),
-                            distVelocity(randomEngine_)};
-    particle.transform.translate =
-        emitter.transform.translate + randomTranslate;
-
-    // -------------------
-    // 寿命と時間
-    // -------------------
-    particle.lifeTime = distTime(randomEngine_);
-    particle.currentTime = 0.0f;
-
-    // -------------------
-    // 速度
-    // -------------------
-    particle.velocity = {distVelocity(randomEngine_),
-                         distVelocity(randomEngine_),
-                         distVelocity(randomEngine_)};
-
-    // -------------------
-    // 色
-    // -------------------
-    // 色をランダムに設定 (0.0から1.0の範囲)
-    particle.color = {distColor(randomEngine_), distColor(randomEngine_),
-                      distColor(randomEngine_), 1.0f}; // アルファは不透明
-
-    // 4. グループに追加
-    group.particles.push_back(particle);
+    // グループ内のパーティクルリストに追加
+    group.particles.push_back(std::move(newParticle));
   }
 }
 
-void ParticleManager::Update(const Camera &camera) {
+// パーティクル生成関数
+Particle ParticleManager::MakeNewParticle(const Vector3 &translate) {
+
+  // 乱数分布の定義 (エンジンは引数の randomEngine を使用)
+  std::uniform_real_distribution<float> posDist(-1.0f, 1.0f);
+  std::uniform_real_distribution<float> timeDist(1.0f, 3.0f);
+  std::uniform_real_distribution<float> colorDist(0.0f,
+                                                  1.0f); // 0.0f to 1.0f に変更
+
+  // パーティクルの初期化
+  Particle particle;
+
+  // -------------------
+  // トランスフォーム
+  // -------------------
+  particle.transform.scale = {1.0f, 1.0f, 1.0f};
+  particle.transform.rotate = {0.0f, 0.0f, 0.0f};
+
+  // 基準位置からのランダムなオフセットを加える
+  Vector3 randomTranslate{posDist(randomEngine_), posDist(randomEngine_),
+                          posDist(randomEngine_)};
+  particle.transform.translate = translate + randomTranslate;
+
+  // -------------------
+  // 寿命と時間
+  // -------------------
+  particle.lifeTime = timeDist(randomEngine_); // 1.0秒から 3.0秒
+  particle.currentTime = 0.0f;
+
+  // -------------------
+  // 速度
+  // -------------------
+  // 速度をランダムに設定 (例: -1.0から1.0の範囲)
+  particle.velocity = {posDist(randomEngine_), posDist(randomEngine_),
+                       posDist(randomEngine_)};
+
+  // -------------------
+  // 色
+  // -------------------
+  // 色をランダムに設定 (0.0から1.0の範囲)
+  particle.color = {colorDist(randomEngine_), colorDist(randomEngine_),
+                    colorDist(randomEngine_), 1.0f}; // アルファは不透明
+
+  return particle;
+}
+
+void ParticleManager::Update(const Camera &camera, bool &isUpdate,
+                             bool &useBillboard) {
   // 1. ビルボード行列の計算
   // カメラの回転情報からビルボード行列を計算します
   Matrix4x4 billboardMatrix = camera.GetWorldMatrix();
@@ -348,125 +376,103 @@ void ParticleManager::Update(const Camera &camera) {
   const Matrix4x4 viewProjectionMatrix =
       Multiply(camera.GetViewMatrix(), camera.GetProjectionMatrix());
 
-  // ユーザー設定のフラグ (ParticleManagerのメンバか外部定数)
-  bool isUpdate = true;
-  bool useBillboard = true; // 仮にビルボードを常に使用
-
   // 全てのパーティクルグループについて処理
   for (auto &pair : particleGroups_) {
-      ParticleGroup &group = pair.second;
+    ParticleGroup &group = pair.second;
 
-      //// 【統合 1-1】エミッターの更新と生成
-      //group.emitter_.frequencyTime += kDeltaTime; // 時刻を進める
-      //if (group.emitter_.frequency <= group.emitter_.frequencyTime) { // 頻度より大きいなら発生
+    // ------------------------------------------
+    // I. エミッターの更新とパーティクルの生成 (資料: 更新)
+    // ------------------------------------------
 
-      //    // パーティクルを発生させる
-      //    // Emit関数は外部で定義されているとして、リストにパーティクルを追加
-      //    // group.particles.splice(group.particles.end(), Emit(group.emitter_, randomEngine_)); 
+    // 1. 時刻を進める
+    group.emitter.frequencyTime += kDeltaTime;
 
-      //    // Emitがない場合は、直接ここで生成
-      //    for (int i = 0; i < group.emitter_.count; ++i) {
-      //        Particle newParticle = MakeNewParticle(randomEngine_, group.emitter_.transform.translate);
-      //        group.particles.push_back(std::move(newParticle));
-      //    }
+    // 2. 発生頻度より大きいなら発生
+    if (group.emitter.frequency > 0.0f &&
+        group.emitter.frequency <= group.emitter.frequencyTime) {
 
-      //    group.emitter_.frequencyTime -= group.emitter_.frequency; // 余計に過ぎた時間も加味して頻度計算する
-      //}
+      // ParticleEmitter::Emit を呼び出し、ParticleManager::Emit へ処理を委譲
+      // Emitter自身の設定値 (translate, count) を使って生成を依頼する
+      group.emitter.Emit(pair.first); // pair.first はグループ名
 
+      // 余計に過ぎた時間も加味して頻度計算する (資料の指示)
+      group.emitter.frequencyTime -= group.emitter.frequency;
+    }
 
-      // インスタンスデータへの書き込み用ポインタ (StructuredBufferのmappedData)
-      ParticleInstanceData *instanceData =
-          (ParticleInstanceData *)group.mappedData;
-      uint32_t instanceIndex = 0; // 現在書き込んでいるインスタンスのインデックス
+    // ------------------------------------------
+    // II. 既存パーティクルの更新とインスタンスデータの書き込み
+    // ------------------------------------------
 
-      // グループ内の全てのパーティクルについて処理
-      auto it = group.particles.begin();
-      while (it != group.particles.end()) {
-          Particle &particle = *it;
+    // インスタンスデータへの書き込み用ポインタ
+    ParticleInstanceData *instanceData =
+        (ParticleInstanceData *)group.mappedData;
+    uint32_t instanceIndex = 0; // 現在書き込んでいるインスタンスのインデックス
 
-          // ------------------------------------------
-          // パーティクル実体の更新
-          // ------------------------------------------
+    // グループ内の全てのパーティクルについて処理
+    auto it = group.particles.begin();
+    while (it != group.particles.end()) {
+      Particle &particle = *it;
 
-          // 【統合 2-1】フィールドの影響計算 
-          if (isUpdate) {
-              AccelerationField accelerationField;
-              accelerationField.acceleration = { 15.0f, 0.0f, 0.0f };
-              accelerationField.area.min = { -1.0f, -1.0f, -1.0f };
-              accelerationField.area.max = { 1.0f, 1.0f, 1.0f };
+      // 1. フィールドの影響計算 (場の影響)
+      if (isUpdate) {
+        AccelerationField accelerationField;
+        accelerationField.acceleration = {15.0f, 0.0f, 0.0f};
+        accelerationField.area.min = {-1.0f, -1.0f, -1.0f};
+        accelerationField.area.max = {1.0f, 1.0f, 1.0f};
 
-              if (IsCollision(accelerationField.area, particle.transform.translate)) {
-                  particle.velocity += accelerationField.acceleration * kDeltaTime;
-              }
-          }
-
-          // 移動処理 (速度を座標に加算)
-          particle.transform.translate =
-              particle.transform.translate + (particle.velocity * kDeltaTime);
-
-          // 経過時間を加算
-          particle.currentTime += kDeltaTime;
-
-          // 【統合 2-2】アルファ値を計算 (透明化の処理)
-          float alpha = 1.0f - (particle.currentTime / particle.lifeTime);
-
-
-          // 寿命チェック: 寿命に達していたらグループから外す
-          if (particle.currentTime >= particle.lifeTime) {
-              // 寿命が尽きた場合、リストから削除する
-              it = group.particles.erase(it);
-              continue; // 削除されたので、GPU転送はスキップし、次の要素へ
-          }
-
-          // ------------------------------------------
-          // インスタンシングデータの書き込み (GPU転送処理)
-          // ------------------------------------------
-
-          // 【統合 3-1】GPU最大数チェック (オーバーフロー防止)
-          if (instanceIndex < kNumMaxParticle) {
-
-              // ワールド行列を計算
-              Matrix4x4 worldMatrix =
-                  MakeAffineMatrix(particle.transform.scale, particle.transform.rotate,
-                      particle.transform.translate);
-
-              Matrix4x4 finalWorldMatrix;
-
-              // 【統合 3-2】ビルボード処理の適用/不適用
-              if (useBillboard) {
-
-                  Matrix4x4 scaleMatrix = MakeScaleMatrix(particle.transform.scale);
-                  Matrix4x4 scaleRotateMatrix = Multiply(scaleMatrix, billboardMatrix);
-                  finalWorldMatrix = scaleRotateMatrix;
-                  finalWorldMatrix.m[3][0] = particle.transform.translate.x;
-                  finalWorldMatrix.m[3][1] = particle.transform.translate.y;
-                  finalWorldMatrix.m[3][2] = particle.transform.translate.z;
-
-              } else {
-                  // ビルボードを使用しない場合は、通常のアフィン変換
-                  finalWorldMatrix = worldMatrix;
-              }
-
-              // ワールドビュープロジェクション行列を合成
-              Matrix4x4 wvpMatrix = Multiply(finalWorldMatrix, viewProjectionMatrix);
-
-              // インスタンシング用データ1個分の書き込み
-              instanceData[instanceIndex].WVP = wvpMatrix;
-              instanceData[instanceIndex].World = finalWorldMatrix;
-
-              // 転送
-              instanceData[instanceIndex].color = particle.color;
-              instanceData[instanceIndex].color.w = alpha; // 徐々に透明にする
-
-              instanceIndex++; // 有効なパーティクル数をカウント
-          }
-
-          // 4. 次の要素へ進める（削除されなかった場合のみ）
-          ++it;
+        if (IsCollision(accelerationField.area, particle.transform.translate)) {
+          particle.velocity += accelerationField.acceleration * kDeltaTime;
+        }
       }
 
-      // グループの描画インスタンス数を更新
-      group.instanceCount = instanceIndex; // 描画数を更新
+      // 2. 移動処理
+      particle.transform.translate =
+          particle.transform.translate + (particle.velocity * kDeltaTime);
+
+      // 3. 経過時間とアルファ値の計算
+      particle.currentTime += kDeltaTime;
+      float alpha = 1.0f - (particle.currentTime / particle.lifeTime);
+
+      // 4. 寿命チェックと削除
+      if (particle.currentTime >= particle.lifeTime) {
+        it = group.particles.erase(it);
+        continue;
+      }
+
+      // 5. インスタンシングデータの書き込み (行列計算とGPU転送)
+      if (instanceIndex < kNumMaxParticle) {
+
+        // ... (行列計算のロジックは前回の修正案を適用) ...
+        Matrix4x4 finalWorldMatrix;
+        // --- 修正案 B (行列乗算) を再掲 ---
+        Matrix4x4 scaleMatrix = MakeScaleMatrix(particle.transform.scale);
+        Matrix4x4 billboardMatrix = camera.GetWorldMatrix();
+        billboardMatrix.m[3][0] = 0.0f;
+        billboardMatrix.m[3][1] = 0.0f;
+        billboardMatrix.m[3][2] = 0.0f;
+        Matrix4x4 scaleRotateMatrix = Multiply(scaleMatrix, billboardMatrix);
+        finalWorldMatrix = scaleRotateMatrix;
+        finalWorldMatrix.m[3][0] = particle.transform.translate.x;
+        finalWorldMatrix.m[3][1] = particle.transform.translate.y;
+        finalWorldMatrix.m[3][2] = particle.transform.translate.z;
+        // --- 修正案 B ここまで ---
+
+        Matrix4x4 wvpMatrix = Multiply(finalWorldMatrix, viewProjectionMatrix);
+
+        // GPU転送
+        instanceData[instanceIndex].WVP = wvpMatrix;
+        instanceData[instanceIndex].World = finalWorldMatrix;
+        instanceData[instanceIndex].color = particle.color;
+        instanceData[instanceIndex].color.w = alpha; // 透明度適用
+
+        instanceIndex++;
+      }
+
+      ++it;
+    }
+
+    // グループの描画インスタンス数を更新
+    group.instanceCount = instanceIndex;
   }
 }
 

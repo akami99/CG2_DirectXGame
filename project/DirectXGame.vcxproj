@@ -182,6 +182,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="DirectXGame\Engine\Graphics\Model\ModelManager.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\SRV\SrvManager.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\Particle\ParticleManager.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Graphics\Particle\ParticleEmitter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Particle.PS.hlsl">
@@ -272,6 +273,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="DirectXGame\Engine\Graphics\Model\ModelManager.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\SRV\SrvManager.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\Particle\ParticleManager.h" />
+    <ClInclude Include="DirectXGame\Engine\Graphics\Particle\ParticleEmitter.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="externals\imgui\LICENSE.txt" />

@@ -273,6 +273,9 @@
     <ClCompile Include="DirectXGame\Engine\Graphics\SRV\SrvManager.cpp">
       <Filter>ソース ファイル\Engine\Graphics\SRV</Filter>
     </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Particle\ParticleEmitter.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\Particle</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="externals\imgui\imconfig.h">
@@ -387,6 +390,9 @@
       <Filter>ヘッダー ファイル\Engine\Graphics\SRV</Filter>
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\Particle\ParticleManager.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Particle</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Particle\ParticleEmitter.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Particle</Filter>
     </ClInclude>
   </ItemGroup>
