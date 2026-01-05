@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.13.35931.197
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DirectXGame", "DirectXGame.vcxproj", "{1D5D14F4-5510-41BC-8851-694E2592AF1D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0D4E7DF9-31D9-42D0-AE06-FD9CEAC43116} = {0D4E7DF9-31D9-42D0-AE06-FD9CEAC43116}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ソリューション項目", "ソリューション項目", "{2022CB0F-8BAF-F49E-0C48-8EF4C96EC109}"
 	ProjectSection(SolutionItems) = preProject
@@ -11,6 +14,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ソリューション項目
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DirectXTex", "externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj", "{371B9FA9-4C90-4AC6-A123-ACED756D6C77}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "externals", "externals", "{DDB4EF12-CC4E-5E88-E6FC-71A802F4DE97}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui", "externals\imgui\imgui.vcxproj", "{0D4E7DF9-31D9-42D0-AE06-FD9CEAC43116}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,9 +38,19 @@ Global
 		{371B9FA9-4C90-4AC6-A123-ACED756D6C77}.Development|x64.Build.0 = Development|x64
 		{371B9FA9-4C90-4AC6-A123-ACED756D6C77}.Release|x64.ActiveCfg = Release|x64
 		{371B9FA9-4C90-4AC6-A123-ACED756D6C77}.Release|x64.Build.0 = Release|x64
+		{0D4E7DF9-31D9-42D0-AE06-FD9CEAC43116}.Debug|x64.ActiveCfg = Debug|x64
+		{0D4E7DF9-31D9-42D0-AE06-FD9CEAC43116}.Debug|x64.Build.0 = Debug|x64
+		{0D4E7DF9-31D9-42D0-AE06-FD9CEAC43116}.Development|x64.ActiveCfg = Release|x64
+		{0D4E7DF9-31D9-42D0-AE06-FD9CEAC43116}.Development|x64.Build.0 = Release|x64
+		{0D4E7DF9-31D9-42D0-AE06-FD9CEAC43116}.Release|x64.ActiveCfg = Release|x64
+		{0D4E7DF9-31D9-42D0-AE06-FD9CEAC43116}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{371B9FA9-4C90-4AC6-A123-ACED756D6C77} = {DDB4EF12-CC4E-5E88-E6FC-71A802F4DE97}
+		{0D4E7DF9-31D9-42D0-AE06-FD9CEAC43116} = {DDB4EF12-CC4E-5E88-E6FC-71A802F4DE97}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B0B29B0F-5D13-4609-9584-3DE9F5F80752}
