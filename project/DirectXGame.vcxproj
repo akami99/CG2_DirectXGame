@@ -60,17 +60,17 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)..\generated\outputs\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)..\generated\obj\$(ProjectName)\$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)externals\DirectXTex;$(SolutionDir)externals\imgui;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'">
     <OutDir>$(SolutionDir)..\generated\outputs\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)..\generated\obj\$(ProjectName)\$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)externals\DirectXTex;$(SolutionDir)externals\imgui;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)..\generated\outputs\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)..\generated\obj\$(ProjectName)\$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)externals\DirectXTex;$(SolutionDir)externals\imgui;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -83,14 +83,14 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\API;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Graphics\Sprite;$(ProjectDir)DirectXGame\Engine\Graphics\BlendMode;$(ProjectDir)DirectXGame\Engine\Graphics\Texture;$(ProjectDir)DirectXGame\Engine\Graphics\Object3d;$(ProjectDir)DirectXGame\Engine\Graphics\Model;$(ProjectDir)DirectXGame\Engine\Graphics\Particle;$(ProjectDir)DirectXGame\Engine\Graphics\PSO;$(ProjectDir)DirectXGame\Engine\Graphics\SRV;$(ProjectDir)DirectXGame\Engine\Input;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)externals\DirectXTex;$(SolutionDir)externals\imgui;$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\API;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Graphics\Sprite;$(ProjectDir)DirectXGame\Engine\Graphics\BlendMode;$(ProjectDir)DirectXGame\Engine\Graphics\Texture;$(ProjectDir)DirectXGame\Engine\Graphics\Object3d;$(ProjectDir)DirectXGame\Engine\Graphics\Model;$(ProjectDir)DirectXGame\Engine\Graphics\Particle;$(ProjectDir)DirectXGame\Engine\Graphics\PSO;$(ProjectDir)DirectXGame\Engine\Graphics\SRV;$(ProjectDir)DirectXGame\Engine\Input;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/ignore:4049 /ignore:4098 %(AdditionalOptions)</AdditionalOptions>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
-      <AdditionalDependencies>imgui.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>imgui.lib;DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\generated\outputs\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
@@ -110,14 +110,14 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\API;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Graphics\Sprite;$(ProjectDir)DirectXGame\Engine\Graphics\BlendMode;$(ProjectDir)DirectXGame\Engine\Graphics\Texture;$(ProjectDir)DirectXGame\Engine\Graphics\Object3d;$(ProjectDir)DirectXGame\Engine\Graphics\Model;$(ProjectDir)DirectXGame\Engine\Graphics\Particle;$(ProjectDir)DirectXGame\Engine\Graphics\PSO;$(ProjectDir)DirectXGame\Engine\Graphics\SRV;$(ProjectDir)DirectXGame\Engine\Input;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)externals\DirectXTex;$(SolutionDir)externals\imgui;$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\API;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Graphics\Sprite;$(ProjectDir)DirectXGame\Engine\Graphics\BlendMode;$(ProjectDir)DirectXGame\Engine\Graphics\Texture;$(ProjectDir)DirectXGame\Engine\Graphics\Object3d;$(ProjectDir)DirectXGame\Engine\Graphics\Model;$(ProjectDir)DirectXGame\Engine\Graphics\Particle;$(ProjectDir)DirectXGame\Engine\Graphics\PSO;$(ProjectDir)DirectXGame\Engine\Graphics\SRV;$(ProjectDir)DirectXGame\Engine\Input;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>imgui.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>imgui.lib;DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\generated\outputs\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
@@ -139,7 +139,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>Disabled</Optimization>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\API;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Graphics\Sprite;$(ProjectDir)DirectXGame\Engine\Graphics\BlendMode;$(ProjectDir)DirectXGame\Engine\Graphics\Texture;$(ProjectDir)DirectXGame\Engine\Graphics\Object3d;$(ProjectDir)DirectXGame\Engine\Graphics\Model;$(ProjectDir)DirectXGame\Engine\Graphics\Particle;$(ProjectDir)DirectXGame\Engine\Graphics\PSO;$(ProjectDir)DirectXGame\Engine\Graphics\SRV;$(ProjectDir)DirectXGame\Engine\Input;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)externals\DirectXTex;$(SolutionDir)externals\imgui;$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\API;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Graphics\Sprite;$(ProjectDir)DirectXGame\Engine\Graphics\BlendMode;$(ProjectDir)DirectXGame\Engine\Graphics\Texture;$(ProjectDir)DirectXGame\Engine\Graphics\Object3d;$(ProjectDir)DirectXGame\Engine\Graphics\Model;$(ProjectDir)DirectXGame\Engine\Graphics\Particle;$(ProjectDir)DirectXGame\Engine\Graphics\PSO;$(ProjectDir)DirectXGame\Engine\Graphics\SRV;$(ProjectDir)DirectXGame\Engine\Input;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -147,7 +147,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration />
-      <AdditionalDependencies>imgui.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>imgui.lib;DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\generated\outputs\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
@@ -163,13 +163,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="DirectXGame\Engine\Graphics\Camera\DebugCamera.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\API\DX12Context.cpp" />
     <ClCompile Include="DirectXGame\Engine\Core\Utility\Math\Functions\MathUtils.cpp" />
-    <ClCompile Include="externals\imgui\imgui.cpp" />
-    <ClCompile Include="externals\imgui\imgui_demo.cpp" />
-    <ClCompile Include="externals\imgui\imgui_draw.cpp" />
-    <ClCompile Include="externals\imgui\imgui_impl_dx12.cpp" />
-    <ClCompile Include="externals\imgui\imgui_impl_win32.cpp" />
-    <ClCompile Include="externals\imgui\imgui_tables.cpp" />
-    <ClCompile Include="externals\imgui\imgui_widgets.cpp" />
     <ClCompile Include="DirectXGame\Engine\Input\Input.cpp" />
     <ClCompile Include="DirectXGame\Engine\Core\Utility\Logger\Logger.cpp" />
     <ClCompile Include="DirectXGame\Application\System\main.cpp">
@@ -256,14 +249,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="DirectXGame\Engine\Graphics\LightTypes.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\ModelTypes.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\ParticleTypes.h" />
-    <ClInclude Include="externals\imgui\imconfig.h" />
-    <ClInclude Include="externals\imgui\imgui.h" />
-    <ClInclude Include="externals\imgui\imgui_impl_dx12.h" />
-    <ClInclude Include="externals\imgui\imgui_impl_win32.h" />
-    <ClInclude Include="externals\imgui\imgui_internal.h" />
-    <ClInclude Include="externals\imgui\imstb_rectpack.h" />
-    <ClInclude Include="externals\imgui\imstb_textedit.h" />
-    <ClInclude Include="externals\imgui\imstb_truetype.h" />
     <ClInclude Include="DirectXGame\Engine\Input\Input.h" />
     <ClInclude Include="DirectXGame\Engine\Core\Utility\Logger\Logger.h" />
     <ClInclude Include="DirectXGame\Engine\Core\Utility\Math\Matrix\MatrixGenerators.h" />
@@ -283,9 +268,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="DirectXGame\Engine\Graphics\SRV\SrvManager.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\Particle\ParticleManager.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\Particle\ParticleEmitter.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="externals\imgui\LICENSE.txt" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
