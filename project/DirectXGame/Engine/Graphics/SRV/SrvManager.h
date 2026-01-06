@@ -55,6 +55,14 @@ public: // メンバ関数
   uint32_t GetNewIndex();
 
   /// <summary>
+  /// デスクリプタヒープのゲッター
+  /// </summary>
+  /// <returns>デスクリプタヒープのポインタ</returns>
+  ID3D12DescriptorHeap *GetDescriptorHeap() const {
+    return descriptorHeap_.Get();
+  }
+
+  /// <summary>
   /// SRVの指定したインデックスのCPUディスクリプタハンドルを取得
   /// </summary>
   /// <param name="index">取得するSRVのインデックス</param>
@@ -73,9 +81,8 @@ public: // メンバ関数
   /// <param name="resource">StructuredBufferのID3D12Resource</param>
   /// <param name="numElement">格納されている要素（インスタンス）の数</param>
   /// <param name="structureByteStride">構造体（要素）のバイトサイズ</param>
-  void CreateSRVForTexture(uint32_t srvIndex,
-                                    ComPtr<ID3D12Resource> resource,
-                                    DXGI_FORMAT Format, UINT MipLevels);
+  void CreateSRVForTexture(uint32_t srvIndex, ComPtr<ID3D12Resource> resource,
+                           DXGI_FORMAT Format, UINT MipLevels);
 
   /// <summary>
   /// StructuredBuffer用のSRVを作成

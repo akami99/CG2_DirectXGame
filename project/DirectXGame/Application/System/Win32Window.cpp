@@ -1,23 +1,29 @@
 #include <Windows.h>
+#include <imgui_impl_win32.h>
 
 #include "../Core/ApplicationConfig.h"
 #include "../System/Win32Window.h"
 
-#include "externals/imgui/imgui.h"
 
 #pragma comment(lib, "winmm.lib")
 
+#ifdef USE_IMGUI
+// ImGuiのWin32用ウィンドウプロシージャハンドラの宣言
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd,
                                                              UINT msg,
                                                              WPARAM wParam,
                                                              LPARAM lParam);
+#endif
 
 // ウィンドウプロシージャ
 LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT msg, WPARAM wparam,
                                          LPARAM lparam) {
+#ifdef USE_IMGUI
+  // ImGuiのウィンドウプロシージャハンドラを呼び出す
   if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam)) {
     return true;
   }
+#endif
 
   // メッセージに応じてゲーム固有の処理を行う
   switch (msg) {

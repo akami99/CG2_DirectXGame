@@ -1,6 +1,9 @@
 #pragma once
 #include <cstdint>
 
+#define WIN32_LEAN_AND_MEAN // 不要なWindows機能を省いてビルドを速くする
+#include <Windows.h>
+
 // WindowsAPI
 class Win32Window {
 public: // 静的定数

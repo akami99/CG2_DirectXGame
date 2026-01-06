@@ -8,9 +8,6 @@
 #include "../API/DX12Context.h"
 
 #include "externals/DirectXTex/d3dx12.h"
-#include "externals/imgui/imgui.h"
-#include "externals/imgui/imgui_impl_dx12.h"
-#include "externals/imgui/imgui_impl_win32.h"
 
 // .lidはヘッダに書いてはいけない
 #pragma comment(lib, "d3d12.lib")
@@ -66,9 +63,6 @@ void DX12Context::Initialize(Win32Window *window) {
   // DCXコンパイラの生成
   CreateDXCCompiler();
 
-  // ImGuiの初期化
-  //InitializeImGui();
-
   Log("Complete Initialize DX12Context!!!\n"); // 初期化完了のログをだす
 }
 
@@ -86,9 +80,6 @@ void DX12Context::PreDraw() {
   // コマンドリストを記録可能な状態にリセット
   hr = commandList_->Reset(commandAllocator_.Get(), nullptr);
   assert(SUCCEEDED(hr));
-
-  // ImGuiの内部コマンドを生成する
-  //ImGui::Render();
 
   // バックバッファのインデックスを取得
   UINT backBufferIndex = swapChain_->GetCurrentBackBufferIndex();
@@ -130,9 +121,6 @@ void DX12Context::PreDraw() {
 
 // 描画終了後処理
 void DX12Context::PostDraw() {
-
-  // 実際のcommandListのImGuiの描画コマンドを積む
-  //ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList_.Get());
 
   // バックバッファのインデックスを取得
   UINT backBufferIndex = swapChain_->GetCurrentBackBufferIndex();

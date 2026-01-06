@@ -42,7 +42,7 @@ void InitializeFileLogging() {
       // Logger.cpp内部の静的ストリームポインタ（fileStream）を設定
       Logger::SetFileStream(&logStream);
 
-      Logger::Log("--- Program Initialized Logging Successfully ---");
+      Logger::Log("--- Program Initialized Logging Successfully ---\n");
     }
   }
 }

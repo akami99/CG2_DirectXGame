@@ -7,7 +7,7 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 
-#include "System/Win32Window.h"
+#include "Win32Window.h"
 
 #include "externals/DirectXTex/DirectXTex.h"
 
@@ -115,6 +115,13 @@ public: // メンバ関数
     return commandList_.Get();
   }
 
+  /// <summary>
+  /// スワップチェーンリソースのゲッター
+  /// </summary>
+  uint32_t GetSwapChainResourceCount() const {
+    return kSwapChainResourcesCount;
+  }
+
 #pragma endregion
 
 #pragma endregion publicメンバ関数
@@ -145,7 +152,7 @@ private: // メンバ関数
   // DXCコンパイラの生成
   void CreateDXCCompiler();
   // ImGuiの初期化
-  //void InitializeImGui();
+  // void InitializeImGui();
 
 #pragma region 60FPS固定用
 

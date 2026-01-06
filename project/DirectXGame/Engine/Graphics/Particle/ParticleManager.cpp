@@ -446,10 +446,18 @@ void ParticleManager::Update(const Camera &camera, bool &isUpdate,
         Matrix4x4 finalWorldMatrix;
         // --- 修正案 B (行列乗算) を再掲 ---
         Matrix4x4 scaleMatrix = MakeScaleMatrix(particle.transform.scale);
-        Matrix4x4 billboardMatrix = camera.GetWorldMatrix();
-        billboardMatrix.m[3][0] = 0.0f;
-        billboardMatrix.m[3][1] = 0.0f;
-        billboardMatrix.m[3][2] = 0.0f;
+        Matrix4x4 billboardMatrix{};
+
+        // useBillboard が true の場合のみビルボード行列を適用
+        if (useBillboard) {
+            billboardMatrix = camera.GetWorldMatrix();
+            billboardMatrix.m[3][0] = 0.0f;
+            billboardMatrix.m[3][1] = 0.0f;
+            billboardMatrix.m[3][2] = 0.0f;
+        } else {
+          billboardMatrix = MakeIdentity4x4();
+        }
+
         Matrix4x4 scaleRotateMatrix = Multiply(scaleMatrix, billboardMatrix);
         finalWorldMatrix = scaleRotateMatrix;
         finalWorldMatrix.m[3][0] = particle.transform.translate.x;

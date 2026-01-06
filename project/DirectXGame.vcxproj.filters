@@ -172,6 +172,12 @@
     <Filter Include="ヘッダー ファイル\Engine\Graphics\Particle">
       <UniqueIdentifier>{5fd3f799-0374-41d8-a397-aae41ad05ba2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\Engine\Graphics\ImGui">
+      <UniqueIdentifier>{001b3a5e-6d0f-44b7-96ec-d58c5360a76c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Graphics\ImGui">
+      <UniqueIdentifier>{1fd90e9a-208a-4fe0-bccc-8328e8ff1b81}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DirectXGame\Engine\Audio\AudioManeger.cpp">
@@ -251,6 +257,9 @@
     </ClCompile>
     <ClCompile Include="DirectXGame\Engine\Graphics\Particle\ParticleEmitter.cpp">
       <Filter>ソース ファイル\Engine\Graphics\Particle</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\ImGui\ImGuiManager.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\ImGui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -346,6 +355,9 @@
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\Particle\ParticleEmitter.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Particle</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\ImGui\ImGuiManager.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\ImGui</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
