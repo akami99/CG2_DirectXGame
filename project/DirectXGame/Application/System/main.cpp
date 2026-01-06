@@ -559,10 +559,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     if (ImGui::TreeNode("Particle")) {
       ImGui::Checkbox("update", &isUpdate);
       ImGui::Checkbox("useBillboard", &useBillboard);
-      //ImGui::Checkbox("changeTexture", &changeTexture);
-      /*  ImGui::SliderFloat("EmitterFrequency", &emitter.frequency,
-        0.01f, 1.0f); ImGui::DragFloat3("EmitterTranslate",
-        &emitter.transform.translate.x, 0.01f, -100.0f, 100.0f);*/
+      // ImGui::Checkbox("changeTexture", &changeTexture);
       ImGui::SliderFloat3("rotateParticleZ", &particleRotation.x, -6.28f,
                           6.28f);
       if (ImGui::Button("Generate Particle(SPACE)")) {
