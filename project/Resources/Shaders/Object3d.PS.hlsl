@@ -29,17 +29,22 @@ PixelShaderOutput main(VertexShaderOutput input) {
         float cos = pow(NdotL * 0.5f + 0.5f, 2.0f);
         float3 diffuse = gMaterial.color.rgb * textureColor.rgb * gDirectionalLight.color.rgb * cos * gDirectionalLight.intensity;
         
-        // --- 2. 鏡面反射 (Phong Reflection) ---
-        // 視線ベクトル (カメラ位置 - ピクセル位置)
+        // --- 2. 鏡面反射 (Blinn-Phong Reflection) ---
+
+        // 視線ベクトル (V)
         float3 toEye = normalize(gCamera.worldPosition - input.worldPosition);
-        // 反射ベクトル (reflect関数は 入射方向, 法線 を取る)
-        float3 reflectLight = reflect(lightDirection, normal);
-        
-        // 反射強度 = (反射ベクトル ・ 視線ベクトル) の shininess乗
-        float RdotE = dot(reflectLight, toEye);
-        float specularPow = pow(saturate(RdotE), gMaterial.shininess);
-        
-        // 鏡面反射の色 (ここでは白とする)
+
+        // 入射光の逆ベクトル（光の源へ向かうベクトル）(L)
+        float3 toLight = -normalize(gDirectionalLight.direction);
+
+        // 【HalfVectorの計算】 (H = L + V の正規化)
+        float3 halfVector = normalize(toLight + toEye);
+
+        // 反射強度 = (法線 ・ ハーフベクトル) の shininess乗
+        float NdotH = dot(normal, halfVector);
+        float specularPow = pow(saturate(NdotH), gMaterial.shininess);
+
+        // 鏡面反射の色
         float3 specularColor = float3(1.0f, 1.0f, 1.0f);
         float3 specular = gDirectionalLight.color.rgb * gDirectionalLight.intensity * specularPow * specularColor;
         

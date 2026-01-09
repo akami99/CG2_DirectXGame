@@ -307,11 +307,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
   // モデルのパスを保持
   const std::string planeModel = ("plane.obj");
-  const std::string axisModel = ("axis.obj");
+  //const std::string axisModel = ("axis.obj");
+  const std::string teapotModel = ("teapot.obj");
 
   // .objファイルからモデルを呼び込む
   ModelManager::GetInstance()->LoadModel("Plane", planeModel);
-  ModelManager::GetInstance()->LoadModel("Axis", axisModel);
+  //ModelManager::GetInstance()->LoadModel("Axis", axisModel);
+  ModelManager::GetInstance()->LoadModel("Teapot", teapotModel);
 
 #pragma endregion モデルの読み込みとアップロードここまで
 
@@ -403,7 +405,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   object3d_2->Initialize(object3dCommon);
 
   // モデルの設定
-  object3d_2->SetModel(axisModel);
+  object3d_2->SetModel(teapotModel);
   // オブジェクトの位置を設定
   object3d_2->SetTranslate({2.0f, 0.0f, 0.0f});
 
