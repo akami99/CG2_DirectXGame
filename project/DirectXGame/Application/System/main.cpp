@@ -290,6 +290,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
   // 生成
   Camera *camera = new Camera();
+  camera->Initialize(dxBase);
   camera->SetRotate({0.0f, 0.0f, 0.0f});
   camera->SetTranslate({0.0f, 0.0f, -10.0f});
   object3dCommon->SetDefaultCamera(camera);

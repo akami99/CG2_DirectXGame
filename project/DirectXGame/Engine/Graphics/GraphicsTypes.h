@@ -25,14 +25,21 @@ struct Transform {
 struct Material {
   Vector4 color;          // マテリアルの色
   int32_t enableLighting; // ライティングの有効・無効フラグ
-  float padding[3];       // 16バイトのアライメントを確保するためのパディング
+  float shininess;        // 光沢度
+  float padding[2];       // 8バイトのアライメントを確保するためのパディング
   Matrix4x4 uvTransform;  // UV変換行列
-}; // Vector4(16)+int32_t(4)=20バイト + float*3(12)=32バイト
+};
 
 // 変換行列をまとめた構造体
 struct TransformationMatrix {
   Matrix4x4 WVP;   // ワールドビュー射影行列
   Matrix4x4 World; // ワールド行列
 }; // Matrix4x4*2=128バイト
+
+// Camera用の構造体(16バイト)
+struct CameraForGPU {
+  Vector3 worldPosition; // カメラのワールド座標
+  float padding;          // 4バイトのアライメントを確保するためのパディング
+};
 
 #endif // GRAPHICS_TYPES_H

@@ -226,6 +226,8 @@ void Model::CreateMaterialResource() {
   materialData_->enableLighting = true;
   // UV変換行列を単位行列に設定
   materialData_->uvTransform = MakeIdentity4x4();
+  // 光沢度を設定
+  materialData_->shininess = 10.0f;
 
 #pragma endregion ここまで
 }

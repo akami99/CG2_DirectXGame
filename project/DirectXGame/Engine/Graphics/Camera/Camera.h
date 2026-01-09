@@ -2,6 +2,11 @@
 
 #include "../GraphicsTypes.h"
 
+#include <d3d12.h>       // ID3D12Resource のため
+#include <wrl/client.h>   // Microsoft::WRL::ComPtr のため
+
+class DX12Context;
+
 // カメラ
 class Camera {
 private: // メンバ変数
@@ -22,16 +27,29 @@ private: // メンバ変数
   float farClip_{};
   // ビュープロジェクション行列
   Matrix4x4 viewProjectionMatrix_{};
+  // 定数バッファ
+  Microsoft::WRL::ComPtr<ID3D12Resource> constBuffer_;
+  // 定数バッファのデータポインタ
+  CameraForGPU *constData_ = nullptr;
+  // DX12Contextへのポインタ
+  DX12Context *dxBase_ = nullptr;
 
 public: // メンバ関数
   // コンストラクタ
   Camera();
+
+  // 初期化関数
+  void Initialize(DX12Context *dxBase);
 
   // 更新
   void Update();
 
   // getter
 
+  // GPU上のアドレスを取得するゲッター
+  D3D12_GPU_VIRTUAL_ADDRESS GetConstantBufferGPUVirtualAddress() const {
+      return constBuffer_->GetGPUVirtualAddress();
+  }
   // ワールド行列の取得
   const Matrix4x4 &GetWorldMatrix() const { return worldMatrix_; }
   // ビュー行列の取得

@@ -22,6 +22,17 @@ Camera::Camera()
     viewProjectionMatrix_(viewMatrix_ *projectionMatrix_)
 {}
 
+void Camera::Initialize(DX12Context *dxBase) {
+    dxBase_ = dxBase;
+
+    // カメラ用の定数バッファリソースを作成
+    // ※ 16バイトアライメントされた構造体サイズを指定
+    constBuffer_ = dxBase_->CreateBufferResource(sizeof(CameraForGPU));
+
+    // 書き込むためのアドレスを取得（Map）
+    constBuffer_->Map(0, nullptr, reinterpret_cast<void **>(&constData_));
+}
+
 // 更新処理
 void Camera::Update() {
   // transformからworldMatrixを作る
@@ -36,4 +47,9 @@ void Camera::Update() {
 
   // 合成しておく
   viewProjectionMatrix_ = viewMatrix_ * projectionMatrix_;
+
+  // GPU用データに現在の座標（translate）を書き込む
+  if (constData_) {
+      constData_->worldPosition = transform_.translate;
+  }
 }

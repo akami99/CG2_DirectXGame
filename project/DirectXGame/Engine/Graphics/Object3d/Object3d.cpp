@@ -68,6 +68,11 @@ void Object3d::Draw() {
           3,
           directionalLightResource_ // directionalLightResourceはライトのCBV
               ->GetGPUVirtualAddress());
+  // 【追加】RootParameter Index 4: Camera (b2)
+  if (camera_) {
+      object3dCommon_->GetDX12Context()
+          ->GetCommandList()->SetGraphicsRootConstantBufferView(4, camera_->GetConstantBufferGPUVirtualAddress());
+  }
   // 描画コマンド
   if (model_) {
     model_->Draw();
