@@ -166,6 +166,13 @@ Matrix4x4 Multiply(const Matrix4x4 &m1, const Matrix4x4 &m2);
 /// <returns>逆行列</returns>
 Matrix4x4 Inverse(const Matrix4x4 &m);
 
+/// <summary>
+/// 転置行列を求める
+/// </summary>
+/// <param name="m">元となる行列</param>
+/// <returns>転置された行列</returns>
+Matrix4x4 Transpose(const Matrix4x4 &m);
+
 // スカラー倍
 
 /// <summary>

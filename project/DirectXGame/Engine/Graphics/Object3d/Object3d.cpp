@@ -38,6 +38,7 @@ void Object3d::Update() {
   Matrix4x4 worldMatrix = MakeAffineMatrix(transform_.scale, transform_.rotate,
                                            transform_.translate);
 
+  // ワールドビュー射影行列の計算
   Matrix4x4 wvpMatrix;
   if (camera_) {
     const Matrix4x4 &viewProjectionMatrix = camera_->GetViewProjectionMatrix();
@@ -46,10 +47,17 @@ void Object3d::Update() {
     wvpMatrix = worldMatrix;
   }
 
+  // 非均一スケール対応：逆転置行列の計算
+    // 法線の変形には「ワールド行列の逆行列の転置行列」が必要
+  Matrix4x4 worldInverseTranspose = Transpose(Inverse(worldMatrix));
+
+  // 変換行列データを更新する
   transformationMatrixData_->WVP =
       wvpMatrix; // World-View-Projection行列をWVPメンバーに入れる
   transformationMatrixData_->World =
       worldMatrix; // 純粋なワールド行列をWorldメンバーに入れる
+  transformationMatrixData_->WorldInverseTranspose =
+      worldInverseTranspose; // ワールド行列の逆行列の転置行列をWorldInverseTransposeメンバーに入れる
 
 #pragma endregion ここまで
 }

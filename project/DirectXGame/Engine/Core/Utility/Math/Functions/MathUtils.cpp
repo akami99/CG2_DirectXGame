@@ -323,6 +323,17 @@ Matrix4x4 Inverse(const Matrix4x4 &m) {
   return result;
 }
 
+Matrix4x4 Transpose(const Matrix4x4 &m) {
+  Matrix4x4 result;
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      // 行(i)と列(j)を入れ替える
+      result.m[i][j] = m.m[j][i];
+    }
+  }
+  return result;
+}
+
 // スカラー倍
 
 // スカラーとベクトルの積

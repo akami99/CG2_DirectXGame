@@ -34,6 +34,7 @@ struct Material {
 struct TransformationMatrix {
   Matrix4x4 WVP;   // ワールドビュー射影行列
   Matrix4x4 World; // ワールド行列
+  Matrix4x4 WorldInverseTranspose; // ワールド行列の逆行列の転置行列
 }; // Matrix4x4*2=128バイト
 
 // Camera用の構造体(16バイト)
