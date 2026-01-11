@@ -1,8 +1,8 @@
 #pragma once
 
-#include <memory> // std::unique_ptr を使うため (今回は直接使わないが、将来的な拡張のために残しておく)
 #include <string> // std::string のために必要
-#include <wrl/client.h> // ComPtr を使うため (今回は直接使わないが、Play メソッド内で IXAudio2SourceVoice の管理に使う場合がある)
+#include <vector>       // std::vector のために必要
+#include <wrl/client.h> // ComPtr を使うため
 #include <xaudio2.h> // WAVEFORMATEX, IXAudio2, IXAudio2SourceVoice, XAUDIO2_BUFFER のために必要
 
 // チャンクヘッダ
@@ -41,19 +41,23 @@ public:
   Sound(Sound &&other) noexcept;
   Sound &operator=(Sound &&other) noexcept;
 
-  // WAVファイルをロードする
-  bool LoadWave(const std::string &filePath);
+  // 読み込み関数 (WAV, MP3, AACなど対応)
+  bool Load(const std::string &filePath);
 
   // 音声データを解放する
   void Unload();
 
   // ゲッター
-  const WAVEFORMATEX &GetWaveFormatEx() const;
-  BYTE *GetBuffer() const;
-  unsigned int GetBufferSize() const;
+
+  // WaveFormatEx のゲッター
+  const WAVEFORMATEXTENSIBLE &GetWaveFormatEx() const { return wfex; }
+  // バッファのゲッター
+  const BYTE *GetBuffer() const { return buffer.data();
+  }
+  // バッファサイズのゲッター
+  unsigned int GetBufferSize() const { return static_cast<unsigned int>(buffer.size()); }
 
 private:
-  WAVEFORMATEX wfex;
-  BYTE *pBuffer;
-  unsigned int bufferSize;
+	WAVEFORMATEXTENSIBLE wfex;
+  std::vector<BYTE> buffer; // 生ポインタから vector に変更
 };

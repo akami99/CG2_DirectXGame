@@ -5,7 +5,7 @@
 #include <map>          // std::map のために必要
 #include <mutex>        // スレッドセーフな操作のために必要
 #include <string>       // std::string のために必要
-#include <vector>       // 再生中のボイスを管理するために使用
+#include <list>       // 再生中のボイスを管理するために使用(vectorの代わりに追加)
 #include <wrl/client.h> // Microsoft::WRL::ComPtr のために必要
 #include <xaudio2.h>    // XAudio2 のインターフェースと型のために必要
 
@@ -40,8 +40,8 @@ private:
     PlayingVoice(const PlayingVoice &) = delete;
     PlayingVoice &operator=(const PlayingVoice &) = delete;
   };
-  std::vector<PlayingVoice>
-      playingVoices; // vectorに変更（イテレータ無効化を避ける）
+  std::list<PlayingVoice>
+      playingVoices; // listに変更（これにより要素のアドレスが固定される）
 
   // コールバッククラスの定義（AudioManagerの内部クラスとして定義）
   class InternalVoiceCallback : public IXAudio2VoiceCallback {

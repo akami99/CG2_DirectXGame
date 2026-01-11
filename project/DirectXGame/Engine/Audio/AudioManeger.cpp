@@ -1,6 +1,14 @@
 #include "../Audio/AudioManager.h" // AudioManager.h をインクルード
 #include <cassert>                 // アサートのために必要
 
+#include <mfapi.h>
+#include <mfidl.h>
+#include <mfreadwrite.h>
+
+#pragma comment(lib, "mfplat.lib")
+#pragma comment(lib, "mfreadwrite.lib")
+#pragma comment(lib, "mfuuid.lib")
+
 // PlayingVoice 構造体のデストラクタの実装
 AudioManager::PlayingVoice::~PlayingVoice() {
   if (pVoice) {
@@ -71,6 +79,12 @@ bool AudioManager::Initialize() {
     Shutdown(); // 失敗したらXAudio2も解放
     return false;
   }
+
+  // Media Foundation の初期化
+  hr = MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET);
+  if (FAILED(hr))
+    return false;
+
   return true;
 }
 
@@ -97,6 +111,9 @@ void AudioManager::Shutdown() {
     pair.second.Unload();
   }
   sounds.clear();
+
+  // Media Foundation の終了
+  MFShutdown();
 }
 
 // サウンドをロードし、名前を付けて管理する
@@ -108,7 +125,7 @@ bool AudioManager::LoadSound(const std::string &name,
   }
 
   Sound newSound;
-  if (newSound.LoadWave(filePath)) {
+  if (newSound.Load(filePath)) {
     // ムーブセマンティクスで追加
     sounds.emplace(name, std::move(newSound));
     return true;
@@ -135,18 +152,21 @@ void AudioManager::PlaySound(const std::string &name) {
   IXAudio2SourceVoice *pSourceVoice = nullptr;
 
   // 新しいPlayingVoiceを作成
+  // 1. 先に要素を追加して、確定したアドレスを取得する
   playingVoices.emplace_back();
   PlayingVoice &newVoice = playingVoices.back();
 
-  // コールバックを作成（PlayingVoiceの終了フラグを渡す）
+  // 2. 確定した newVoice.isFinished のアドレスを渡す
   newVoice.pCallback = new InternalVoiceCallback(&newVoice.isFinished);
 
-  // SourceVoice を作成
+  // 3. ボイス作成 (キャストを使用)
   HRESULT hr = xAudio2->CreateSourceVoice(
-      &newVoice.pVoice, &sound->GetWaveFormatEx(), 0,
+      &newVoice.pVoice,
+      reinterpret_cast<const WAVEFORMATEX *>(&sound->GetWaveFormatEx()), 0,
       XAUDIO2_DEFAULT_FREQ_RATIO, newVoice.pCallback);
+
   if (FAILED(hr)) {
-    playingVoices.pop_back(); // 失敗時は削除
+    playingVoices.pop_back();
     return;
   }
 
@@ -171,12 +191,13 @@ void AudioManager::PlaySound(const std::string &name) {
 
 // 終了したボイスのクリーンアップ
 void AudioManager::CleanupFinishedVoices() {
+  // ミューテックスでリスト操作を保護
   std::lock_guard<std::mutex> lock(playingVoicesMutex);
 
   // 終了フラグが立っているボイスを削除
-  auto it = std::remove_if(
-      playingVoices.begin(), playingVoices.end(),
+  // std::list の remove_if は、条件に一致する要素を削除し、
+  // 適切にデストラクタ（PlayingVoice::~PlayingVoice）を呼び出す。
+  // これにより、XAudio2のボイス破棄とメモリ解放が安全に行われる。
+  playingVoices.remove_if(
       [](const PlayingVoice &voice) { return voice.isFinished.load(); });
-
-  playingVoices.erase(it, playingVoices.end());
 }

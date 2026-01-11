@@ -381,7 +381,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   }
 
   // 2. 音声ファイルをロード
-  if (!audioManager.LoadSound("alarm1", "Alarm01.wav")) {
+  if (!audioManager.LoadSound("alarm1", "Alarm01.mp3")) {
     // ロード失敗時の処理
     return 1;
   }
