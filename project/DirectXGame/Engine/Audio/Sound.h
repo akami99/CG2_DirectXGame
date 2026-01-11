@@ -23,6 +23,7 @@ struct FormatChunk {
   WAVEFORMATEX fmt;  //!< 波形フォーマット
 };
 
+// Soundクラス
 class Sound {
 public:
   // コンストラクタ

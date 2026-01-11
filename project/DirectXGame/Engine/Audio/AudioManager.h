@@ -12,6 +12,7 @@
 // XAudio2 ライブラリをリンク
 #pragma comment(lib, "xaudio2.lib")
 
+// AudioManager クラス
 class AudioManager {
 private:
   std::mutex playingVoicesMutex; // playingVoicesリストを保護するミューテックス
