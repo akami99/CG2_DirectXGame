@@ -1,3 +1,5 @@
+#include "MyGame.h"
+
 #include <Windows.h>
 #include <cassert>
 #include <dbghelp.h> // dump
@@ -213,7 +215,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   // TextureManagerの初期化
 
   TextureManager::GetInstance()->Initialize(dxBase, srvManager);
-  uint32_t testTextureSrvIndex = srvManager->GetNewIndex();
 
 #pragma endregion TextureManagerの初期化ここまで
 
@@ -229,7 +230,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
   ParticleManager::GetInstance()->Initialize(dxBase, srvManager,
                                              pipelineManager);
-  uint32_t testParticleSrvIndex = srvManager->GetNewIndex();
 #pragma endregion ParticleManagerの初期化ここまで
 
 #pragma region ImGuiManagerの初期化
@@ -237,7 +237,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   ImGuiManager *imGuiManager = nullptr;
   imGuiManager = new ImGuiManager();
   imGuiManager->Initialize(dxBase, window, srvManager);
-  uint32_t testImGuiSrvIndex = srvManager->GetNewIndex();
 #pragma endregion ImGuiManagerの初期化ここまで
 
 #pragma endregion 基盤システムの初期化ここまで
@@ -305,7 +304,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   bool useBillboard = true;
 
   // 画像の変更(particle,)
-  bool changeTexture = true;
+  //bool changeTexture = true;
 
   // パーティクルの生成
   // bool generateParticle = false;

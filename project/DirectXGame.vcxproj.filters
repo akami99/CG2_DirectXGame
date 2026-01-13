@@ -258,6 +258,9 @@
     <ClCompile Include="DirectXGame\Engine\Graphics\Base\Win32Window.cpp">
       <Filter>ソース ファイル\Engine\Graphics\Base</Filter>
     </ClCompile>
+    <ClCompile Include="DirectXGame\Application\Core\MyGame.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DirectXGame\Engine\Audio\AudioManager.h">
@@ -355,6 +358,9 @@
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\Base\Win32Window.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Application\Core\MyGame.h">
+      <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
