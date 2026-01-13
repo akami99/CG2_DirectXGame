@@ -1,51 +1,32 @@
 #pragma once
 #include <Windows.h>
-#include <cassert>
-#include <dbghelp.h> // dump
-#include <dxgi1_6.h> // dump
-#include <strsafe.h> // dump
+#include <string>
+#include <vector>
 
-// #include <vector>
-#include <numbers> //particleに使用
-#include <random>  //particleに使用
+// --- 実体を持つために必要なヘッダのみインクルード ---
+#include "AudioManager.h" // 実体(audioManager_)で持っているため
+#include "DebugCamera.h"  // 実体(debugCamera_)で持っているため
+#include "MathTypes.h"    // Vector3などを使うため
+#include "ParticleEmitter.h" // ParticleEmitterを使うため
+#include "BlendMode.h" // ブレンドモード定義のため
 
-// エンジン
-#include "Camera.h"
-#include "D3DResourceLeakChecker.h"
-#include "DX12Context.h"
-#include "DebugCamera.h"
-#include "Input.h"
-#include "Logger.h"
-#include "Model.h"
-#include "ModelCommon.h"
-#include "Object3d.h"
-#include "Object3dCommon.h"
-#include "ParticleEmitter.h"
-#include "Sprite.h"
-#include "SpriteCommon.h"
-#include "Win32Window.h"
-// 管理系
-#include "AudioManager.h"
-#include "ImGuiManager.h"
-#include "ModelManager.h"
-#include "ParticleManager.h"
-#include "PipelineManager.h"
-#include "SrvManager.h"
-#include "TextureManager.h"
-
-// グラフィック関連の構造体
-// #include "GraphicsTypes.h"
-#include "LightTypes.h"
-// #include "ModelTypes.h"
-#include "ParticleTypes.h"
-
-// 計算用関数など
-#include "MathTypes.h"
-#include "MathUtils.h"
-#include "MatrixGenerators.h"
-
-// ゲーム内設定用
-#include "ApplicationConfig.h"
+// --- 前方宣言 (ポインタで持つクラスはこれだけでOK) ---
+class Win32Window;
+class DX12Context;
+class Input;
+class Model;
+class Object3d;
+class Sprite;
+class Camera;
+class SpriteCommon;
+class Object3dCommon;
+class ModelCommon;
+class ImGuiManager;
+class ModelManager;
+class ParticleManager;
+class PipelineManager;
+class SrvManager;
+class TextureManager;
 
 class MyGame {
 public: // メンバ関数
@@ -90,11 +71,10 @@ private: // メンバ変数(ゲーム内)
   Vector3 gameCameraTranslate_;
   bool useDebugCamera_ = false;
 
-
   Vector3 particleRotation{};
   bool isUpdateParticle_ = true;
   bool useBillboard_ = true;
-  
+
   // ブレンドモード
   int currentBlendMode_ = BlendMode::BlendState::kBlendModeNormal;
   int particleBlendMode_ = BlendMode::BlendState::kBlendModeAdd;

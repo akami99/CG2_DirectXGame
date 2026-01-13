@@ -1,62 +1,14 @@
+#include <Windows.h>
+
 #include "MyGame.h"
 
-#include <Windows.h>
 #include <cassert>
 #include <dbghelp.h> // dump
 #include <dxgi1_6.h> // dump
 #include <strsafe.h> // dump
-
-// #include <vector>
-#include <numbers> //particleに使用
-#include <random>  //particleに使用
-
 // エンジン
-#include "Camera.h"
 #include "D3DResourceLeakChecker.h"
-#include "DX12Context.h"
-#include "DebugCamera.h"
-#include "Input.h"
 #include "Logger.h"
-#include "Model.h"
-#include "ModelCommon.h"
-#include "Object3d.h"
-#include "Object3dCommon.h"
-#include "ParticleEmitter.h"
-#include "Sprite.h"
-#include "SpriteCommon.h"
-#include "Win32Window.h"
-// 管理系
-#include "AudioManager.h"
-#include "ImGuiManager.h"
-#include "ModelManager.h"
-#include "ParticleManager.h"
-#include "PipelineManager.h"
-#include "SrvManager.h"
-#include "TextureManager.h"
-
-// グラフィック関連の構造体
-// #include "GraphicsTypes.h"
-#include "LightTypes.h"
-// #include "ModelTypes.h"
-#include "ParticleTypes.h"
-
-// 計算用関数など
-#include "MathTypes.h"
-#include "MathUtils.h"
-#include "MatrixGenerators.h"
-
-// ゲーム内設定用
-#include "ApplicationConfig.h"
-
-// .lidはヘッダに書いてはいけない
-#pragma comment(lib, "Dbghelp.lib")
-#pragma comment(lib, "dxguid.lib")
-#pragma comment(lib, "dxcompiler.lib")
-#pragma comment(lib, "DirectXTex.lib")
-
-using namespace MathUtils;
-using namespace MathGenerators;
-using namespace BlendMode;
 
 #pragma region 関数定義
 // 関数定義
@@ -121,303 +73,308 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
   // ログを用意
   Logger::InitializeFileLogging();
-
-#pragma region 基盤システムの初期化
-
-#pragma region WindowsAPIの初期化
-  // WindowsAPIの初期化
-
-  // ポインタ
-  Win32Window *window = nullptr;
-
-  // WindowWrapperの生成と初期化
-  window = new Win32Window();
-  window->Initialize();
-
-#pragma endregion WindowsAPIの初期化ここまで
-
-#pragma region DirectXの初期化
-  // DirectXの初期化
-
-  // ポインタ
-  DX12Context *dxBase = nullptr;
-  // DirectXBaseの生成と初期化
-  dxBase = new DX12Context();
-  dxBase->Initialize(window);
-
-#pragma endregion DirectXの初期化ここまで
-
-#pragma region PipelineManagerの生成と初期化
-  // PipelineManagerの生成と初期化
-
-  // ポインタ
-  PipelineManager *pipelineManager = nullptr;
-
-  // PipelineManagerの初期化
-  pipelineManager = new PipelineManager();
-  pipelineManager->Initialize(dxBase);
-
-#pragma endregion PipelineManagerの生成と初期化ここまで
-
-#pragma region SRVManagerの生成と初期化
-  // SRVManagerの生成と初期化
-
-  // ポインタ
-  SrvManager *srvManager = nullptr;
-
-  // SRVManagerの初期化
-  srvManager = new SrvManager();
-  srvManager->Initialize(dxBase);
-
-#pragma endregion SRVManagerの生成と初期化ここまで
-
-#pragma region スプライト共通部の生成と初期化
-  // スプライト共通部の初期化
-
-  // ポインタ
-  SpriteCommon *spriteCommon = nullptr;
-
-  // スプライト共通部の初期化
-  spriteCommon = new SpriteCommon();
-  spriteCommon->Initialize(dxBase, pipelineManager);
-
-#pragma endregion スプライト共通部の生成と初期化ここまで
-
-#pragma region 3Dオブジェクト共通部の生成と初期化
-  // 3Dオブジェクト共通部の初期化
-
-  // ポインタ
-  Object3dCommon *object3dCommon = nullptr;
-
-  // 3Dオブジェクト共通部の初期化
-  object3dCommon = new Object3dCommon();
-  object3dCommon->Initialize(dxBase, pipelineManager);
-
-#pragma endregion 3Dオブジェクト共通部の生成と初期化ここまで
-
-#pragma region DirectInputの初期化
-  // DirectInputの初期化
-
-  Input *input = new Input();
-  input->Initialize(window);
-
-#pragma endregion DirectInputの初期化ここまで
-
-#pragma region DebugCameraの初期化
-  // DebugCameraの初期化
-
-  DebugCamera debugCamera;
-  debugCamera.Initialize();
-
-#pragma endregion DebugCameraの初期化ここまで
-
-#pragma region TextureManagerの初期化
-  // TextureManagerの初期化
-
-  TextureManager::GetInstance()->Initialize(dxBase, srvManager);
-
-#pragma endregion TextureManagerの初期化ここまで
-
-#pragma region ModelManagerの初期化
-  // ModelManagerの初期化
-
-  ModelManager::GetInstance()->Initialize(dxBase);
-
-#pragma endregion ModelManagerの初期化ここまで
-
-#pragma region ParticleManagerの初期化
-  // ParticleManagerの初期化
-
-  ParticleManager::GetInstance()->Initialize(dxBase, srvManager,
-                                             pipelineManager);
-#pragma endregion ParticleManagerの初期化ここまで
-
-#pragma region ImGuiManagerの初期化
-  // ImGuiManagerの初期化
-  ImGuiManager *imGuiManager = nullptr;
-  imGuiManager = new ImGuiManager();
-  imGuiManager->Initialize(dxBase, window, srvManager);
-#pragma endregion ImGuiManagerの初期化ここまで
-
-#pragma endregion 基盤システムの初期化ここまで
-
-#pragma region 最初のシーンの初期化
-  // 最初のシーンの初期化
-
-#pragma region カメラ
-  // カメラ
-
-  // 生成
-  Camera *camera = new Camera();
-  camera->Initialize(dxBase);
-  camera->SetRotate({0.0f, 0.0f, 0.0f});
-  camera->SetTranslate({0.0f, 0.0f, -10.0f});
-  object3dCommon->SetDefaultCamera(camera);
-
-  Vector3 gameCameraRotate = camera->GetRotate();
-  Vector3 gameCameraTranslate = camera->GetTranslate();
-
-  bool useDebugCamera = false;
-
-#pragma endregion カメラここまで
-
-#pragma region モデルの読み込みとアップロード
-  // モデルの読み込みとアップロード
-
-  // モデルのパスを保持
-  const std::string planeModel = ("plane.obj");
-  //const std::string axisModel = ("axis.obj");
-  const std::string teapotModel = ("teapot.obj");
-
-  // .objファイルからモデルを呼び込む
-  ModelManager::GetInstance()->LoadModel("Plane", planeModel);
-  //ModelManager::GetInstance()->LoadModel("Axis", axisModel);
-  ModelManager::GetInstance()->LoadModel("Teapot", teapotModel);
-
-#pragma endregion モデルの読み込みとアップロードここまで
-
-#pragma region パーティクル
-
-  // パーティクルグループの作成
-  const std::string particleTexturePath = "circle.png";
-  const std::string particleGroupName = "default";
-  TextureManager::GetInstance()->LoadTexture(particleTexturePath);
-  ParticleManager::GetInstance()->CreateParticleGroup(particleGroupName,
-                                                      particleTexturePath);
-
-  // エミッターの設定と登録
-  ParticleEmitter defaultEmitter(
-      Transform{{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {-1.0f, 1.0f, 0.0f}},
-      3,   // count: 1回で3個生成
-      0.2f // frequency: 0.2秒ごとに発生
-  );
-
-  ParticleManager::GetInstance()->SetEmitter(particleGroupName, defaultEmitter);
-
-  // 回転
-  Vector3 particleRotation{};
-
-  // 更新
-  bool isUpdate = true;
-
-  // ビルボードの適用
-  bool useBillboard = true;
-
-  // 画像の変更(particle,)
-  //bool changeTexture = true;
-
-  // パーティクルの生成
-  // bool generateParticle = false;
-
-#pragma endregion パーティクルここまで
-
-#pragma region テクスチャの読み込みとアップロード
-  // テクスチャの読み込みとアップロード
-
-  // テクスチャファイルパスを保持
-  const std::string uvCheckerPath = "uvChecker.png";
-  TextureManager::GetInstance()->LoadTexture(uvCheckerPath);
-
-  const std::string monsterBallPath = "monsterBall.png";
-  TextureManager::GetInstance()->LoadTexture(monsterBallPath);
-
-  // コマンド実行と完了待機
-  dxBase->ExecuteInitialCommandAndSync();
-  TextureManager::GetInstance()->ReleaseIntermediateResources();
-  ParticleManager::GetInstance()->ReleaseIntermediateResources();
-
-#pragma endregion テクスチャの読み込みとアップロードここまで(コマンド実行済み)
-
-#pragma region サウンドの初期化
-  // サウンドの初期化
-
-  // サウンド用の宣言
-  AudioManager audioManager;
-  // 1. AudioManager を初期化
-  if (!audioManager.Initialize()) {
-    // 初期化失敗時の処理
-    return 1;
-  }
-
-  // 2. 音声ファイルをロード
-  if (!audioManager.LoadSound("alarm1", "Alarm01.mp3")) {
-    // ロード失敗時の処理
-    return 1;
-  }
-
-#pragma endregion サウンドの初期化ここまで
-
-#pragma region マテリアル
-  // マテリアル
-
-  // 1つ目のオブジェクト
-  Object3d *object3d_1 = new Object3d(); // object3dをobject3d_1に変更
-  object3d_1->Initialize(object3dCommon);
-
-  // モデルの設定
-  object3d_1->SetModel(planeModel);
-  // オブジェクトの位置を設定
-  object3d_1->SetTranslate({-2.0f, 0.0f, 0.0f});
-
-  // 2つ目のオブジェクトを新規作成
-  Object3d *object3d_2 = new Object3d();
-  object3d_2->Initialize(object3dCommon);
-
-  // モデルの設定
-  object3d_2->SetModel(teapotModel);
-  // オブジェクトの位置を設定
-  object3d_2->SetTranslate({2.0f, 0.0f, 0.0f});
-
-  // Object3dを格納するstd::vectorを作成
-  std::vector<Object3d *> object3ds;
-  object3ds.push_back(object3d_1);
-  object3ds.push_back(object3d_2);
-
-  // 表示
-  bool showMaterial = true;
-
-#pragma endregion マテリアルここまで
-
-  // ブレンドモード
-  int currentBlendMode = kBlendModeNormal;
-  int particleBlendMode = kBlendModeAdd;
-
-#pragma region スプライト
-  // スプライト
-
-  // 描画サイズ
-  const float spriteCutSize = 64.0f;
-  const float spriteScale = 64.0f;
-  // 生成
-  std::vector<Sprite *> sprites;
-  for (uint32_t i = 0; i < 10; ++i) {
-    Sprite *newSprite = new Sprite();
-    newSprite->Initialize(spriteCommon, uvCheckerPath);
-    newSprite->SetAnchorPoint({0.5f, 0.5f});
-    if (i == 7) {
-      newSprite->SetFlipX(1);
-      newSprite->SetFlipY(1);
-    } else if (i == 8) {
-      newSprite->SetFlipX(1);
-      newSprite->SetTextureLeftTop({0.0f, 0.0f});
-      newSprite->SetTextureSize({spriteCutSize, spriteCutSize});
-      newSprite->SetScale({spriteScale, spriteScale});
-    } else if (i == 9) {
-      newSprite->SetTextureLeftTop({0.0f, 0.0f});
-      newSprite->SetTextureSize({spriteCutSize, spriteCutSize});
-      newSprite->SetScale({spriteScale, spriteScale});
-    }
-    newSprite->SetTranslate(
-        {float(i * spriteScale / 3), float(i * spriteScale / 3)});
-    sprites.push_back(newSprite);
-  }
-
-  // 表示
-  bool showSprite = false;
-
-#pragma endregion スプライトここまで
-
-#pragma endregion 最初のシーンの初期化ここまで
+//
+//#pragma region 基盤システムの初期化
+//
+//#pragma region WindowsAPIの初期化
+//  // WindowsAPIの初期化
+//
+//  // ポインタ
+//  Win32Window *window = nullptr;
+//
+//  // WindowWrapperの生成と初期化
+//  window = new Win32Window();
+//  window->Initialize();
+//
+//#pragma endregion WindowsAPIの初期化ここまで
+//
+//#pragma region DirectXの初期化
+//  // DirectXの初期化
+//
+//  // ポインタ
+//  DX12Context *dxBase = nullptr;
+//  // DirectXBaseの生成と初期化
+//  dxBase = new DX12Context();
+//  dxBase->Initialize(window);
+//
+//#pragma endregion DirectXの初期化ここまで
+//
+//#pragma region PipelineManagerの生成と初期化
+//  // PipelineManagerの生成と初期化
+//
+//  // ポインタ
+//  PipelineManager *pipelineManager = nullptr;
+//
+//  // PipelineManagerの初期化
+//  pipelineManager = new PipelineManager();
+//  pipelineManager->Initialize(dxBase);
+//
+//#pragma endregion PipelineManagerの生成と初期化ここまで
+//
+//#pragma region SRVManagerの生成と初期化
+//  // SRVManagerの生成と初期化
+//
+//  // ポインタ
+//  SrvManager *srvManager = nullptr;
+//
+//  // SRVManagerの初期化
+//  srvManager = new SrvManager();
+//  srvManager->Initialize(dxBase);
+//
+//#pragma endregion SRVManagerの生成と初期化ここまで
+//
+//#pragma region スプライト共通部の生成と初期化
+//  // スプライト共通部の初期化
+//
+//  // ポインタ
+//  SpriteCommon *spriteCommon = nullptr;
+//
+//  // スプライト共通部の初期化
+//  spriteCommon = new SpriteCommon();
+//  spriteCommon->Initialize(dxBase, pipelineManager);
+//
+//#pragma endregion スプライト共通部の生成と初期化ここまで
+//
+//#pragma region 3Dオブジェクト共通部の生成と初期化
+//  // 3Dオブジェクト共通部の初期化
+//
+//  // ポインタ
+//  Object3dCommon *object3dCommon = nullptr;
+//
+//  // 3Dオブジェクト共通部の初期化
+//  object3dCommon = new Object3dCommon();
+//  object3dCommon->Initialize(dxBase, pipelineManager);
+//
+//#pragma endregion 3Dオブジェクト共通部の生成と初期化ここまで
+//
+//#pragma region DirectInputの初期化
+//  // DirectInputの初期化
+//
+//  Input *input = new Input();
+//  input->Initialize(window);
+//
+//#pragma endregion DirectInputの初期化ここまで
+//
+//#pragma region DebugCameraの初期化
+//  // DebugCameraの初期化
+//
+//  DebugCamera debugCamera;
+//  debugCamera.Initialize();
+//
+//#pragma endregion DebugCameraの初期化ここまで
+//
+//#pragma region TextureManagerの初期化
+//  // TextureManagerの初期化
+//
+//  TextureManager::GetInstance()->Initialize(dxBase, srvManager);
+//
+//#pragma endregion TextureManagerの初期化ここまで
+//
+//#pragma region ModelManagerの初期化
+//  // ModelManagerの初期化
+//
+//  ModelManager::GetInstance()->Initialize(dxBase);
+//
+//#pragma endregion ModelManagerの初期化ここまで
+//
+//#pragma region ParticleManagerの初期化
+//  // ParticleManagerの初期化
+//
+//  ParticleManager::GetInstance()->Initialize(dxBase, srvManager,
+//                                             pipelineManager);
+//#pragma endregion ParticleManagerの初期化ここまで
+//
+//#pragma region ImGuiManagerの初期化
+//  // ImGuiManagerの初期化
+//  ImGuiManager *imGuiManager = nullptr;
+//  imGuiManager = new ImGuiManager();
+//  imGuiManager->Initialize(dxBase, window, srvManager);
+//#pragma endregion ImGuiManagerの初期化ここまで
+//
+//#pragma endregion 基盤システムの初期化ここまで
+//
+//#pragma region 最初のシーンの初期化
+//  // 最初のシーンの初期化
+//
+//#pragma region カメラ
+//  // カメラ
+//
+//  // 生成
+//  Camera *camera = new Camera();
+//  camera->Initialize(dxBase);
+//  camera->SetRotate({0.0f, 0.0f, 0.0f});
+//  camera->SetTranslate({0.0f, 0.0f, -10.0f});
+//  object3dCommon->SetDefaultCamera(camera);
+//
+//  Vector3 gameCameraRotate = camera->GetRotate();
+//  Vector3 gameCameraTranslate = camera->GetTranslate();
+//
+//  bool useDebugCamera = false;
+//
+//#pragma endregion カメラここまで
+//
+//#pragma region モデルの読み込みとアップロード
+//  // モデルの読み込みとアップロード
+//
+//  // モデルのパスを保持
+//  const std::string planeModel = ("plane.obj");
+//  //const std::string axisModel = ("axis.obj");
+//  const std::string teapotModel = ("teapot.obj");
+//
+//  // .objファイルからモデルを呼び込む
+//  ModelManager::GetInstance()->LoadModel("Plane", planeModel);
+//  //ModelManager::GetInstance()->LoadModel("Axis", axisModel);
+//  ModelManager::GetInstance()->LoadModel("Teapot", teapotModel);
+//
+//#pragma endregion モデルの読み込みとアップロードここまで
+//
+//#pragma region パーティクル
+//
+//  // パーティクルグループの作成
+//  const std::string particleTexturePath = "circle.png";
+//  const std::string particleGroupName = "default";
+//  TextureManager::GetInstance()->LoadTexture(particleTexturePath);
+//  ParticleManager::GetInstance()->CreateParticleGroup(particleGroupName,
+//                                                      particleTexturePath);
+//
+//  // エミッターの設定と登録
+//  ParticleEmitter defaultEmitter(
+//      Transform{{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {-1.0f, 1.0f, 0.0f}},
+//      3,   // count: 1回で3個生成
+//      0.2f // frequency: 0.2秒ごとに発生
+//  );
+//
+//  ParticleManager::GetInstance()->SetEmitter(particleGroupName, defaultEmitter);
+//
+//  // 回転
+//  Vector3 particleRotation{};
+//
+//  // 更新
+//  bool isUpdate = true;
+//
+//  // ビルボードの適用
+//  bool useBillboard = true;
+//
+//  // 画像の変更(particle,)
+//  //bool changeTexture = true;
+//
+//  // パーティクルの生成
+//  // bool generateParticle = false;
+//
+//#pragma endregion パーティクルここまで
+//
+//#pragma region テクスチャの読み込みとアップロード
+//  // テクスチャの読み込みとアップロード
+//
+//  // テクスチャファイルパスを保持
+//  const std::string uvCheckerPath = "uvChecker.png";
+//  TextureManager::GetInstance()->LoadTexture(uvCheckerPath);
+//
+//  const std::string monsterBallPath = "monsterBall.png";
+//  TextureManager::GetInstance()->LoadTexture(monsterBallPath);
+//
+//  // コマンド実行と完了待機
+//  dxBase->ExecuteInitialCommandAndSync();
+//  TextureManager::GetInstance()->ReleaseIntermediateResources();
+//  ParticleManager::GetInstance()->ReleaseIntermediateResources();
+//
+//#pragma endregion テクスチャの読み込みとアップロードここまで(コマンド実行済み)
+//
+//#pragma region サウンドの初期化
+//  // サウンドの初期化
+//
+//  // サウンド用の宣言
+//  AudioManager audioManager;
+//  // 1. AudioManager を初期化
+//  if (!audioManager.Initialize()) {
+//    // 初期化失敗時の処理
+//    return 1;
+//  }
+//
+//  // 2. 音声ファイルをロード
+//  if (!audioManager.LoadSound("alarm1", "Alarm01.mp3")) {
+//    // ロード失敗時の処理
+//    return 1;
+//  }
+//
+//#pragma endregion サウンドの初期化ここまで
+//
+//#pragma region マテリアル
+//  // マテリアル
+//
+//  // 1つ目のオブジェクト
+//  Object3d *object3d_1 = new Object3d(); // object3dをobject3d_1に変更
+//  object3d_1->Initialize(object3dCommon);
+//
+//  // モデルの設定
+//  object3d_1->SetModel(planeModel);
+//  // オブジェクトの位置を設定
+//  object3d_1->SetTranslate({-2.0f, 0.0f, 0.0f});
+//
+//  // 2つ目のオブジェクトを新規作成
+//  Object3d *object3d_2 = new Object3d();
+//  object3d_2->Initialize(object3dCommon);
+//
+//  // モデルの設定
+//  object3d_2->SetModel(teapotModel);
+//  // オブジェクトの位置を設定
+//  object3d_2->SetTranslate({2.0f, 0.0f, 0.0f});
+//
+//  // Object3dを格納するstd::vectorを作成
+//  std::vector<Object3d *> object3ds;
+//  object3ds.push_back(object3d_1);
+//  object3ds.push_back(object3d_2);
+//
+//  // 表示
+//  bool showMaterial = true;
+//
+//#pragma endregion マテリアルここまで
+//
+//  // ブレンドモード
+//  int currentBlendMode = kBlendModeNormal;
+//  int particleBlendMode = kBlendModeAdd;
+//
+//#pragma region スプライト
+//  // スプライト
+//
+//  // 描画サイズ
+//  const float spriteCutSize = 64.0f;
+//  const float spriteScale = 64.0f;
+//  // 生成
+//  std::vector<Sprite *> sprites;
+//  for (uint32_t i = 0; i < 10; ++i) {
+//    Sprite *newSprite = new Sprite();
+//    newSprite->Initialize(spriteCommon, uvCheckerPath);
+//    newSprite->SetAnchorPoint({0.5f, 0.5f});
+//    if (i == 7) {
+//      newSprite->SetFlipX(1);
+//      newSprite->SetFlipY(1);
+//    } else if (i == 8) {
+//      newSprite->SetFlipX(1);
+//      newSprite->SetTextureLeftTop({0.0f, 0.0f});
+//      newSprite->SetTextureSize({spriteCutSize, spriteCutSize});
+//      newSprite->SetScale({spriteScale, spriteScale});
+//    } else if (i == 9) {
+//      newSprite->SetTextureLeftTop({0.0f, 0.0f});
+//      newSprite->SetTextureSize({spriteCutSize, spriteCutSize});
+//      newSprite->SetScale({spriteScale, spriteScale});
+//    }
+//    newSprite->SetTranslate(
+//        {float(i * spriteScale / 3), float(i * spriteScale / 3)});
+//    sprites.push_back(newSprite);
+//  }
+//
+//  // 表示
+//  bool showSprite = false;
+//
+//#pragma endregion スプライトここまで
+//
+//#pragma endregion 最初のシーンの初期化ここまで
+
+  MyGame myGame;
+
+  // ゲームの初期化
+  myGame.Initialize();
 
   // ウィンドウのxボタンが押されるまでループ
   // 1. ウィンドウメッセージ処理

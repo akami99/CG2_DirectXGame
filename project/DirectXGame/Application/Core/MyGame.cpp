@@ -1,5 +1,41 @@
 #include "MyGame.h"
 
+#include <cassert>
+
+#include <numbers> //particleに使用
+#include <random>  //particleに使用
+
+// エンジン
+#include "Camera.h"
+#include "DX12Context.h"
+#include "Input.h"
+#include "Logger.h"
+#include "Model.h"
+#include "ModelCommon.h"
+#include "Object3d.h"
+#include "Object3dCommon.h"
+#include "Sprite.h"
+#include "SpriteCommon.h"
+#include "Win32Window.h"
+// 管理系
+#include "ImGuiManager.h"
+#include "ModelManager.h"
+#include "ParticleManager.h"
+#include "PipelineManager.h"
+#include "SrvManager.h"
+#include "TextureManager.h"
+
+// グラフィック関連の構造体
+#include "LightTypes.h"
+#include "ParticleTypes.h"
+
+// 計算用関数など
+#include "MathUtils.h"
+#include "MatrixGenerators.h"
+
+// ゲーム内設定用
+#include "ApplicationConfig.h"
+
 // .lidはヘッダに書いてはいけない
 #pragma comment(lib, "Dbghelp.lib")
 #pragma comment(lib, "dxguid.lib")
@@ -11,6 +47,9 @@ using namespace MathGenerators;
 using namespace BlendMode;
 
 void MyGame::Initialize() {
+    // ログを用意
+    Logger::InitializeFileLogging();
+
   // --- 基盤の初期化 ---
 
   // Window
