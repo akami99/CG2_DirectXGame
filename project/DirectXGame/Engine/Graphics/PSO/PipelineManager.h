@@ -3,7 +3,7 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
-#include "API/DX12Context.h"
+#include "Base/DX12Context.h"
 
 class PipelineManager {
 private: // namespace省略のためのusing宣言

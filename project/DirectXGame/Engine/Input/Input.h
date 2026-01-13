@@ -5,7 +5,7 @@
 #include <dinput.h>                   // DirectInputのヘッダーファイル
 #include <wrl.h>                      // Microsoft::WRL::ComPtrのために必要
 
-#include "../Graphics/API/DX12Context.h" // DX12Contextのヘッダーファイル
+#include "Base/DX12Context.h" // DX12Contextのヘッダーファイル
 
 using namespace Microsoft::WRL; // ComPtrを使うために必要
 

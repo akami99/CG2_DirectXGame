@@ -6,7 +6,6 @@
 #include <numbers>
 
 #include "../Camera/DebugCamera.h"
-// #include "ApplicationConfig.h"
 #include "../../Core/Utility/Math/Functions/MathUtils.h"
 #include "ImGuiManager.h"
 

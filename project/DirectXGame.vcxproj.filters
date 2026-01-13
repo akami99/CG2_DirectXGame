@@ -38,9 +38,6 @@
     <Filter Include="ヘッダー ファイル\Engine\Graphics">
       <UniqueIdentifier>{42ce63ff-f147-44e7-a8ce-f78f93345277}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ヘッダー ファイル\Engine\Graphics\API">
-      <UniqueIdentifier>{7afe623f-94db-486a-a8c0-766cf538b6b8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ヘッダー ファイル\Engine\Graphics\Camera">
       <UniqueIdentifier>{cd6e508c-386c-4ecb-b2bd-146f38d57748}</UniqueIdentifier>
     </Filter>
@@ -93,9 +90,6 @@
     </Filter>
     <Filter Include="ソース ファイル\Engine\Graphics">
       <UniqueIdentifier>{944111e9-bea1-4081-93a6-8bc3328b0a8a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ソース ファイル\Engine\Graphics\API">
-      <UniqueIdentifier>{ee29514f-b90d-4949-97c4-1353141bfba5}</UniqueIdentifier>
     </Filter>
     <Filter Include="ソース ファイル\Engine\Graphics\Camera">
       <UniqueIdentifier>{dbc7dd2b-b62f-4f17-afe8-099093dc53ee}</UniqueIdentifier>
@@ -163,12 +157,6 @@
     <Filter Include="ソース ファイル\Engine\Graphics\Particle">
       <UniqueIdentifier>{3ad6fb09-e402-4d9c-b28c-670a3547f308}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ソース ファイル\Engine\Graphics\SRV">
-      <UniqueIdentifier>{1d30edfa-a5ec-4a67-84de-96e3e6a44be2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ヘッダー ファイル\Engine\Graphics\SRV">
-      <UniqueIdentifier>{a9a2eaf8-ed97-4b61-85d2-a6d83c8cd9e7}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ヘッダー ファイル\Engine\Graphics\Particle">
       <UniqueIdentifier>{5fd3f799-0374-41d8-a397-aae41ad05ba2}</UniqueIdentifier>
     </Filter>
@@ -177,6 +165,15 @@
     </Filter>
     <Filter Include="ヘッダー ファイル\Engine\Graphics\ImGui">
       <UniqueIdentifier>{1fd90e9a-208a-4fe0-bccc-8328e8ff1b81}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Graphics\Base">
+      <UniqueIdentifier>{7afe623f-94db-486a-a8c0-766cf538b6b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Engine\Graphics\Base">
+      <UniqueIdentifier>{ee29514f-b90d-4949-97c4-1353141bfba5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine\Graphics\Types">
+      <UniqueIdentifier>{81bf3d72-75f0-4f8a-8bee-f883b7e2f2fc}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -198,11 +195,11 @@
     <ClCompile Include="DirectXGame\Engine\Core\Utility\String\StringUtility.cpp">
       <Filter>ソース ファイル\Engine\Core\Utility\String</Filter>
     </ClCompile>
-    <ClCompile Include="DirectXGame\Engine\Graphics\API\D3DResourceLeakChecker.cpp">
-      <Filter>ソース ファイル\Engine\Graphics\API</Filter>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Base\D3DResourceLeakChecker.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\Base</Filter>
     </ClCompile>
-    <ClCompile Include="DirectXGame\Engine\Graphics\API\DX12Context.cpp">
-      <Filter>ソース ファイル\Engine\Graphics\API</Filter>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Base\DX12Context.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\Base</Filter>
     </ClCompile>
     <ClCompile Include="DirectXGame\Engine\Graphics\Camera\DebugCamera.cpp">
       <Filter>ソース ファイル\Engine\Graphics\Camera</Filter>
@@ -211,9 +208,6 @@
       <Filter>ソース ファイル\Engine\Input</Filter>
     </ClCompile>
     <ClCompile Include="DirectXGame\Application\System\main.cpp">
-      <Filter>ソース ファイル\Application\System</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectXGame\Application\System\Win32Window.cpp">
       <Filter>ソース ファイル\Application\System</Filter>
     </ClCompile>
     <ClCompile Include="DirectXGame\Engine\Graphics\Sprite\Sprite.cpp">
@@ -252,14 +246,17 @@
     <ClCompile Include="DirectXGame\Engine\Graphics\Particle\ParticleManager.cpp">
       <Filter>ソース ファイル\Engine\Graphics\Particle</Filter>
     </ClCompile>
-    <ClCompile Include="DirectXGame\Engine\Graphics\SRV\SrvManager.cpp">
-      <Filter>ソース ファイル\Engine\Graphics\SRV</Filter>
-    </ClCompile>
     <ClCompile Include="DirectXGame\Engine\Graphics\Particle\ParticleEmitter.cpp">
       <Filter>ソース ファイル\Engine\Graphics\Particle</Filter>
     </ClCompile>
     <ClCompile Include="DirectXGame\Engine\Graphics\ImGui\ImGuiManager.cpp">
       <Filter>ソース ファイル\Engine\Graphics\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Base\SrvManager.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Engine\Graphics\Base\Win32Window.cpp">
+      <Filter>ソース ファイル\Engine\Graphics\Base</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -284,8 +281,8 @@
     <ClInclude Include="DirectXGame\Engine\Core\Utility\String\StringUtility.h">
       <Filter>ヘッダー ファイル\Engine\Core\Utility\String</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXGame\Engine\Graphics\API\DX12Context.h">
-      <Filter>ヘッダー ファイル\Engine\Graphics\API</Filter>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Base\DX12Context.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Base</Filter>
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\Camera\DebugCamera.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Camera</Filter>
@@ -293,14 +290,11 @@
     <ClInclude Include="DirectXGame\Engine\Input\Input.h">
       <Filter>ヘッダー ファイル\Engine\Input</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXGame\Engine\Graphics\API\D3DResourceLeakChecker.h">
-      <Filter>ヘッダー ファイル\Engine\Graphics\API</Filter>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Base\D3DResourceLeakChecker.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Base</Filter>
     </ClInclude>
     <ClInclude Include="DirectXGame\Application\Core\ApplicationConfig.h">
       <Filter>ヘッダー ファイル\Application\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="DirectXGame\Application\System\Win32Window.h">
-      <Filter>ヘッダー ファイル\Application\System</Filter>
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\Sprite\Sprite.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Sprite</Filter>
@@ -323,20 +317,8 @@
     <ClInclude Include="DirectXGame\Engine\Graphics\PSO\PipelineManager.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\PSO</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXGame\Engine\Graphics\GraphicsTypes.h">
-      <Filter>ヘッダー ファイル\Engine\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="DirectXGame\Engine\Graphics\LightTypes.h">
-      <Filter>ヘッダー ファイル\Engine\Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\Model\Model.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Model</Filter>
-    </ClInclude>
-    <ClInclude Include="DirectXGame\Engine\Graphics\ModelTypes.h">
-      <Filter>ヘッダー ファイル\Engine\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="DirectXGame\Engine\Graphics\ParticleTypes.h">
-      <Filter>ヘッダー ファイル\Engine\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\Model\ModelCommon.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Model</Filter>
@@ -347,9 +329,6 @@
     <ClInclude Include="DirectXGame\Engine\Graphics\Camera\Camera.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Camera</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXGame\Engine\Graphics\SRV\SrvManager.h">
-      <Filter>ヘッダー ファイル\Engine\Graphics\SRV</Filter>
-    </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\Particle\ParticleManager.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Particle</Filter>
     </ClInclude>
@@ -358,6 +337,24 @@
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\ImGui\ImGuiManager.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Base\SrvManager.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Types\GraphicsTypes.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Types</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Types\LightTypes.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Types</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Types\ModelTypes.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Types</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Types\ParticleTypes.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Types</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Base\Win32Window.h">
+      <Filter>ヘッダー ファイル\Engine\Graphics\Base</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -6,7 +6,7 @@
 #include <string>
 
 #include "../../Core/Utility/Math/MathTypes.h"
-#include "../GraphicsTypes.h"
+#include "Types/GraphicsTypes.h"
 
 // 前方宣言
 class SpriteCommon;

@@ -1,7 +1,7 @@
 #include "ImGuiManager.h"
-#include "API/DX12Context.h"
-#include "SRV/SrvManager.h"
-#include "Win32Window.h"
+#include "Base/DX12Context.h"
+#include "Base/SrvManager.h"
+#include "Base/Win32Window.h"
 
 // 静的メンバ変数の初期化
 DX12Context *ImGuiManager::dxBase_ = nullptr;

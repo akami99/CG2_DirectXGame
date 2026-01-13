@@ -104,46 +104,6 @@ static LONG WINAPI ExportDump(EXCEPTION_POINTERS *exception) {
   return EXCEPTION_EXECUTE_HANDLER;
 }
 
-// パーティクル生成関数
-Particle MakeNewParticle(std::mt19937 &randomEngine, const Vector3 &translate) {
-  // ランダムな速度ベクトルを生成
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<float> distribution(
-      -1.0f, 1.0f); // distribution()という関数のように使うイメージ
-  std::uniform_real_distribution<float> distTime(1.0f, 3.0f);
-  // パーティクルの初期化
-  Particle particle;
-  particle.transform.scale = {1.0f, 1.0f, 1.0f};
-  particle.transform.rotate = {0.0f, 0.0f, 0.0f};
-  particle.lifeTime = distTime(randomEngine);
-  particle.currentTime = 0.0f;
-  // ランダムに設定
-  Vector3 randomTranslate{distribution(randomEngine),
-                          distribution(randomEngine),
-                          distribution(randomEngine)};
-  particle.transform.translate = translate + randomTranslate;
-
-  particle.velocity = {distribution(randomEngine), distribution(randomEngine),
-                       distribution(randomEngine)}; // 指定できても良い
-
-  particle.color = {distribution(randomEngine), distribution(randomEngine),
-                    distribution(randomEngine),
-                    1.0f}; // 基準色から幅を取る際はHSVで出来ると良い
-
-  return particle;
-}
-
-// エミッタに合わせてパーティクルを生成しリストを取得
-std::list<Particle> Emit(const Emitter &emitter, std::mt19937 &randomEngine) {
-  std::list<Particle> particles;
-  for (uint32_t count = 0; count < emitter.count; ++count) {
-    particles.push_back(
-        MakeNewParticle(randomEngine, emitter.transform.translate));
-  }
-  return particles;
-}
-
 #pragma endregion 関数定義ここまで
 
 // Windowsアプリでのエントリーポイント(main関数)
@@ -720,7 +680,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     // 頻度計算、パーティクル実体の更新、寿命チェック、GPUデータ転送の全てが
     // ParticleManager::Updateの中で行われる。
-    ParticleManager::GetInstance()->Update(*camera, isUpdate, useBillboard);
+    ParticleManager::GetInstance()->Update(*camera, isUpdate, useBillboard, kDeltaTime);
 
     // ----------------------------------------------------
     // スペースキーでの手動 Emit（デバッグ/テスト用）

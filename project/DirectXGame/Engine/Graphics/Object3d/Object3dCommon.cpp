@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include "API/DX12Context.h"
+#include "Base/DX12Context.h"
 #include "PSO/PipelineManager.h"
 
 #include "externals/DirectXTex/d3dx12.h"

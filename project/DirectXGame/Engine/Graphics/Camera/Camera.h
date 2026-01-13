@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../GraphicsTypes.h"
+#include "Types/GraphicsTypes.h"
 
 #include <d3d12.h>       // ID3D12Resource のため
 #include <wrl/client.h>   // Microsoft::WRL::ComPtr のため

@@ -1,11 +1,11 @@
 #include "Sprite.h"
-#include "API/DX12Context.h"
+#include "Base/DX12Context.h"
 #include "Math/Functions/MathUtils.h"
 #include "Math/Matrix/MatrixGenerators.h"
 #include "SpriteCommon.h"
 #include "Texture/TextureManager.h"
 
-#include "Win32Window.h"
+#include "Base/Win32Window.h"
 #include <cassert>
 
 using namespace Microsoft::WRL;

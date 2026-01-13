@@ -1,6 +1,6 @@
 #include "Model.h"
 #include "../Input/Input.h"
-#include "API/DX12Context.h"
+#include "Base/DX12Context.h"
 #include "ModelCommon.h"
 #include "Texture/TextureManager.h"
 

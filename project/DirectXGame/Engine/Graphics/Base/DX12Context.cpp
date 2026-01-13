@@ -5,7 +5,7 @@
 
 #include "../../Core/Utility/Logger/Logger.h"
 #include "../../Core/Utility/String/StringUtility.h"
-#include "../API/DX12Context.h"
+#include "Base/DX12Context.h"
 
 #include "externals/DirectXTex/d3dx12.h"
 

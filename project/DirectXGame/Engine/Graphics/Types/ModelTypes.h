@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GraphicsTypes.h"
+#include "Types/GraphicsTypes.h"
 
 #include <string>
 #include <vector>

@@ -7,7 +7,7 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 
-#include "Win32Window.h"
+#include "Base/Win32Window.h"
 
 #include "externals/DirectXTex/DirectXTex.h"
 

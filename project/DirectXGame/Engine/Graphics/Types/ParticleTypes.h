@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GraphicsTypes.h"
+#include "Types/GraphicsTypes.h"
 
 #ifndef PARTICLE_TYPES_H
 #define PARTICLE_TYPES_H

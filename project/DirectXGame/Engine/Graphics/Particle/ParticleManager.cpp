@@ -1,13 +1,12 @@
 #include "ParticleManager.h"
-#include "../Graphics/API/DX12Context.h"
-#include "Application/Core/ApplicationConfig.h"
+#include "Base/DX12Context.h"
+#include "Base/SrvManager.h"
 #include "BlendMode/BlendMode.h"
 #include "Camera/Camera.h"
 #include "Logger/Logger.h"
 #include "MathUtils.h"
 #include "MatrixGenerators.h"
 #include "PSO/PipelineManager.h"
-#include "SRV/SrvManager.h"
 #include "Texture/TextureManager.h"
 
 #include <algorithm>
@@ -33,21 +32,22 @@ ParticleManager *ParticleManager::GetInstance() {
 
 void ParticleManager::SetEmitter(const std::string &name,
                                  const ParticleEmitter &emitter) {
-    // 1. 該当するパーティクルグループを検索
-    auto it = particleGroups_.find(name);
+  // 1. 該当するパーティクルグループを検索
+  auto it = particleGroups_.find(name);
 
-    if (it == particleGroups_.end()) {
-        // グループが見つからない場合はエラーまたはログ出力
-        Logger::Log("Error: Particle group '" + name + "' not found when setting emitter.");
-        return;
-    }
+  if (it == particleGroups_.end()) {
+    // グループが見つからない場合はエラーまたはログ出力
+    Logger::Log("Error: Particle group '" + name +
+                "' not found when setting emitter.");
+    return;
+  }
 
-    // 2. グループ内の emitter メンバに、渡された emitter インスタンスをコピー
-    ParticleGroup &group = it->second;
-    group.emitter = emitter;
+  // 2. グループ内の emitter メンバに、渡された emitter インスタンスをコピー
+  ParticleGroup &group = it->second;
+  group.emitter = emitter;
 
-    // 3. (Optional) 頻度時刻をリセット（すぐに発生を開始させたい場合）
-    group.emitter.frequencyTime = 0.0f;
+  // 3. (Optional) 頻度時刻をリセット（すぐに発生を開始させたい場合）
+  group.emitter.frequencyTime = 0.0f;
 }
 
 void ParticleManager::ReleaseIntermediateResources() {
@@ -361,7 +361,7 @@ Particle ParticleManager::MakeNewParticle(const Vector3 &translate) {
 }
 
 void ParticleManager::Update(const Camera &camera, bool &isUpdate,
-                             bool &useBillboard) {
+                             bool &useBillboard, float deltaTime) {
   // 1. ビルボード行列の計算
   // カメラの回転情報からビルボード行列を計算します
   Matrix4x4 billboardMatrix = camera.GetWorldMatrix();
@@ -385,7 +385,7 @@ void ParticleManager::Update(const Camera &camera, bool &isUpdate,
     // ------------------------------------------
 
     // 1. 時刻を進める
-    group.emitter.frequencyTime += kDeltaTime;
+    group.emitter.frequencyTime += deltaTime;
 
     // 2. 発生頻度より大きいなら発生
     if (group.emitter.frequency > 0.0f &&
@@ -421,16 +421,16 @@ void ParticleManager::Update(const Camera &camera, bool &isUpdate,
         accelerationField.area.max = {1.0f, 1.0f, 1.0f};
 
         if (IsCollision(accelerationField.area, particle.transform.translate)) {
-          particle.velocity += accelerationField.acceleration * kDeltaTime;
+          particle.velocity += accelerationField.acceleration * deltaTime;
         }
       }
 
       // 2. 移動処理
       particle.transform.translate =
-          particle.transform.translate + (particle.velocity * kDeltaTime);
+          particle.transform.translate + (particle.velocity * deltaTime);
 
       // 3. 経過時間とアルファ値の計算
-      particle.currentTime += kDeltaTime;
+      particle.currentTime += deltaTime;
       float alpha = 1.0f - (particle.currentTime / particle.lifeTime);
 
       // 4. 寿命チェックと削除
@@ -450,10 +450,10 @@ void ParticleManager::Update(const Camera &camera, bool &isUpdate,
 
         // useBillboard が true の場合のみビルボード行列を適用
         if (useBillboard) {
-            billboardMatrix = camera.GetWorldMatrix();
-            billboardMatrix.m[3][0] = 0.0f;
-            billboardMatrix.m[3][1] = 0.0f;
-            billboardMatrix.m[3][2] = 0.0f;
+          billboardMatrix = camera.GetWorldMatrix();
+          billboardMatrix.m[3][0] = 0.0f;
+          billboardMatrix.m[3][1] = 0.0f;
+          billboardMatrix.m[3][2] = 0.0f;
         } else {
           billboardMatrix = MakeIdentity4x4();
         }

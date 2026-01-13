@@ -1,8 +1,7 @@
 #include <Windows.h>
 #include <imgui_impl_win32.h>
 
-#include "../Core/ApplicationConfig.h"
-#include "../System/Win32Window.h"
+#include "Base/Win32Window.h"
 
 
 #pragma comment(lib, "winmm.lib")

@@ -1,8 +1,8 @@
 #include "TextureManager.h"
 #include "../../Core/Utility/Logger/Logger.h"
 #include "../../Core/Utility/String/StringUtility.h"
-#include "../Graphics/API/DX12Context.h"
-#include "../SRV/SrvManager.h"
+#include "Base/DX12Context.h"
+#include "Base/SrvManager.h"
 
 using namespace Logger;
 using namespace StringUtility;

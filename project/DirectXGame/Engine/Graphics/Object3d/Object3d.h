@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../GraphicsTypes.h"
-#include "../LightTypes.h"
+#include "Types/GraphicsTypes.h"
+#include "Types/LightTypes.h"
 
 #include <d3d12.h>
 #include <wrl/client.h>

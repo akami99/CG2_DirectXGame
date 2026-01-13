@@ -1,8 +1,8 @@
 #pragma once
 
 #include "BlendMode/BlendMode.h"
-#include "ModelTypes.h"
-#include "ParticleTypes.h"
+#include "Types/ModelTypes.h"
+#include "Types/ParticleTypes.h"
 #include "ParticleEmitter.h"
 
 #include <d3d12.h>
@@ -86,7 +86,7 @@ public: // メンバ関数
   Particle MakeNewParticle(const Vector3 &translate);
 
   // 更新処理
-  void Update(const Camera &camera, bool &isUpdate, bool &useBillboard);
+  void Update(const Camera &camera, bool &isUpdate, bool &useBillboard, float deltaTime);
 
   // 描画処理
   void Draw(BlendMode::BlendState blendMode);

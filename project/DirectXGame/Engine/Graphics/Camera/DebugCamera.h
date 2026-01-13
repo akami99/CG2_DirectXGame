@@ -1,7 +1,7 @@
 #pragma once
-#include "../../Core/Utility/Math/MathTypes.h"
-#include "../../Core/Utility/Math/Matrix/MatrixGenerators.h"
-#include "../../Input/Input.h"
+#include "Math/MathTypes.h"
+#include "Math/Matrix/MatrixGenerators.h"
+#include "../Input/Input.h"
 
 /// <summary>
 /// デバッグカメラ
