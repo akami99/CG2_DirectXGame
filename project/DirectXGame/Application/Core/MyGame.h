@@ -67,11 +67,11 @@ private: // メンバ変数(ゲーム内)
   std::vector<Sprite *> sprites_;
 
   // --- ゲーム内変数 (フラグや設定値) ---
-  Vector3 gameCameraRotate_;
-  Vector3 gameCameraTranslate_;
+  Vector3 gameCameraRotate_{};
+  Vector3 gameCameraTranslate_{};
   bool useDebugCamera_ = false;
 
-  Vector3 particleRotation{};
+  Vector3 particleRotation_{};
   bool isUpdateParticle_ = true;
   bool useBillboard_ = true;
 
@@ -80,8 +80,8 @@ private: // メンバ変数(ゲーム内)
   int particleBlendMode_ = BlendMode::BlendState::kBlendModeAdd;
 
   // 表示
-  bool showMaterial = true;
-  bool showSprite = false;
+  bool showMaterial_ = true;
+  bool showSprite_ = false;
 
   // モデルのパスを保持
   const std::string planeModel_ = ("plane.obj");

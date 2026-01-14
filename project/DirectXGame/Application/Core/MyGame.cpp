@@ -47,9 +47,6 @@ using namespace MathGenerators;
 using namespace BlendMode;
 
 void MyGame::Initialize() {
-    // ログを用意
-    Logger::InitializeFileLogging();
-
   // --- 基盤の初期化 ---
 
   // Window
@@ -192,7 +189,25 @@ void MyGame::Initialize() {
   }
 }
 
-void MyGame::Run() {}
+void MyGame::Run() {
+    Initialize();
+
+    // ウィンドウのxボタンが押されるまでループ
+    while (true) {
+        // メッセージ処理 (終了リクエストが来たらループを抜ける)
+        if (window_->ProcessMessage()) {
+            break;
+        }
+
+        // 更新処理
+        Update();
+
+        // 描画処理
+        Draw();
+    }
+
+    Finalize();
+}
 
 void MyGame::Finalize() {
   // --- 終了処理 ---
@@ -220,5 +235,254 @@ void MyGame::Finalize() {
   delete input_;
   delete srvManager_;
   delete dxBase_;
+  window_->Finalize();
   delete window_;
+}
+
+void MyGame::Update() {
+    // 1. ImGuiの受付開始
+    imGuiManager_->Begin();
+
+    // 2. 入力の更新
+    input_->Update();
+
+    // 3. UI処理 (ImGuiの定義)
+#ifdef USE_IMGUI
+    ImGui::SetNextWindowPos(ImVec2(Win32Window::kClientWidth - 10.0f, 10.0f), ImGuiCond_Once, ImVec2(1.0f, 0.0f));
+    ImGui::Begin("Settings");
+
+    if (ImGui::TreeNode("Global Settings")) {
+        ImGui::Checkbox("useDebugCamera", &useDebugCamera_);
+        ImGui::Combo("BlendMode", &currentBlendMode_, "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
+        ImGui::TreePop();
+    }
+
+    ImGui::Separator();
+    if (ImGui::TreeNode("GameCamera")) {
+        ImGui::DragFloat3("rotate", &gameCameraRotate_.x, 0.01f);
+        ImGui::DragFloat3("translate", &gameCameraTranslate_.x, 0.01f);
+        ImGui::TreePop();
+    }
+
+    ImGui::Separator();
+    if (ImGui::TreeNode("Object3d")) {
+        ImGui::Checkbox("showMaterial", &showMaterial_);
+
+        // ここからループ処理
+        for (size_t i = 0; i < object3ds_.size(); ++i) {
+            Object3d *object3d = object3ds_[i]; // 現在のオブジェクトを取得
+
+            // ノードのラベルを動的に生成
+            std::string label = "Object3d " + std::to_string(i + 1);
+
+            if (ImGui::TreeNode(label.c_str())) {
+                Vector3 scale = object3d->GetScale();
+                Vector3 rotate = object3d->GetRotation();
+                Vector3 translate = object3d->GetTranslate();
+
+                ImGui::DragFloat3("scale", &scale.x, 0.01f);
+                ImGui::DragFloat3("rotate", &rotate.x, 0.01f);
+                ImGui::DragFloat3("translate", &translate.x, 0.01f);
+
+                object3d->SetScale(scale);
+                object3d->SetRotation(rotate);
+                object3d->SetTranslate(translate);
+
+                ImGui::Separator();
+
+                if (ImGui::TreeNode(("Light_" + std::to_string(i + 1)).c_str())) {
+                    Vector4 color = object3d->GetDirectionalLightColor();
+                    Vector3 direction = object3d->GetDirectionalLightDirection();
+                    float intensity = object3d->GetDirectionalLightIntensity();
+
+                    ImGui::ColorEdit4("colorLight", &color.x);
+                    ImGui::DragFloat3("directionLight", &direction.x, 0.01f);
+                    ImGui::DragFloat("intensityLight", &intensity, 0.01f);
+
+                    object3d->SetDirectionalLightColor(color);
+                    object3d->SetRotation(rotate);
+                    object3d->SetDirectionalLightDirection(direction);
+                    object3d->SetDirectionalLightIntensity(intensity);
+
+                    ImGui::TreePop();
+                }
+                ImGui::TreePop();
+            }
+        }
+        // ループ処理ここまで
+
+        ImGui::TreePop();
+    }
+
+    ImGui::Separator();
+    if (ImGui::TreeNode("Particle")) {
+        ImGui::Checkbox("update", &isUpdateParticle_);
+        ImGui::Checkbox("useBillboard", &useBillboard_);
+        // ImGui::Checkbox("changeTexture", &changeTexture);
+        ImGui::SliderFloat3("rotateParticleZ", &particleRotation_.x, -6.28f,
+            6.28f);
+        if (ImGui::Button("Generate Particle(SPACE)")) {
+            // エミッターの Transform, count を直接指定して、一度だけEmitを呼び出す
+
+            // 例: プレイヤー位置 {10.0f, 0.0f, 0.0f}
+            // から、10個のパーティクルを一度に生成
+            Vector3 playerPos = { 0.0f, 0.0f, 0.0f };
+            uint32_t burstCount = 10;
+
+            ParticleManager::GetInstance()->Emit(particleGroupName_, playerPos,
+                burstCount);
+        }
+        ImGui::Combo("ParticleBlendMode", &particleBlendMode_,
+            "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
+        ImGui::TreePop();
+    }
+
+    ImGui::Separator();
+    if (ImGui::TreeNode("Sprite")) {
+
+        ImGui::Checkbox("showSprite", &showSprite_);
+
+        for (size_t i = 0; i < sprites_.size(); ++i) {
+            std::string label = "Sprite " + std::to_string(i);
+            if (ImGui::TreeNode(label.c_str())) {
+                Sprite *sprite = sprites_[i];
+
+                Vector2 spritePosition = sprite->GetTranslate();
+                float spriteRotation = sprite->GetRotation();
+                Vector2 spriteScale = sprite->GetScale();
+                Vector4 spriteColor = sprite->GetColor();
+
+                ImGui::SliderFloat2("translateSprite", &spritePosition.x, 0.0f,
+                    1000.0f);
+                ImGui::SliderFloat("rotateSprite", &spriteRotation, -6.28f, 6.28f);
+                ImGui::SliderFloat2("scaleSprite", &spriteScale.x, 1.0f,
+                    Win32Window::kClientWidth);
+                ImGui::ColorEdit4("colorSprite", &spriteColor.x);
+                sprite->SetTranslate(spritePosition);
+                sprite->SetRotation(spriteRotation);
+                sprite->SetScale(spriteScale);
+                sprite->SetColor(spriteColor);
+
+                ImGui::Separator();
+                ImGui::Text("UV");
+
+                // UVTransform用の変数を用意
+                Transform uvTransformSprite = {};
+                uvTransformSprite.translate = sprite->GetUvTranslate();
+                uvTransformSprite.scale = sprite->GetUvScale();
+                uvTransformSprite.rotate = sprite->GetUvRotation();
+
+                ImGui::DragFloat2("uvTranslate", &uvTransformSprite.translate.x,
+                    0.01f, 0.0f, 1.0f);
+                ImGui::DragFloat2("uvScale", &uvTransformSprite.scale.x, 0.01f,
+                    -10.0f, 10.0f);
+                ImGui::SliderAngle("uvRotate", &uvTransformSprite.rotate.z);
+                sprite->SetUvTranslate(uvTransformSprite.translate);
+                sprite->SetUvScale(uvTransformSprite.scale);
+                sprite->SetUvRotation(uvTransformSprite.rotate);
+                ImGui::TreePop();
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    ImGui::Separator();
+    if (ImGui::TreeNode("Sound")) {
+        if (ImGui::Button("Play Sound")) {
+            // サウンドの再生
+            audioManager_.PlaySound("alarm1");
+        }
+        ImGui::TreePop();
+    }
+
+    ImGui::End(); // "Settings" ウィンドウの終了
+#endif
+
+    // 4. ゲームロジックの更新
+
+    // 音声のクリーンアップ
+    audioManager_.CleanupFinishedVoices();
+
+    // カメラの更新処理
+    if (!useDebugCamera_) {
+        // キー入力によるカメラ操作
+        if (input_->IsKeyDown(DIK_A)) { gameCameraTranslate_.x -= 0.1f; }
+        if (input_->IsKeyDown(DIK_D)) { gameCameraTranslate_.x += 0.1f; }
+        if (input_->IsKeyDown(DIK_W)) { gameCameraTranslate_.y += 0.1f; }
+        if (input_->IsKeyDown(DIK_S)) { gameCameraTranslate_.y -= 0.1f; }
+        if (input_->IsKeyDown(DIK_Q)) { gameCameraTranslate_.z += 0.1f; }
+        if (input_->IsKeyDown(DIK_E)) { gameCameraTranslate_.z -= 0.1f; }
+        if (input_->IsKeyDown(DIK_C)) { gameCameraRotate_.y += 0.02f; }
+        if (input_->IsKeyDown(DIK_Z)) { gameCameraRotate_.y -= 0.02f; }
+        if (input_->IsKeyReleased(DIK_X)) { gameCameraRotate_.y = 0.0f; }
+
+        camera_->SetRotate(gameCameraRotate_);
+        camera_->SetTranslate(gameCameraTranslate_);
+    } else {
+        debugCamera_.Update(*input_);
+        camera_->SetRotate(debugCamera_.GetRotation());
+        camera_->SetTranslate(debugCamera_.GetTranslate());
+    }
+    camera_->Update();
+
+    // パーティクルの更新
+    // ※ kDeltaTime は ApplicationConfig.h から読み込むか、メンバ変数として管理する
+    particleManager_->Update(*camera_, isUpdateParticle_, useBillboard_, kDeltaTime);
+
+    // スペースキーでのパーティクル生成テスト
+    if (input_->IsKeyTriggered(DIK_SPACE)) {
+        Vector3 playerPos = { 0.0f, 0.0f, 0.0f };
+        particleManager_->Emit(particleGroupName_, playerPos, 10);
+    }
+
+    // オブジェクトの更新
+    for (auto *obj : object3ds_) {
+        obj->Update();
+    }
+
+    // スプライトの更新
+    for (auto *sprite : sprites_) {
+        sprite->Update();
+    }
+
+    // 5. ImGuiの受付終了 (内部的な終了処理)
+    imGuiManager_->End();
+}
+
+void MyGame::Draw() {
+    // 1. 描画前処理
+    dxBase_->PreDraw();
+    srvManager_->PreDraw(); // SRV用のヒープをセット
+
+    // 2. 3Dオブジェクトの描画
+    object3dCommon_->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode_), pipelineManager_);
+
+    if (showMaterial_) {
+        for (auto *obj : object3ds_) {
+            obj->Draw();
+        }
+    }
+
+    // 3. パーティクルの描画
+    particleManager_->Draw(static_cast<BlendState>(particleBlendMode_));
+
+    // 4. スプライトの描画
+    spriteCommon_->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode_), pipelineManager_);
+
+    if (showSprite_) {
+        for (size_t i = 0; i < sprites_.size(); ++i) {
+            // テクスチャの差し替え（特定の要素だけ変える処理）
+            if (i == 6) {
+                // ※ パスを持っているならここでセット
+                sprites_[i]->SetTexture(monsterBallPath_);
+            }
+            sprites_[i]->Draw();
+        }
+    }
+
+    // 5. ImGuiの描画 (Updateで作られたUIを描画コマンドに乗せる)
+    imGuiManager_->Draw();
+
+    // 6. 描画後処理 (画面の入れ替え)
+    dxBase_->PostDraw();
 }
