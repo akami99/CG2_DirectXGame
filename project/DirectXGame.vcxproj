@@ -187,6 +187,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="DirectXGame\Engine\Graphics\Particle\ParticleManager.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\Particle\ParticleEmitter.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\ImGui\ImGuiManager.cpp" />
+    <ClCompile Include="DirectXGame\Application\Core\RAFramework.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Particle.PS.hlsl">
@@ -272,6 +273,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="DirectXGame\Engine\Graphics\Particle\ParticleManager.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\Particle\ParticleEmitter.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\ImGui\ImGuiManager.h" />
+    <ClInclude Include="DirectXGame\Application\Core\RAFramework.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

@@ -5,25 +5,23 @@
 #include <numbers> //particleに使用
 #include <random>  //particleに使用
 
+// フレームワーク基盤
+#include "RAFramework.h"
 // エンジン
 #include "Camera.h"
-#include "DX12Context.h"
-#include "Input.h"
-#include "Logger.h"
-#include "Model.h"
-#include "ModelCommon.h"
 #include "Object3d.h"
-#include "Object3dCommon.h"
 #include "Sprite.h"
+#include "Model.h"
+// 共通系
+#include "Object3dCommon.h"
 #include "SpriteCommon.h"
-#include "Win32Window.h"
+#include "ModelCommon.h"
 // 管理系
-#include "ImGuiManager.h"
 #include "ModelManager.h"
-#include "ParticleManager.h"
-#include "PipelineManager.h"
-#include "SrvManager.h"
 #include "TextureManager.h"
+#include "ParticleManager.h"
+#include "ImGuiManager.h"
+#include "SrvManager.h"
 
 // グラフィック関連の構造体
 #include "LightTypes.h"
@@ -47,53 +45,13 @@ using namespace MathGenerators;
 using namespace BlendMode;
 
 void MyGame::Initialize() {
-  // --- 基盤の初期化 ---
+  // --- 基盤システムの初期化は親クラスに任せる ---
+  RAFramework::Initialize();
 
-  // Window
-  window_ = new Win32Window();
-  window_->Initialize();
-  // DirectXBase
-  dxBase_ = new DX12Context();
-  dxBase_->Initialize(window_);
-  // SRVManager
-  srvManager_ = new SrvManager();
-  srvManager_->Initialize(dxBase_);
-  // DirectInput
-  input_ = new Input();
-  input_->Initialize(window_);
-  // PipelineManager
-  pipelineManager_ = new PipelineManager();
-  pipelineManager_->Initialize(dxBase_);
-  // ImGuiManager
-  imGuiManager_ = new ImGuiManager();
-  imGuiManager_->Initialize(dxBase_, window_, srvManager_);
-
-  // --- シングルトンのインスタンスを取得して保持 ---
-
-  // TextureManager
-  textureManager_ = TextureManager::GetInstance();
-  textureManager_->Initialize(dxBase_, srvManager_);
-  // ModelManager
-  modelManager_ = ModelManager::GetInstance();
-  modelManager_->Initialize(dxBase_);
-  // ParticleManager
-  particleManager_ = ParticleManager::GetInstance();
-  particleManager_->Initialize(dxBase_, srvManager_, pipelineManager_);
+  // --- ゲーム内オブジェクトの初期化 ---
 
   // --- 音声系の初期化 ---
   audioManager_.Initialize();
-
-  // --- 描画共通部の初期化 ---
-
-  // SpriteCommon
-  spriteCommon_ = new SpriteCommon();
-  spriteCommon_->Initialize(dxBase_, pipelineManager_);
-
-  // Object3dCommon
-  object3dCommon_ = new Object3dCommon();
-  object3dCommon_->Initialize(dxBase_, pipelineManager_);
-
-  // --- ゲーム内オブジェクトの初期化 ---
 
   // カメラ
   camera_ = new Camera();
@@ -106,25 +64,31 @@ void MyGame::Initialize() {
   gameCameraTranslate_ = camera_->GetTranslate();
 
   // .objファイルからモデルを呼び込む
-  modelManager_->LoadModel("Plane", planeModel_);
+  ModelManager::GetInstance()->LoadModel("Plane", planeModel_);
   // modelManager_->LoadModel("Axis", axisModel_);
-  modelManager_->LoadModel("Teapot", teapotModel_);
+  ModelManager::GetInstance()->LoadModel("Teapot", teapotModel_);
 
   // パーティクルグループの作成
-  textureManager_->LoadTexture(particleTexturePath_);
-  particleManager_->CreateParticleGroup(particleGroupName_,
+  // エミッターの設定と登録
+  ParticleEmitter defaultEmitter = ParticleEmitter(
+      Transform{{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {-1.0f, 1.0f, 0.0f}},
+      3,   // count: 1回で3個生成
+      0.2f // frequency: 0.2秒ごとに発生
+  );
+  TextureManager::GetInstance()->LoadTexture(particleTexturePath_);
+  ParticleManager::GetInstance()->CreateParticleGroup(particleGroupName_,
                                         particleTexturePath_);
-  particleManager_->SetEmitter(particleGroupName_, defaultEmitter_);
+  ParticleManager::GetInstance()->SetEmitter(particleGroupName_, defaultEmitter);
 
   // テクスチャファイルパスを保持
-  textureManager_->LoadTexture(uvCheckerPath_);
+  TextureManager::GetInstance()->LoadTexture(uvCheckerPath_);
 
-  textureManager_->LoadTexture(monsterBallPath_);
+  TextureManager::GetInstance()->LoadTexture(monsterBallPath_);
 
   // コマンド実行と完了待機
   dxBase_->ExecuteInitialCommandAndSync();
-  textureManager_->ReleaseIntermediateResources();
-  particleManager_->ReleaseIntermediateResources();
+  TextureManager::GetInstance()->ReleaseIntermediateResources();
+  ParticleManager::GetInstance()->ReleaseIntermediateResources();
 
   // AudioManager を初期化
   if (!audioManager_.Initialize()) {
@@ -189,34 +153,8 @@ void MyGame::Initialize() {
   }
 }
 
-void MyGame::Run() {
-    Initialize();
-
-    // ウィンドウのxボタンが押されるまでループ
-    while (true) {
-        // メッセージ処理 (終了リクエストが来たらループを抜ける)
-        if (window_->ProcessMessage()) {
-            break;
-        }
-
-        // 更新処理
-        Update();
-
-        // 描画処理
-        Draw();
-    }
-
-    Finalize();
-}
-
 void MyGame::Finalize() {
   // --- 終了処理 ---
-
-  // 各マネージャーの終了
-  particleManager_->Finalize();
-  modelManager_->Finalize();
-  textureManager_->Finalize();
-  imGuiManager_->Finalize();
 
   // 個別オブジェクトの解放
   for (auto s : sprites_) {
@@ -227,16 +165,8 @@ void MyGame::Finalize() {
   }
   delete camera_;
 
-  // 基盤の解放 (Initializeの逆順)
-  delete spriteCommon_;
-  delete object3dCommon_;
-  delete imGuiManager_;
-  delete pipelineManager_;
-  delete input_;
-  delete srvManager_;
-  delete dxBase_;
-  window_->Finalize();
-  delete window_;
+  // --- 基盤システムの終了処理は親クラスに任せる ---
+  RAFramework::Finalize();
 }
 
 void MyGame::Update() {
@@ -427,12 +357,12 @@ void MyGame::Update() {
 
     // パーティクルの更新
     // ※ kDeltaTime は ApplicationConfig.h から読み込むか、メンバ変数として管理する
-    particleManager_->Update(*camera_, isUpdateParticle_, useBillboard_, kDeltaTime);
+    ParticleManager::GetInstance()->Update(*camera_, isUpdateParticle_, useBillboard_, kDeltaTime);
 
     // スペースキーでのパーティクル生成テスト
     if (input_->IsKeyTriggered(DIK_SPACE)) {
         Vector3 playerPos = { 0.0f, 0.0f, 0.0f };
-        particleManager_->Emit(particleGroupName_, playerPos, 10);
+        ParticleManager::GetInstance()->Emit(particleGroupName_, playerPos, 10);
     }
 
     // オブジェクトの更新
@@ -464,7 +394,7 @@ void MyGame::Draw() {
     }
 
     // 3. パーティクルの描画
-    particleManager_->Draw(static_cast<BlendState>(particleBlendMode_));
+    ParticleManager::GetInstance()->Draw(static_cast<BlendState>(particleBlendMode_));
 
     // 4. スプライトの描画
     spriteCommon_->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode_), pipelineManager_);
