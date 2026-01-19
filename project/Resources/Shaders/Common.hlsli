@@ -44,8 +44,10 @@ struct DirectionalLight {
 struct PointLight {
     float4 color;
     float3 position;
-    float _padding_dummy;
     float intensity;
+    float radius;
+    float decay;
+    float _padding_dummy[2];
 };
 
 struct Camera {

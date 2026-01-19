@@ -48,18 +48,20 @@ PixelShaderOutput main(VertexShaderOutput input) {
         // ライトに向かうベクトル (ライト座標 - ピクセル座標)
         float3 directionToPointLight = normalize(gPointLight.position - input.worldPosition);
 
+        // 距離による減衰（Falloff）
+        float distanceToPointLight = length(gPointLight.position - input.worldPosition); // ライトからピクセルまでの距離
+        float factor = pow(saturate(-distanceToPointLight / gPointLight.radius + 1.0f), gPointLight.decay); // 減衰率を考慮した減衰係数
+
         // 拡散反射 (Half-Lambert) : ポイントライト専用の角度(NdotL)を計算する
         float NdotL_Point = dot(normal, directionToPointLight);
         float cos_Point = pow(NdotL_Point * 0.5f + 0.5f, 2.0f);
-        float3 diffusePointLight = gMaterial.color.rgb * textureColor.rgb * gPointLight.color.rgb * cos_Point * gPointLight.intensity;
+        float3 diffusePointLight = gMaterial.color.rgb * textureColor.rgb * gPointLight.color.rgb * cos_Point * gPointLight.intensity * factor;
 
         // 鏡面反射 (Blinn-Phong) : ポイントライト専用のハーフベクトルを計算する
         float3 halfVector_Point = normalize(directionToPointLight + toEye);
         float NdotH_Point = dot(normal, halfVector_Point);
         float specularPow_Point = pow(saturate(NdotH_Point), gMaterial.shininess);
-        float3 specularPointLight = gPointLight.color.rgb * gPointLight.intensity * specularPow_Point * float3(1.0f, 1.0f, 1.0f);
-
-        // ★距離による減衰（Falloff）を入れる場合はここに追記
+        float3 specularPointLight = gPointLight.color.rgb * gPointLight.intensity * specularPow_Point * float3(1.0f, 1.0f, 1.0f) * factor;
         
         // ===============================================
         //  最終合成

@@ -10,7 +10,7 @@
 class Camera;
 class Object3d;
 class Sprite;
-class ParticleManager;
+class LightManager;
 
 // Frameworkを継承する
 class MyGame : public RAFramework {
@@ -30,6 +30,9 @@ private: // メンバ変数(ゲーム内)
   bool useDebugCamera_ = false;
   Vector3 gameCameraRotate_{};
   Vector3 gameCameraTranslate_{};
+
+  // ライト
+  LightManager *lightManager_ = nullptr;
 
   // ゲームオブジェクト
   std::vector<Object3d *> object3ds_;

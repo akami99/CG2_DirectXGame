@@ -9,6 +9,7 @@
 class DX12Context;
 class PipelineManager;
 class Camera;
+class LightManager;
 
 // 3Dオブジェクト共通部
 class Object3dCommon {
@@ -31,6 +32,9 @@ private: // メンバ変数
   // デフォルトカメラ
   Camera *defaultCamera_ = nullptr;
 
+  // ライトマネージャ
+  LightManager *lightManager_ = nullptr;
+
 public: // メンバ関数
   // 初期化
   void Initialize(DX12Context *dxBase, PipelineManager *pipelineManager);
@@ -43,6 +47,9 @@ public: // メンバ関数
   // デフォルトカメラの取得
   Camera *GetDefaultCamera() const { return defaultCamera_; };
 
+  // ライトマネージャの取得
+  LightManager *GetLightManager() const { return lightManager_; }
+
   // DirectX基底部分を取得
   DX12Context *GetDX12Context() const { return dxBase_; }
 
@@ -50,4 +57,9 @@ public: // メンバ関数
 
   // デフォルトカメラの設定
   void SetDefaultCamera(Camera *camera) { defaultCamera_ = camera; };
+
+  // ライトマネージャの設定
+  void SetLightManager(LightManager *lightManager) {
+    lightManager_ = lightManager;
+  }
 };

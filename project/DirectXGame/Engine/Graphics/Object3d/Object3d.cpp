@@ -1,6 +1,7 @@
 #include "Object3d.h"
 #include "Base/DX12Context.h"
 #include "Camera/Camera.h"
+#include "Light/LightManager.h"
 #include "Model/Model.h"
 #include "Model/ModelManager.h"
 #include "Object3dCommon.h"
@@ -23,12 +24,6 @@ void Object3d::Initialize(Object3dCommon *object3dCommon) {
 
   // 変換行列バッファの作成
   CreateTransformationMatrixResource();
-
-  // 平行光源バッファの作成
-  CreateDirectionalLightResource();
-
-  // 点光源バッファの作成
-  CreatePointLightResource();
 }
 
 // 更新処理
@@ -77,8 +72,9 @@ void Object3d::Draw() {
       ->GetCommandList()
       ->SetGraphicsRootConstantBufferView(
           3,
-          directionalLightResource_ // directionalLightResourceはライトのCBV
-              ->GetGPUVirtualAddress());
+          object3dCommon_->GetLightManager()
+              ->GetDirectionalLightAddress() // directionalLightのCBV
+      );
   // RootParameter Index 4: Camera (b2)
   if (camera_) {
     object3dCommon_->GetDX12Context()
@@ -91,8 +87,9 @@ void Object3d::Draw() {
       ->GetCommandList()
       ->SetGraphicsRootConstantBufferView(
           5,
-          pointLightResource_ // pointLightResourceはライトのCBV
-              ->GetGPUVirtualAddress());
+          object3dCommon_->GetLightManager()
+              ->GetPointLightAddress() // pointLightのCBV
+      );
   // 描画コマンド
   if (model_) {
     model_->Draw();
@@ -119,39 +116,4 @@ void Object3d::CreateTransformationMatrixResource() {
   // 単位行列を書き込んでおく
   transformationMatrixData_->WVP = MakeIdentity4x4();
   transformationMatrixData_->World = MakeIdentity4x4();
-}
-
-// 平行光源バッファの作成
-void Object3d::CreateDirectionalLightResource() {
-  // 平行光源リソースの作成
-  directionalLightResource_ =
-      object3dCommon_->GetDX12Context()->CreateBufferResource(
-          sizeof(DirectionalLight));
-
-  // DirectionalLightDataの設定
-  // DirectionalLightResourceにデータを書き込むためのアドレスを取得してDirectionalLightDataに割り当てる
-  directionalLightResource_->Map(
-      0, nullptr, reinterpret_cast<void **>(&directionalLightData_));
-  // デフォルト値を書き込んでおく
-  directionalLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
-  directionalLightData_->direction = {0.0f, -1.0f, 0.0f};
-  directionalLightData_->intensity = 1.0f;
-}
-
-void Object3d::CreatePointLightResource() {
-  // リソース（バッファ）を作成
-  // サイズが PointLight 構造体の大きさになる点に注意
-  pointLightResource_ = object3dCommon_->GetDX12Context()->CreateBufferResource(
-      sizeof(PointLight));
-
-  // データを書き込むためのアドレスを取得 (Map)
-  pointLightResource_->Map(0, nullptr,
-                           reinterpret_cast<void **>(&pointLightData_));
-
-  // デフォルト値を設定しておく (真っ暗にならないように白などを入れておく)
-  pointLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
-  pointLightData_->position = {0.0f, 2.0f, 0.0f}; // 適当な位置
-  pointLightData_->intensity = 1.0f;
-  /*pointLightData_->radius = 10.0f;
-  pointLightData_->decay = 1.0f;*/
 }
