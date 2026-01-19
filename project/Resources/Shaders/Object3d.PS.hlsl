@@ -3,6 +3,7 @@
 ConstantBuffer<Material> gMaterial : register(b0);
 ConstantBuffer<DirectionalLight> gDirectionalLight : register(b1);
 ConstantBuffer<Camera> gCamera : register(b2);
+ConstantBuffer<PointLight> gPointLight : register(b3);
 
 Texture2D<float4> gTexture : register(t0);
 SamplerState gSampler : register(s0);
@@ -21,37 +22,52 @@ PixelShaderOutput main(VertexShaderOutput input) {
     
     if (gMaterial.enableLighting != 0) { // Lightingする場合
         // --- 準備 ---
-        float3 normal = normalize(input.normal);
-        float3 lightDirection = normalize(gDirectionalLight.direction);
+        float3 normal = normalize(input.normal); // 法線ベクトル (N)
+        float3 toEye = normalize(gCamera.worldPosition - input.worldPosition); // 視線ベクトル (V)
         
-        // --- 1. 拡散反射 (Half-Lambert) ---
-        float NdotL = dot(normal, -lightDirection);
-        float cos = pow(NdotL * 0.5f + 0.5f, 2.0f);
-        float3 diffuse = gMaterial.color.rgb * textureColor.rgb * gDirectionalLight.color.rgb * cos * gDirectionalLight.intensity;
+        // ===============================================
+        //  平行光源 (Directional Light) の計算
+        // ===============================================
+        // ライトに向かうベクトル (－ライトの方向)
+        float3 directionToDirLight = normalize(-gDirectionalLight.direction);
         
-        // --- 2. 鏡面反射 (Blinn-Phong Reflection) ---
+        // 拡散反射 (Half-Lambert)
+        float NdotL_Dir = dot(normal, directionToDirLight);
+        float cos_Dir = pow(NdotL_Dir * 0.5f + 0.5f, 2.0f);
+        float3 diffuseDirectionalLight = gMaterial.color.rgb * textureColor.rgb * gDirectionalLight.color.rgb * cos_Dir * gDirectionalLight.intensity;
 
-        // 視線ベクトル (V)
-        float3 toEye = normalize(gCamera.worldPosition - input.worldPosition);
-
-        // 入射光の逆ベクトル（光の源へ向かうベクトル）(L)
-        float3 toLight = -normalize(gDirectionalLight.direction);
-
-        // 【HalfVectorの計算】 (H = L + V の正規化)
-        float3 halfVector = normalize(toLight + toEye);
-
-        // 反射強度 = (法線 ・ ハーフベクトル) の shininess乗
-        float NdotH = dot(normal, halfVector);
-        float specularPow = pow(saturate(NdotH), gMaterial.shininess);
-
-        // 鏡面反射の色
-        float3 specularColor = float3(1.0f, 1.0f, 1.0f);
-        float3 specular = gDirectionalLight.color.rgb * gDirectionalLight.intensity * specularPow * specularColor;
+        // 鏡面反射 (Blinn-Phong)
+        float3 halfVector_Dir = normalize(directionToDirLight + toEye); // ハーフベクトル
+        float NdotH_Dir = dot(normal, halfVector_Dir); // 法線とハーフベクトルの内積
+        float specularPow_Dir = pow(saturate(NdotH_Dir), gMaterial.shininess); // 反射強度
+        float3 specularDirectionalLight = gDirectionalLight.color.rgb * gDirectionalLight.intensity * specularPow_Dir * float3(1.0f, 1.0f, 1.0f); // 鏡面反射の色
         
-        // --- 最終合成 ---
-        //output.color.rgb = gMaterial.color.rgb * textureColor.rgb * gDirectionalLight.color.rgb * cos * gDirectionalLight.intensity;
-        output.color.rgb = diffuse + specular;
+        // ===============================================
+        //  ポイントライト (Point Light) の計算
+        // ===============================================
+        // ライトに向かうベクトル (ライト座標 - ピクセル座標)
+        float3 directionToPointLight = normalize(gPointLight.position - input.worldPosition);
+
+        // 拡散反射 (Half-Lambert) : ポイントライト専用の角度(NdotL)を計算する
+        float NdotL_Point = dot(normal, directionToPointLight);
+        float cos_Point = pow(NdotL_Point * 0.5f + 0.5f, 2.0f);
+        float3 diffusePointLight = gMaterial.color.rgb * textureColor.rgb * gPointLight.color.rgb * cos_Point * gPointLight.intensity;
+
+        // 鏡面反射 (Blinn-Phong) : ポイントライト専用のハーフベクトルを計算する
+        float3 halfVector_Point = normalize(directionToPointLight + toEye);
+        float NdotH_Point = dot(normal, halfVector_Point);
+        float specularPow_Point = pow(saturate(NdotH_Point), gMaterial.shininess);
+        float3 specularPointLight = gPointLight.color.rgb * gPointLight.intensity * specularPow_Point * float3(1.0f, 1.0f, 1.0f);
+
+        // ★距離による減衰（Falloff）を入れる場合はここに追記
+        
+        // ===============================================
+        //  最終合成
+        // ===============================================
+        // すべての光を足し合わせる
+        output.color.rgb = diffuseDirectionalLight + specularDirectionalLight + diffusePointLight + specularPointLight;
         output.color.a = gMaterial.color.a * textureColor.a;
+        
     } else { // Lightingしない場合。前回までと同じ演算
         output.color = gMaterial.color * textureColor;
     }

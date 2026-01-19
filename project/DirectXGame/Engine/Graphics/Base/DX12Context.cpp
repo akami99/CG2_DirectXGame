@@ -515,29 +515,6 @@ void DX12Context::CreateDXCCompiler() {
   assert(SUCCEEDED(hr));
 }
 
-// ImGuiの初期化
-//void DX12Context::InitializeImGui() {
-//  // ImGuiの初期化
-//  IMGUI_CHECKVERSION();
-//  ImGui::CreateContext();
-//  ImGui::StyleColorsDark();
-//  ImGui_ImplWin32_Init(window_->GetHwnd());
-//
-//  // 先頭のSRVハンドルを取得
-//  D3D12_CPU_DESCRIPTOR_HANDLE imGuiSrvHandleCPU =
-//      GetCPUDescriptorHandle(srvDescriptorHeap_, descriptorSizeSRV_, 0);
-//  D3D12_GPU_DESCRIPTOR_HANDLE imGuiSrvHandleGPU =
-//      GetGPUDescriptorHandle(srvDescriptorHeap_, descriptorSizeSRV_, 0);
-//
-//  // ImGuiのDX12初期化
-//  ImGui_ImplDX12_Init(device_.Get(), kSwapChainResourcesCount,
-//                      DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, // RTVのFormat
-//                      srvDescriptorHeap_.Get(), imGuiSrvHandleCPU,
-//                      imGuiSrvHandleGPU);
-//
-//  // フォントを設定する場合はここに追加
-//}
-
 #pragma region 60FPS固定用
 
 void DX12Context::InitializeFixFPS() {

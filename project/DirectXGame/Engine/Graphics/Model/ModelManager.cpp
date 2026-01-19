@@ -49,15 +49,15 @@ Model *ModelManager::FindModel(const std::string &filePath) {
 
 void ModelManager::LoadModel(const std::string &directoryPath,
                              const std::string &filePath) {
-    std::string fulldirectoryPath = directoryPath;
+    std::string fullDirectoryPath = directoryPath;
     // 既にパスに"Resources/Assets/Models/"が含まれている場合は追加しない
     if (filePath.find("Resources/Assets/Models/") == std::string::npos &&
         filePath.find("resources/assets/models/") == std::string::npos) {
-        fulldirectoryPath = "Resources/Assets/Models/" + directoryPath;
+        fullDirectoryPath = "Resources/Assets/Models/" + directoryPath;
     }
 
-    if (!std::filesystem::exists(fulldirectoryPath + "/" + filePath)) {
-        Logger::Log("ERROR: Texture file not found at path: " + fulldirectoryPath + filePath);
+    if (!std::filesystem::exists(fullDirectoryPath + "/" + filePath)) {
+        Logger::Log("ERROR: Texture file not found at path: " + fullDirectoryPath + filePath);
         assert(false && "Texture file not found!");
     }
 
@@ -71,8 +71,8 @@ void ModelManager::LoadModel(const std::string &directoryPath,
   // unique_ptrでModelのインスタンスを生成
   std::unique_ptr<Model> model = std::make_unique<Model>();
 
-  model->Initialize(modelCommon_, fulldirectoryPath, filePath);
-  Log("INFO: Loaded model at path: " + fulldirectoryPath + "/" + filePath + "\n");
+  model->Initialize(modelCommon_, fullDirectoryPath, filePath);
+  Log("INFO: Loaded model at path: " + fullDirectoryPath + "/" + filePath + "\n");
 
   // --- 4. モデルをマップコンテナに格納 ---
   // std::unique_ptr はコピー禁止なので、std::move() によって所有権を移譲する

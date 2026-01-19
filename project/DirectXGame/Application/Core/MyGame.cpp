@@ -64,9 +64,9 @@ void MyGame::Initialize() {
   gameCameraTranslate_ = camera_->GetTranslate();
 
   // .objファイルからモデルを呼び込む
-  ModelManager::GetInstance()->LoadModel("Plane", planeModel_);
-  // modelManager_->LoadModel("Axis", axisModel_);
-  ModelManager::GetInstance()->LoadModel("Teapot", teapotModel_);
+  //ModelManager::GetInstance()->LoadModel("plane", planeModel_);
+  ModelManager::GetInstance()->LoadModel("terrain", terrainModel_);
+  ModelManager::GetInstance()->LoadModel("teapot", teapotModel_);
 
   // パーティクルグループの作成
   // エミッターの設定と登録
@@ -84,6 +84,8 @@ void MyGame::Initialize() {
   TextureManager::GetInstance()->LoadTexture(uvCheckerPath_);
 
   TextureManager::GetInstance()->LoadTexture(monsterBallPath_);
+
+  TextureManager::GetInstance()->LoadTexture(grassPath_);
 
   // コマンド実行と完了待機
   dxBase_->ExecuteInitialCommandAndSync();
@@ -109,7 +111,7 @@ void MyGame::Initialize() {
   object3d_1->Initialize(object3dCommon_);
 
   // モデルの設定
-  object3d_1->SetModel(planeModel_);
+  object3d_1->SetModel(terrainModel_);
   // オブジェクトの位置を設定
   object3d_1->SetTranslate({ -2.0f, 0.0f, 0.0f });
 
@@ -220,19 +222,36 @@ void MyGame::Update() {
 
                 ImGui::Separator();
 
-                if (ImGui::TreeNode(("Light_" + std::to_string(i + 1)).c_str())) {
+                if (ImGui::TreeNode(("DirectioalLight_" + std::to_string(i + 1)).c_str())) {
                     Vector4 color = object3d->GetDirectionalLightColor();
                     Vector3 direction = object3d->GetDirectionalLightDirection();
                     float intensity = object3d->GetDirectionalLightIntensity();
 
-                    ImGui::ColorEdit4("colorLight", &color.x);
-                    ImGui::DragFloat3("directionLight", &direction.x, 0.01f);
-                    ImGui::DragFloat("intensityLight", &intensity, 0.01f);
+                    ImGui::ColorEdit4("color", &color.x);
+                    ImGui::DragFloat3("direction", &direction.x, 0.01f);
+                    ImGui::DragFloat("intensity", &intensity, 0.01f);
 
                     object3d->SetDirectionalLightColor(color);
-                    object3d->SetRotation(rotate);
                     object3d->SetDirectionalLightDirection(direction);
                     object3d->SetDirectionalLightIntensity(intensity);
+
+                    ImGui::TreePop();
+                }
+
+                ImGui::Separator();
+
+                if (ImGui::TreeNode(("PointLight_" + std::to_string(i + 1)).c_str())) {
+                    Vector4 color = object3d->GetPointLightColor();
+                    Vector3 position = object3d->GetPointLightPosition();
+                    float intensity = object3d->GetPointLightIntensity();
+
+                    ImGui::ColorEdit4("color", &color.x);
+                    ImGui::DragFloat3("position", &position.x, 0.01f);
+                    ImGui::DragFloat("intensity", &intensity, 0.01f);
+
+                    object3d->SetPointLightColor(color);
+                    object3d->SetPointLightPosition(position);
+                    object3d->SetPointLightIntensity(intensity);
 
                     ImGui::TreePop();
                 }

@@ -326,7 +326,7 @@ void PipelineManager::CreateRootSignature() {
       D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // Offsetを自動計算
 
   // RootParameter作成。PixelShaderのMaterialとVertexShaderのTransform
-  D3D12_ROOT_PARAMETER object3dRootParameters[5] = {};
+  D3D12_ROOT_PARAMETER object3dRootParameters[6] = {};
 
   // Root Parameter 0: Pixel Shader用 Material CBV (b0)
   object3dRootParameters[0].ParameterType =
@@ -368,6 +368,14 @@ void PipelineManager::CreateRootSignature() {
       D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
   object3dRootParameters[4].Descriptor.ShaderRegister =
       2; // レジスタ番号2を使う
+
+  // Root Parameter 5: Pixel Shader用 PointLight CBV (b3)
+  object3dRootParameters[5].ParameterType =
+      D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
+  object3dRootParameters[5].ShaderVisibility =
+      D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
+  object3dRootParameters[5].Descriptor.ShaderRegister =
+      3; // レジスタ番号3を使う (b3)
 
   // object用のRootSignatureDesc
   D3D12_ROOT_SIGNATURE_DESC object3dRootSignatureDesc{};

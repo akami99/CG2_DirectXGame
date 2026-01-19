@@ -4,8 +4,8 @@
 #include "Types/LightTypes.h"
 
 #include <d3d12.h>
-#include <wrl/client.h>
 #include <string>
+#include <wrl/client.h>
 
 // 前方宣言
 class Object3dCommon;
@@ -36,15 +36,21 @@ private: // メンバ変数
   // バッファリソース内のデータを指すポインタ
   TransformationMatrix *transformationMatrixData_ = nullptr;
 
+  // 平行光源データ
   // バッファリソース
   ComPtr<ID3D12Resource> directionalLightResource_;
   // バッファリソース内のデータを表すポインタ
   DirectionalLight *directionalLightData_ = nullptr;
 
+  // 点光源データ
+  // バッファリソース
+  ComPtr<ID3D12Resource> pointLightResource_;
+  // バッファリソース内のデータを表すポインタ
+  PointLight *pointLightData_ = nullptr;
+
   // Transform変数を作る
   Transform transform_ = {
       {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}};
-
 
 public: // メンバ関数
   // 初期化
@@ -56,8 +62,17 @@ public: // メンバ関数
   // 描画処理
   void Draw();
 
-  // getter
+private: // 作成関数
+  // 変換行列バッファの作成
+  void CreateTransformationMatrixResource();
 
+  // 平行光源バッファの作成
+  void CreateDirectionalLightResource();
+
+  // 点光源バッファの作成
+  void CreatePointLightResource();
+
+public: // getter
   // 座標の取得
   const Vector3 &GetTranslate() const { return transform_.translate; }
   // 回転の取得
@@ -65,22 +80,37 @@ public: // メンバ関数
   // スケールの取得
   const Vector3 &GetScale() const { return transform_.scale; }
 
-
-  // DirectionalLightの色の取得
+  // DirectionalLight 
+  // 色の取得
   const Vector4 &GetDirectionalLightColor() const {
     return directionalLightData_->color;
   }
-  // DirectionalLightの方向の取得
+  // 方向の取得
   const Vector3 &GetDirectionalLightDirection() const {
     return directionalLightData_->direction;
   }
-  // DirectionalLightの輝度の取得
+  // 輝度の取得
   const float &GetDirectionalLightIntensity() const {
     return directionalLightData_->intensity;
   }
 
-  // setter
+  // PointLight
+  // 色の設定
+  const Vector4 &GetPointLightColor() const {
+      return pointLightData_->color;
+  }
+  // 位置の設定
+  const Vector3 &GetPointLightPosition() const {
+      return pointLightData_->position;
+  }
+  // 輝度の設定
+  const float &GetPointLightIntensity() const {
+      return pointLightData_->intensity;
+  }
+  /* const float &GetPointLightRadius() const { return pointLightData_->radius; }
+   const float &GetPointLightDecay() const { return pointLightData_->decay; }*/
 
+public: // setter
   // モデルの設定
   void SetModel(Model *model) { model_ = model; };
   void SetModel(const std::string &filepath);
@@ -97,23 +127,33 @@ public: // メンバ関数
   // スケールの設定
   void SetScale(const Vector3 &scale) { transform_.scale = scale; }
 
-  // DirectionalLightの色の設定
+  // DirectionalLight
+  // 色の設定
   void SetDirectionalLightColor(const Vector4 &color) {
     directionalLightData_->color = color;
   }
-  // DirectionalLightの方向の設定
+  // 方向の設定
   void SetDirectionalLightDirection(const Vector3 &direction) {
     directionalLightData_->direction = direction;
   }
-  // DirectionalLightの輝度の設定
+  // 輝度の設定
   void SetDirectionalLightIntensity(const float &intensity) {
     directionalLightData_->intensity = intensity;
   }
 
-private: // メンバ関数
-  // 変換行列バッファの作成
-  void CreateTransformationMatrixResource();
-
-  // 平行光源バッファの作成
-  void CreateDirectionalLightResource();
+  // PointLight
+  // 色の設定
+  void SetPointLightColor(const Vector4 &color) {
+    pointLightData_->color = color;
+  }
+  // 位置の設定
+  void SetPointLightPosition(const Vector3 &pos) {
+    pointLightData_->position = pos;
+  }
+  // 輝度の設定
+  void SetPointLightIntensity(float intensity) {
+    pointLightData_->intensity = intensity;
+  }
+  /*void SetPointLightRadius(float radius) { pointLightData_->radius = radius; }
+  void SetPointLightDecay(float decay) { pointLightData_->decay = decay; }*/
 };

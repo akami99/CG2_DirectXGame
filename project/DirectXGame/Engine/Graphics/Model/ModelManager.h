@@ -37,8 +37,9 @@ public: // メンバ関数
   Model *FindModel(const std::string &filePath);
 
   /// <summary>
-  /// モデルファイルの読み込み
+  /// モデルファイルの読み込み()
   /// </summary>
+  /// <param name="directoryPath">モデルファイルのディレクトリパス</param>
   /// <param name="filePath">モデルファイルのパス</param>
   void LoadModel(const std::string &directoryPath, const std::string &filePath);
 

@@ -51,9 +51,11 @@ private: // メンバ変数(ゲーム内)
   // 3Dモデルのファイルパス
   const std::string planeModel_ = ("plane.obj");
   const std::string teapotModel_ = ("teapot.obj");
+  const std::string terrainModel_ = ("terrain.obj");
   // テクスチャファイルパスを保持
   const std::string uvCheckerPath_ = "uvChecker.png";
   const std::string monsterBallPath_ = "monsterBall.png";
+  const std::string grassPath_ = "grass.png";
   // パーティクルグループの作成
   const std::string particleTexturePath_ = "circle.png";
   const std::string particleGroupName_ = "default";

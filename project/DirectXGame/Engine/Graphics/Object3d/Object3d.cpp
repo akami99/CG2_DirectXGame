@@ -26,6 +26,9 @@ void Object3d::Initialize(Object3dCommon *object3dCommon) {
 
   // 平行光源バッファの作成
   CreateDirectionalLightResource();
+
+  // 点光源バッファの作成
+  CreatePointLightResource();
 }
 
 // 更新処理
@@ -48,7 +51,7 @@ void Object3d::Update() {
   }
 
   // 非均一スケール対応：逆転置行列の計算
-    // 法線の変形には「ワールド行列の逆行列の転置行列」が必要
+  // 法線の変形には「ワールド行列の逆行列の転置行列」が必要
   Matrix4x4 worldInverseTranspose = Transpose(Inverse(worldMatrix));
 
   // 変換行列データを更新する
@@ -76,11 +79,20 @@ void Object3d::Draw() {
           3,
           directionalLightResource_ // directionalLightResourceはライトのCBV
               ->GetGPUVirtualAddress());
-  // 【追加】RootParameter Index 4: Camera (b2)
+  // RootParameter Index 4: Camera (b2)
   if (camera_) {
-      object3dCommon_->GetDX12Context()
-          ->GetCommandList()->SetGraphicsRootConstantBufferView(4, camera_->GetConstantBufferGPUVirtualAddress());
+    object3dCommon_->GetDX12Context()
+        ->GetCommandList()
+        ->SetGraphicsRootConstantBufferView(
+            4, camera_->GetConstantBufferGPUVirtualAddress());
   }
+  // PointLightのCBufferの場所を設定 (PS b3, rootParameter[5]に対応)
+  object3dCommon_->GetDX12Context()
+      ->GetCommandList()
+      ->SetGraphicsRootConstantBufferView(
+          5,
+          pointLightResource_ // pointLightResourceはライトのCBV
+              ->GetGPUVirtualAddress());
   // 描画コマンド
   if (model_) {
     model_->Draw();
@@ -94,19 +106,12 @@ void Object3d::SetModel(const std::string &filepath) {
 
 // 変換行列バッファの作成
 void Object3d::CreateTransformationMatrixResource() {
-#pragma region 変換行列リソースの作成
   // 変換行列リソースの作成
-
-  // 変換行列リソースを作る
   transformationMatrixResource_ =
       object3dCommon_->GetDX12Context()->CreateBufferResource(
           sizeof(TransformationMatrix));
 
-#pragma endregion ここまで
-
-#pragma region TransformationMatrixDataの設定
   // TransformationMatrixDataの設定
-
   // TransformationMatrixResourceにデータを書き込むためのアドレスを取得してTransformationMatrixDataに割り当てる
   // 書き込むためのアドレスを取得
   transformationMatrixResource_->Map(
@@ -114,32 +119,39 @@ void Object3d::CreateTransformationMatrixResource() {
   // 単位行列を書き込んでおく
   transformationMatrixData_->WVP = MakeIdentity4x4();
   transformationMatrixData_->World = MakeIdentity4x4();
-
-#pragma endregion ここまで
 }
 
 // 平行光源バッファの作成
 void Object3d::CreateDirectionalLightResource() {
-#pragma region 平行光源リソースの作成
   // 平行光源リソースの作成
-
-  // 平行光源リソースを作る
   directionalLightResource_ =
       object3dCommon_->GetDX12Context()->CreateBufferResource(
           sizeof(DirectionalLight));
 
-#pragma endregion ここまで
-
-#pragma region DirectionalLightDataの設定
   // DirectionalLightDataの設定
-
-  // DirectionalLightlResourceにデータを書き込むためのアドレスを取得してDirectionalLightDataに割り当てる
+  // DirectionalLightResourceにデータを書き込むためのアドレスを取得してDirectionalLightDataに割り当てる
   directionalLightResource_->Map(
       0, nullptr, reinterpret_cast<void **>(&directionalLightData_));
   // デフォルト値を書き込んでおく
   directionalLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
   directionalLightData_->direction = {0.0f, -1.0f, 0.0f};
   directionalLightData_->intensity = 1.0f;
+}
 
-#pragma endregion ここまで
+void Object3d::CreatePointLightResource() {
+  // リソース（バッファ）を作成
+  // サイズが PointLight 構造体の大きさになる点に注意
+  pointLightResource_ = object3dCommon_->GetDX12Context()->CreateBufferResource(
+      sizeof(PointLight));
+
+  // データを書き込むためのアドレスを取得 (Map)
+  pointLightResource_->Map(0, nullptr,
+                           reinterpret_cast<void **>(&pointLightData_));
+
+  // デフォルト値を設定しておく (真っ暗にならないように白などを入れておく)
+  pointLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
+  pointLightData_->position = {0.0f, 2.0f, 0.0f}; // 適当な位置
+  pointLightData_->intensity = 1.0f;
+  /*pointLightData_->radius = 10.0f;
+  pointLightData_->decay = 1.0f;*/
 }
