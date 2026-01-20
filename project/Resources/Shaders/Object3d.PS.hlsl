@@ -4,6 +4,7 @@ ConstantBuffer<Material> gMaterial : register(b0);
 ConstantBuffer<DirectionalLight> gDirectionalLight : register(b1);
 ConstantBuffer<Camera> gCamera : register(b2);
 ConstantBuffer<PointLight> gPointLight : register(b3);
+ConstantBuffer<SpotLight> gSpotLight : register(b4);
 
 Texture2D<float4> gTexture : register(t0);
 SamplerState gSampler : register(s0);
@@ -48,7 +49,7 @@ PixelShaderOutput main(VertexShaderOutput input) {
         // ライトに向かうベクトル (ライト座標 - ピクセル座標)
         float3 directionToPointLight = normalize(gPointLight.position - input.worldPosition);
 
-        // 距離による減衰（Falloff）
+        // 距離による減衰
         float distanceToPointLight = length(gPointLight.position - input.worldPosition); // ライトからピクセルまでの距離
         float factor = pow(saturate(-distanceToPointLight / gPointLight.radius + 1.0f), gPointLight.decay); // 減衰率を考慮した減衰係数
 
@@ -64,10 +65,42 @@ PixelShaderOutput main(VertexShaderOutput input) {
         float3 specularPointLight = gPointLight.color.rgb * gPointLight.intensity * specularPow_Point * float3(1.0f, 1.0f, 1.0f) * factor;
         
         // ===============================================
+        //  スポットライト (Spot Light) の計算
+        // ===============================================
+        // ライトに向かうベクトル
+        float3 directionToSpotLight = normalize(gSpotLight.position - input.worldPosition);
+
+        // 距離による減衰 (ポイントライトと同じ計算)
+        float distanceToSpotLight = length(gSpotLight.position - input.worldPosition);
+        float attenuationFactor = pow(saturate(-distanceToSpotLight / gSpotLight.distance + 1.0f), gSpotLight.decay);
+
+        // 角度による減衰 (コーンの計算)
+        // ライトの照射方向と、ピクセルへ向かう方向の余弦(cos)を求める
+        float3 spotLightDirectionOnFace = normalize(input.worldPosition - gSpotLight.position);
+        float cosAngle = dot(spotLightDirectionOnFace, normalize(gSpotLight.direction));
+        
+        // 資料の計算式：指定された角度(cosAngle)から中心(1.0)に向かって減衰させる
+        float falloffFactor = saturate((cosAngle - gSpotLight.cosAngle) / (gSpotLight.cosFalloffStart - gSpotLight.cosAngle));
+        
+        // 最終的な減衰係数
+        float spotFactor = attenuationFactor * falloffFactor;
+
+        // 拡散反射 (Half-Lambert)
+        float NdotL_Spot = dot(normal, directionToSpotLight);
+        float cos_Spot = pow(NdotL_Spot * 0.5f + 0.5f, 2.0f);
+        float3 diffuseSpotLight = gMaterial.color.rgb * textureColor.rgb * gSpotLight.color.rgb * cos_Spot * gSpotLight.intensity * spotFactor;
+
+        // 鏡面反射 (Blinn-Phong)
+        float3 halfVector_Spot = normalize(directionToSpotLight + toEye);
+        float NdotH_Spot = dot(normal, halfVector_Spot);
+        float specularPow_Spot = pow(saturate(NdotH_Spot), gMaterial.shininess);
+        float3 specularSpotLight = gSpotLight.color.rgb * gSpotLight.intensity * specularPow_Spot * float3(1.0f, 1.0f, 1.0f) * spotFactor;
+        
+        // ===============================================
         //  最終合成
         // ===============================================
         // すべての光を足し合わせる
-        output.color.rgb = diffuseDirectionalLight + specularDirectionalLight + diffusePointLight + specularPointLight;
+        output.color.rgb = diffuseDirectionalLight + specularDirectionalLight + diffusePointLight + specularPointLight + diffuseSpotLight + specularSpotLight;
         output.color.a = gMaterial.color.a * textureColor.a;
         
     } else { // Lightingしない場合。前回までと同じ演算

@@ -68,6 +68,7 @@ void MyGame::Initialize() {
   lightManager_ = new LightManager();
   lightManager_->Initialize(dxBase_);
   lightManager_->SetDirectionalLightIntensity(0.0f);
+  lightManager_->SetPointLightIntensity(0.0f);
   object3dCommon_->SetLightManager(lightManager_);
 
   // .objファイルからモデルを呼び込む
@@ -188,52 +189,195 @@ void MyGame::Update() {
   input_->Update();
 
   // 3. UI処理 (ImGuiの定義)
+  UpdateImGui();
+
+  // 4. ゲームロジックの更新
+
+  // 音声のクリーンアップ
+  audioManager_.CleanupFinishedVoices();
+
+  // カメラの更新処理
+  UpdateGameCamera();
+
+  // パーティクルの更新
+  // ※ kDeltaTime は ApplicationConfig.h
+  // から読み込むか、メンバ変数として管理する
+  ParticleManager::GetInstance()->Update(*camera_, isUpdateParticle_,
+                                         useBillboard_, kDeltaTime);
+
+  // スペースキーでのパーティクル生成テスト
+  if (input_->IsKeyTriggered(DIK_SPACE)) {
+    Vector3 playerPos = {0.0f, 0.0f, 0.0f};
+    ParticleManager::GetInstance()->Emit(particleGroupName_, playerPos, 10);
+  }
+
+  // オブジェクトの更新
+  for (auto *obj : object3ds_) {
+    obj->Update();
+  }
+
+  // スプライトの更新
+  for (auto *sprite : sprites_) {
+    sprite->Update();
+  }
+
+  // UIとロジックの両方による変更が終わった「最終値」をチェックする
+  lightManager_->Update();
+
+  // 5. ImGuiの受付終了 (内部的な終了処理)
+  imGuiManager_->End();
+}
+
+void MyGame::Draw() {
+  // 1. 描画前処理
+  dxBase_->PreDraw();
+  srvManager_->PreDraw(); // SRV用のヒープをセット
+
+  // 2. 3Dオブジェクトの描画
+  object3dCommon_->SetCommonDrawSettings(
+      static_cast<BlendState>(currentBlendMode_), pipelineManager_);
+
+  if (showMaterial_) {
+    for (auto *obj : object3ds_) {
+      obj->Draw();
+    }
+  }
+
+  // 3. パーティクルの描画
+  ParticleManager::GetInstance()->Draw(
+      static_cast<BlendState>(particleBlendMode_));
+
+  // 4. スプライトの描画
+  spriteCommon_->SetCommonDrawSettings(
+      static_cast<BlendState>(currentBlendMode_), pipelineManager_);
+
+  if (showSprite_) {
+    for (size_t i = 0; i < sprites_.size(); ++i) {
+      // テクスチャの差し替え（特定の要素だけ変える処理）
+      if (i == 6) {
+        // ※ パスを持っているならここでセット
+        sprites_[i]->SetTexture(monsterBallPath_);
+      }
+      sprites_[i]->Draw();
+    }
+  }
+
+  // 5. ImGuiの描画 (Updateで作られたUIを描画コマンドに乗せる)
+  imGuiManager_->Draw();
+
+  // 6. 描画後処理 (画面の入れ替え)
+  dxBase_->PostDraw();
+}
+
+void MyGame::UpdateGameCamera() {
+
+  if (input_->IsKeyTriggered(DIK_F1)) {
+    useDebugCamera_ = !useDebugCamera_;
+  }
+
+  if (!useDebugCamera_) {
+    // キー入力によるカメラ操作
+    if (input_->IsKeyDown(DIK_A)) {
+      gameCameraTranslate_.x -= 0.1f;
+    }
+    if (input_->IsKeyDown(DIK_D)) {
+      gameCameraTranslate_.x += 0.1f;
+    }
+    if (input_->IsKeyDown(DIK_W)) {
+      gameCameraTranslate_.y += 0.1f;
+    }
+    if (input_->IsKeyDown(DIK_S)) {
+      gameCameraTranslate_.y -= 0.1f;
+    }
+    if (input_->IsKeyDown(DIK_Q)) {
+      gameCameraTranslate_.z += 0.1f;
+    }
+    if (input_->IsKeyDown(DIK_E)) {
+      gameCameraTranslate_.z -= 0.1f;
+    }
+    if (input_->IsKeyDown(DIK_C)) {
+      gameCameraRotate_.y += 0.02f;
+    }
+    if (input_->IsKeyDown(DIK_Z)) {
+      gameCameraRotate_.y -= 0.02f;
+    }
+    if (input_->IsKeyReleased(DIK_X)) {
+      gameCameraRotate_.y = 0.0f;
+    }
+
+    camera_->SetRotate(gameCameraRotate_);
+    camera_->SetTranslate(gameCameraTranslate_);
+  } else {
+    debugCamera_.Update(*input_);
+    camera_->SetRotate(debugCamera_.GetRotation());
+    camera_->SetTranslate(debugCamera_.GetTranslate());
+  }
+  camera_->Update();
+}
+
+void MyGame::UpdateImGui() {
 #ifdef USE_IMGUI
   ImGui::SetNextWindowPos(ImVec2(Win32Window::kClientWidth - 10.0f, 10.0f),
                           ImGuiCond_Once, ImVec2(1.0f, 0.0f));
   ImGui::Begin("Settings");
 
   if (ImGui::TreeNode("Global Settings")) {
+      ImGui::Text("switch camera (F1)");
     ImGui::Checkbox("useDebugCamera", &useDebugCamera_);
     ImGui::Combo("BlendMode", &currentBlendMode_,
                  "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
-    
+
     ImGui::TreePop();
   }
 
   ImGui::Separator();
 
   if (ImGui::TreeNode("Light Settings")) {
-      if (ImGui::TreeNode("DirectioalLight_")) {
-          // LightManagerからデータを参照して操作
-          Vector4 &color = lightManager_->GetDirectionalLightData().color;
-          Vector3 &direction = lightManager_->GetDirectionalLightData().direction;
-          float &intensity = lightManager_->GetDirectionalLightData().intensity;
+    if (ImGui::TreeNode("DirectioalLight_")) {
+      // LightManagerからデータを参照して操作
+      Vector4 &color = lightManager_->GetDirectionalLightData().color;
+      Vector3 &direction = lightManager_->GetDirectionalLightData().direction;
+      float &intensity = lightManager_->GetDirectionalLightData().intensity;
 
-          ImGui::ColorEdit4("color", &color.x);
-          ImGui::DragFloat3("direction", &direction.x, 0.01f);
-          ImGui::DragFloat("intensity", &intensity, 0.01f);
+      ImGui::ColorEdit4("color", &color.x);
+      ImGui::DragFloat3("direction", &direction.x, 0.01f);
+      ImGui::DragFloat("intensity", &intensity, 0.01f);
 
-          // 必要に応じて正規化
-          // direction = Normalize(direction);
+      // 必要に応じて正規化
+      // direction = Normalize(direction);
 
-          ImGui::TreePop();
-      }
-      ImGui::Separator();
-
-      if (ImGui::TreeNode("PointLight_")) {
-        PointLight &pointLight = lightManager_->GetPointLightData();
-
-
-          ImGui::ColorEdit4("color", &pointLight.color.x);
-          ImGui::DragFloat3("position", &pointLight.position.x, 0.01f);
-          ImGui::DragFloat("intensity", &pointLight.intensity, 0.01f);
-          ImGui::DragFloat("radius", &pointLight.radius, 0.01f);
-          ImGui::DragFloat("decay", &pointLight.decay, 0.01f);
-
-          ImGui::TreePop();
-      }
       ImGui::TreePop();
+    }
+    ImGui::Separator();
+
+    if (ImGui::TreeNode("PointLight_")) {
+      PointLight &pointLight = lightManager_->GetPointLightData();
+
+      ImGui::ColorEdit4("color", &pointLight.color.x);
+      ImGui::DragFloat3("position", &pointLight.position.x, 0.01f);
+      ImGui::DragFloat("intensity", &pointLight.intensity, 0.01f);
+      ImGui::DragFloat("radius", &pointLight.radius, 0.01f);
+      ImGui::DragFloat("decay", &pointLight.decay, 0.01f);
+
+      ImGui::TreePop();
+    }
+    ImGui::Separator();
+
+    if (ImGui::TreeNode("SpotLight_")) {
+      SpotLight &spotLight = lightManager_->GetSpotLightData();
+
+      ImGui::ColorEdit4("color", &spotLight.color.x);
+      ImGui::DragFloat3("position", &spotLight.position.x, 0.01f);
+      ImGui::DragFloat("distance", &spotLight.distance, 0.01f);
+      ImGui::DragFloat3("direction", &spotLight.direction.x, 0.01f);
+      ImGui::DragFloat("intensity", &spotLight.intensity, 0.01f);
+      ImGui::DragFloat("decay", &spotLight.decay, 0.01f);
+      ImGui::DragFloat("cosAngle", &spotLight.cosAngle, 0.01f);
+      ImGui::DragFloat("cosFalloffStart", &spotLight.cosFalloffStart, 0.01f);
+
+      ImGui::TreePop();
+    }
+    ImGui::TreePop();
   }
 
   ImGui::Separator();
@@ -256,16 +400,19 @@ void MyGame::Update() {
 
       if (ImGui::TreeNode(label.c_str())) {
 
-        ImGui::DragFloat3("scale", &object3d->GetTransformDebug().scale.x, 0.01f);
-        ImGui::DragFloat3("rotate", &object3d->GetTransformDebug().rotate.x, 0.01f);
-        ImGui::DragFloat3("translate", &object3d->GetTransformDebug().translate.x, 0.01f);
+        ImGui::DragFloat3("scale", &object3d->GetTransformDebug().scale.x,
+                          0.01f);
+        ImGui::DragFloat3("rotate", &object3d->GetTransformDebug().rotate.x,
+                          0.01f);
+        ImGui::DragFloat3("translate",
+                          &object3d->GetTransformDebug().translate.x, 0.01f);
 
         ImGui::Separator();
         bool enableLighting = object3d->GetModelDebug().IsEnableLighting();
 
-        ImGui::ColorEdit4("color", &object3d->GetModelDebug().GetColorDebug().x);
-        ImGui::Checkbox("enableLighting",
-            &enableLighting);
+        ImGui::ColorEdit4("color",
+                          &object3d->GetModelDebug().GetColorDebug().x);
+        ImGui::Checkbox("enableLighting", &enableLighting);
 
         object3d->GetModelDebug().SetEnableLighting(enableLighting);
 
@@ -358,115 +505,4 @@ void MyGame::Update() {
 
   ImGui::End(); // "Settings" ウィンドウの終了
 #endif
-
-  // 4. ゲームロジックの更新
-
-  // 音声のクリーンアップ
-  audioManager_.CleanupFinishedVoices();
-
-  // カメラの更新処理
-  if (!useDebugCamera_) {
-    // キー入力によるカメラ操作
-    if (input_->IsKeyDown(DIK_A)) {
-      gameCameraTranslate_.x -= 0.1f;
-    }
-    if (input_->IsKeyDown(DIK_D)) {
-      gameCameraTranslate_.x += 0.1f;
-    }
-    if (input_->IsKeyDown(DIK_W)) {
-      gameCameraTranslate_.y += 0.1f;
-    }
-    if (input_->IsKeyDown(DIK_S)) {
-      gameCameraTranslate_.y -= 0.1f;
-    }
-    if (input_->IsKeyDown(DIK_Q)) {
-      gameCameraTranslate_.z += 0.1f;
-    }
-    if (input_->IsKeyDown(DIK_E)) {
-      gameCameraTranslate_.z -= 0.1f;
-    }
-    if (input_->IsKeyDown(DIK_C)) {
-      gameCameraRotate_.y += 0.02f;
-    }
-    if (input_->IsKeyDown(DIK_Z)) {
-      gameCameraRotate_.y -= 0.02f;
-    }
-    if (input_->IsKeyReleased(DIK_X)) {
-      gameCameraRotate_.y = 0.0f;
-    }
-
-    camera_->SetRotate(gameCameraRotate_);
-    camera_->SetTranslate(gameCameraTranslate_);
-  } else {
-    debugCamera_.Update(*input_);
-    camera_->SetRotate(debugCamera_.GetRotation());
-    camera_->SetTranslate(debugCamera_.GetTranslate());
-  }
-  camera_->Update();
-
-  // パーティクルの更新
-  // ※ kDeltaTime は ApplicationConfig.h
-  // から読み込むか、メンバ変数として管理する
-  ParticleManager::GetInstance()->Update(*camera_, isUpdateParticle_,
-                                         useBillboard_, kDeltaTime);
-
-  // スペースキーでのパーティクル生成テスト
-  if (input_->IsKeyTriggered(DIK_SPACE)) {
-    Vector3 playerPos = {0.0f, 0.0f, 0.0f};
-    ParticleManager::GetInstance()->Emit(particleGroupName_, playerPos, 10);
-  }
-
-  // オブジェクトの更新
-  for (auto *obj : object3ds_) {
-    obj->Update();
-  }
-
-  // スプライトの更新
-  for (auto *sprite : sprites_) {
-    sprite->Update();
-  }
-
-  // 5. ImGuiの受付終了 (内部的な終了処理)
-  imGuiManager_->End();
-}
-
-void MyGame::Draw() {
-  // 1. 描画前処理
-  dxBase_->PreDraw();
-  srvManager_->PreDraw(); // SRV用のヒープをセット
-
-  // 2. 3Dオブジェクトの描画
-  object3dCommon_->SetCommonDrawSettings(
-      static_cast<BlendState>(currentBlendMode_), pipelineManager_);
-
-  if (showMaterial_) {
-    for (auto *obj : object3ds_) {
-      obj->Draw();
-    }
-  }
-
-  // 3. パーティクルの描画
-  ParticleManager::GetInstance()->Draw(
-      static_cast<BlendState>(particleBlendMode_));
-
-  // 4. スプライトの描画
-  spriteCommon_->SetCommonDrawSettings(
-      static_cast<BlendState>(currentBlendMode_), pipelineManager_);
-
-  if (showSprite_) {
-    for (size_t i = 0; i < sprites_.size(); ++i) {
-      // テクスチャの差し替え（特定の要素だけ変える処理）
-      if (i == 6) {
-        // ※ パスを持っているならここでセット
-        sprites_[i]->SetTexture(monsterBallPath_);
-      }
-      sprites_[i]->Draw();
-    }
-  }
-
-  // 5. ImGuiの描画 (Updateで作られたUIを描画コマンドに乗せる)
-  imGuiManager_->Draw();
-
-  // 6. 描画後処理 (画面の入れ替え)
-  dxBase_->PostDraw();
 }

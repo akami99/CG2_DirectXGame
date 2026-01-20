@@ -17,6 +17,9 @@ public:
   D3D12_GPU_VIRTUAL_ADDRESS GetPointLightAddress() const {
     return pointResource_->GetGPUVirtualAddress();
   }
+  D3D12_GPU_VIRTUAL_ADDRESS GetSpotLightAddress() const {
+    return spotResource_->GetGPUVirtualAddress();
+  }
 
   // データ設定用セッター
   void SetDirectionalLightColor(const Vector4 &color) {
@@ -37,9 +40,21 @@ public:
     pointData_->intensity = intensity;
   }
 
+  void SetSpotLightColor(const Vector4 &color) { spotData_->color = color; }
+  void SetSpotLightPosition(const Vector3 &position) {
+      spotData_->position = position;
+  }
+  void SetSpotLightIntensity(float intensity) {
+      spotData_->intensity = intensity;
+  }
+  void SetSpotLightDirection(const Vector3 &direction) {
+      spotData_->direction = direction;
+  }
+
   // ImGui用ゲッター
   DirectionalLight &GetDirectionalLightData() { return *directionalData_; }
   PointLight &GetPointLightData() { return *pointData_; }
+  SpotLight &GetSpotLightData() { return *spotData_; }
 
 private:
   // 平行光源バッファの作成
@@ -47,6 +62,9 @@ private:
 
   // 点光源バッファの作成
   void CreatePointResource();
+
+  // スポットライトバッファの作成
+  void CreateSpotResource();
 
 private:
   // DirectX基底部分のポインタ
@@ -59,4 +77,8 @@ private:
   // 点光源用
   Microsoft::WRL::ComPtr<ID3D12Resource> pointResource_;
   PointLight *pointData_ = nullptr;
+
+  // スポットライト用
+  Microsoft::WRL::ComPtr<ID3D12Resource> spotResource_;
+  SpotLight *spotData_ = nullptr;
 };

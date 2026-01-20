@@ -90,6 +90,15 @@ void Object3d::Draw() {
           object3dCommon_->GetLightManager()
               ->GetPointLightAddress() // pointLightのCBV
       );
+  // SpotLightのCBufferの場所を設定 (PS b4, rootParameter[6]に対応)
+  object3dCommon_->GetDX12Context()
+      ->GetCommandList()
+      ->SetGraphicsRootConstantBufferView(
+          6,
+          object3dCommon_->GetLightManager()
+              ->GetSpotLightAddress() // spotLightのCBV
+      );
+
   // 描画コマンド
   if (model_) {
     model_->Draw();

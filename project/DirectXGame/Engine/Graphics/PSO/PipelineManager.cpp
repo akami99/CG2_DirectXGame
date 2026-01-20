@@ -81,92 +81,95 @@ PipelineManager::CreateSpritePSO(const D3D12_BLEND_DESC &blendDesc) {
 ComPtr<ID3D12PipelineState>
 PipelineManager::CreateParticlePSO(const D3D12_BLEND_DESC &blendDesc) {
 
-    // ---------------------------------------------------------------------
-    // I. サブステートの定義 (BlendState, RasterizerState, DepthStencilState, InputLayout)
-    // ---------------------------------------------------------------------
+  // ---------------------------------------------------------------------
+  // I. サブステートの定義 (BlendState, RasterizerState, DepthStencilState,
+  // InputLayout)
+  // ---------------------------------------------------------------------
 
-    // 1. InputLayout (頂点レイアウト)
-    D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
-    inputElementDescs[0].SemanticName = "POSITION";
-    inputElementDescs[0].SemanticIndex = 0;
-    inputElementDescs[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-    inputElementDescs[0].InputSlot = 0;
-    inputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-    inputElementDescs[0].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-    inputElementDescs[0].InstanceDataStepRate = 0;
+  // 1. InputLayout (頂点レイアウト)
+  D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
+  inputElementDescs[0].SemanticName = "POSITION";
+  inputElementDescs[0].SemanticIndex = 0;
+  inputElementDescs[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+  inputElementDescs[0].InputSlot = 0;
+  inputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+  inputElementDescs[0].InputSlotClass =
+      D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+  inputElementDescs[0].InstanceDataStepRate = 0;
 
-    inputElementDescs[1].SemanticName = "TEXCOORD";
-    inputElementDescs[1].SemanticIndex = 0;
-    inputElementDescs[1].Format = DXGI_FORMAT_R32G32_FLOAT;
-    inputElementDescs[1].InputSlot = 0;
-    inputElementDescs[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-    inputElementDescs[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-    inputElementDescs[1].InstanceDataStepRate = 0;
+  inputElementDescs[1].SemanticName = "TEXCOORD";
+  inputElementDescs[1].SemanticIndex = 0;
+  inputElementDescs[1].Format = DXGI_FORMAT_R32G32_FLOAT;
+  inputElementDescs[1].InputSlot = 0;
+  inputElementDescs[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+  inputElementDescs[1].InputSlotClass =
+      D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+  inputElementDescs[1].InstanceDataStepRate = 0;
 
-    inputElementDescs[2].SemanticName = "NORMAL";
-    inputElementDescs[2].SemanticIndex = 0;
-    inputElementDescs[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-    inputElementDescs[2].InputSlot = 0;
-    inputElementDescs[2].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-    inputElementDescs[2].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-    inputElementDescs[2].InstanceDataStepRate = 0;
+  inputElementDescs[2].SemanticName = "NORMAL";
+  inputElementDescs[2].SemanticIndex = 0;
+  inputElementDescs[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+  inputElementDescs[2].InputSlot = 0;
+  inputElementDescs[2].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+  inputElementDescs[2].InputSlotClass =
+      D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+  inputElementDescs[2].InstanceDataStepRate = 0;
 
-    D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
-    inputLayoutDesc.pInputElementDescs = inputElementDescs;
-    inputLayoutDesc.NumElements = _countof(inputElementDescs);
+  D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
+  inputLayoutDesc.pInputElementDescs = inputElementDescs;
+  inputLayoutDesc.NumElements = _countof(inputElementDescs);
 
+  // 2. RasterizerState (ラスタライザ設定)
+  D3D12_RASTERIZER_DESC rasterizerDesc{};
+  rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;  // 裏面カリング無効
+  rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID; // 三角形の中を塗りつぶす
 
-    // 2. RasterizerState (ラスタライザ設定)
-    D3D12_RASTERIZER_DESC rasterizerDesc{};
-    rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE; // 裏面カリング無効
-    rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID; // 三角形の中を塗りつぶす
+  // 3. DepthStencilState (深度/ステンシル設定)
+  D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
+  depthStencilDesc.DepthEnable = true; // 深度テスト有効 (3D描画のため)
+  depthStencilDesc.DepthWriteMask =
+      D3D12_DEPTH_WRITE_MASK_ZERO; // 深度書き込み無効 (ブレンドのため)
+  depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL; // 比較関数
 
+  // ---------------------------------------------------------------------
+  // II. グラフィックスパイプラインステート (PSO) の構築
+  // ---------------------------------------------------------------------
 
-    // 3. DepthStencilState (深度/ステンシル設定)
-    D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
-    depthStencilDesc.DepthEnable = true; // 深度テスト有効 (3D描画のため)
-    depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; // 深度書き込み無効 (ブレンドのため)
-    depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL; // 比較関数
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
 
+  // シェーダとシグネチャ (パイプラインの核となる部分)
+  psoDesc.pRootSignature = rootSignatureParticle_.Get();
+  psoDesc.VS = {vsBlobParticle_->GetBufferPointer(),
+                vsBlobParticle_->GetBufferSize()};
+  psoDesc.PS = {psBlobParticle_->GetBufferPointer(),
+                psBlobParticle_->GetBufferSize()};
 
-    // ---------------------------------------------------------------------
-    // II. グラフィックスパイプラインステート (PSO) の構築
-    // ---------------------------------------------------------------------
+  // ステート設定 (I. で定義したサブステートを適用)
+  psoDesc.InputLayout = inputLayoutDesc;
+  psoDesc.BlendState = blendDesc;
+  psoDesc.RasterizerState = rasterizerDesc;
+  psoDesc.DepthStencilState = depthStencilDesc;
 
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
+  // レンダリング設定 (RT/DSVフォーマット、トポロジ)
+  psoDesc.NumRenderTargets = 1;
+  psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+  psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+  psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
-    // シェーダとシグネチャ (パイプラインの核となる部分)
-    psoDesc.pRootSignature = rootSignatureParticle_.Get();
-    psoDesc.VS = { vsBlobParticle_->GetBufferPointer(), vsBlobParticle_->GetBufferSize() };
-    psoDesc.PS = { psBlobParticle_->GetBufferPointer(), psBlobParticle_->GetBufferSize() };
+  // サンプリング設定 (固定値)
+  psoDesc.SampleDesc.Count = 1;
+  psoDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
 
-    // ステート設定 (I. で定義したサブステートを適用)
-    psoDesc.InputLayout = inputLayoutDesc;
-    psoDesc.BlendState = blendDesc;
-    psoDesc.RasterizerState = rasterizerDesc;
-    psoDesc.DepthStencilState = depthStencilDesc;
+  // ---------------------------------------------------------------------
+  // III. PSOの生成
+  // ---------------------------------------------------------------------
 
-    // レンダリング設定 (RT/DSVフォーマット、トポロジ)
-    psoDesc.NumRenderTargets = 1;
-    psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-    psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+  ComPtr<ID3D12PipelineState> pso;
+  HRESULT hr = dxBase_->GetDevice()->CreateGraphicsPipelineState(
+      &psoDesc, IID_PPV_ARGS(&pso));
+  assert(SUCCEEDED(hr));
 
-    // サンプリング設定 (固定値)
-    psoDesc.SampleDesc.Count = 1;
-    psoDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-
-
-    // ---------------------------------------------------------------------
-    // III. PSOの生成
-    // ---------------------------------------------------------------------
-
-    ComPtr<ID3D12PipelineState> pso;
-    HRESULT hr = dxBase_->GetDevice()->CreateGraphicsPipelineState(
-        &psoDesc, IID_PPV_ARGS(&pso));
-    assert(SUCCEEDED(hr));
-
-    return pso;
+  return pso;
 }
 
 ComPtr<ID3D12PipelineState> PipelineManager::CreateObject3dPSO(
@@ -326,7 +329,7 @@ void PipelineManager::CreateRootSignature() {
       D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // Offsetを自動計算
 
   // RootParameter作成。PixelShaderのMaterialとVertexShaderのTransform
-  D3D12_ROOT_PARAMETER object3dRootParameters[6] = {};
+  D3D12_ROOT_PARAMETER object3dRootParameters[7] = {};
 
   // Root Parameter 0: Pixel Shader用 Material CBV (b0)
   object3dRootParameters[0].ParameterType =
@@ -364,7 +367,7 @@ void PipelineManager::CreateRootSignature() {
   // Root Parameter 4: Pixel Shader用 Camera CBV (b2)
   object3dRootParameters[4].ParameterType =
       D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
-  object3dRootParameters[4].ShaderVisibility = 
+  object3dRootParameters[4].ShaderVisibility =
       D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
   object3dRootParameters[4].Descriptor.ShaderRegister =
       2; // レジスタ番号2を使う
@@ -376,6 +379,14 @@ void PipelineManager::CreateRootSignature() {
       D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
   object3dRootParameters[5].Descriptor.ShaderRegister =
       3; // レジスタ番号3を使う (b3)
+
+  // Root Parameter 6: Pixel Shader用 SpotLight CBV (b4)
+  object3dRootParameters[6].ParameterType =
+      D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
+  object3dRootParameters[6].ShaderVisibility =
+      D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
+  object3dRootParameters[6].Descriptor.ShaderRegister =
+      4; // レジスタ番号4を使う (b4)
 
   // object用のRootSignatureDesc
   D3D12_ROOT_SIGNATURE_DESC object3dRootSignatureDesc{};

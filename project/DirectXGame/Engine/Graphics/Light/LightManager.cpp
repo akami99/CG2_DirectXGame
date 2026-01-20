@@ -1,6 +1,8 @@
 #include "LightManager.h"
 #include "DX12Context.h" // CreateBufferResourceを使うため
 
+#include <numbers>
+
 void LightManager::Initialize(DX12Context *dxBase) {
   // DirectX基底部分のポインタを保存
   dxBase_ = dxBase;
@@ -9,11 +11,23 @@ void LightManager::Initialize(DX12Context *dxBase) {
   CreateDirectionalResource();
   // 点光源バッファの作成
   CreatePointResource();
+  // スポットライトバッファの作成
+  CreateSpotResource();
 }
 
 void LightManager::Update() {
-  // 必要なら正規化処理などをここで行う
-  // data_->direction = Normalize(data_->direction); など
+    // スポットライトの0除算防止調整
+      // cosAngle と cosFalloffStart が近すぎるとシェーダーで 1.0f / 0.0f が起きてしまう
+    const float epsilon = 0.0001f;
+
+    if (spotData_->cosFalloffStart <= spotData_->cosAngle + epsilon) {
+        // FalloffStartは常にAngleより少しだけ大きく（内側に）設定されるように強制する
+        // ※ cosなので、角度が小さいほど値が大きいことに注意
+        spotData_->cosFalloffStart = spotData_->cosAngle + epsilon;
+    }
+
+    // 必要であれば、cosの範囲(0~1)にクランプする処理もここで行う
+    // spotData_->cosAngle = std::clamp(spotData_->cosAngle, 0.0f, 1.0f);
 }
 
 // 平行光源バッファの作成
@@ -46,4 +60,22 @@ void LightManager::CreatePointResource() {
   pointData_->intensity = 1.0f;
   pointData_->radius = 10.0f;
   pointData_->decay = 1.0f;
+}
+
+void LightManager::CreateSpotResource() {
+  // 定数バッファの生成 (サイズは構造体に合わせる)
+  spotResource_ = dxBase_->CreateBufferResource(sizeof(SpotLight));
+
+  // データの書き込み先を取得
+  spotResource_->Map(0, nullptr, reinterpret_cast<void **>(&spotData_));
+
+  // 初期値設定
+  spotData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
+  spotData_->position = {2.0f, 1.25f, 0.0f};
+  spotData_->distance = 7.0f;
+  spotData_->direction = {-1.0f, -1.0f, 0.0f};
+  spotData_->intensity = 4.0f;
+  spotData_->decay = 2.0f;
+  spotData_->cosAngle = std::cosf(std::numbers::pi_v<float> / 3.0f);
+  spotData_->cosFalloffStart = std::cosf(std::numbers::pi_v<float> / 4.0f);
 }

@@ -21,6 +21,13 @@ public: // メンバ関数
     void Update() override;
     void Draw() override;
 
+private:
+    // ゲームカメラの更新
+    void UpdateGameCamera();
+
+    // ImGui操作の更新
+    void UpdateImGui();
+
 private: // メンバ変数(ゲーム内)
     // --- ゲーム固有の変数だけを残す ---
 
