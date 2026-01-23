@@ -50,18 +50,21 @@ private: // メンバ変数(ゲーム内)
 
   // パーティクル設定など
   Vector3 particleRotation_{};
+  bool isShowParticle_ = false;
   bool isUpdateParticle_ = true;
   bool useBillboard_ = true;
+  int objectControlIndex_ = 0;
   int currentBlendMode_ = 1;  // NormalBlend
   int particleBlendMode_ = 2; // AddBlend
-  bool showMaterial_ = true;
-  bool showSprite_ = false;
+  bool isShowMaterial_ = true;
+  bool isShowSprite_ = false;
 
   /// ファイルパスなどの定数
   // 3Dモデルのファイルパス
   const std::string planeModel_ = ("plane.obj");
   const std::string teapotModel_ = ("teapot.obj");
   const std::string terrainModel_ = ("terrain.obj");
+  const std::string sphereModel_ = ("sphere.obj");
   // テクスチャファイルパスを保持
   const std::string uvCheckerPath_ = "uvChecker.png";
   const std::string monsterBallPath_ = "monsterBall.png";

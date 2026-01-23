@@ -36,6 +36,7 @@ void DebugCamera::Update([[maybe_unused]] Input &input) {
   ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);
 
   ImGui::Begin("Debug Camera Control");
+  ImGui::Text("R: Reset Camera");
   ImGui::Text("Mode Change: TAB");
   // TABキー入力でモードを切り替える
   if (input.IsKeyTriggered(DIK_TAB)) {
@@ -184,9 +185,9 @@ void DebugCamera::Update([[maybe_unused]] Input &input) {
     } else if (input.IsKeyDown(DIK_D) && !input.IsKeyDown(DIK_LSHIFT)) {
       localMove.x += moveSpeed; // 右へ移動 (カメラのローカルX軸方向)
     }
-    if (input.IsKeyDown(DIK_R)) {
+    if (input.IsKeyDown(DIK_Q)) {
       localMove.y += moveSpeed; // 上へ移動 (カメラのローカルY軸方向)
-    } else if (input.IsKeyDown(DIK_F)) {
+    } else if (input.IsKeyDown(DIK_E)) {
       localMove.y -= moveSpeed; // 下へ移動 (カメラのローカルY軸方向)
     }
 
@@ -210,7 +211,7 @@ void DebugCamera::Update([[maybe_unused]] Input &input) {
     ImGui::Text("A/D + LSHIFT: Pivot Left/Right");
     ImGui::Text("W/S: Move Target Forward/Backward");
     ImGui::Text("A/D: Move Target Left/Right");
-    ImGui::Text("R/F: Move Target Up/Down");
+    ImGui::Text("Q/E: Move Target Up/Down");
 
   } else {
     // --- 一人称視点 (First-Person Camera) ロジック ---
@@ -262,9 +263,9 @@ void DebugCamera::Update([[maybe_unused]] Input &input) {
     }
 
     // 上下移動
-    if (input.IsKeyDown(DIK_R)) {
+    if (input.IsKeyDown(DIK_Q)) {
       localMove.y += moveSpeed; // 上へ移動
-    } else if (input.IsKeyDown(DIK_F)) {
+    } else if (input.IsKeyDown(DIK_E)) {
       localMove.y -= moveSpeed; // 下へ移動
     }
 
@@ -280,10 +281,16 @@ void DebugCamera::Update([[maybe_unused]] Input &input) {
     ImGui::Text("A/D + LSHIFT: Yaw Left/Right");
     ImGui::Text("W/S: Move Forward/Backward");
     ImGui::Text("A/D: Move Left/Right");
-    ImGui::Text("R/F: Move Up/Down\n\n\n\n");
+    ImGui::Text("Q/E: Move Up/Down\n\n\n\n");
   }
 
   // --- 共通の処理 ---
+  
+  // リセット
+  if (input.IsKeyTriggered(DIK_R)) {
+    Initialize(); // カメラを初期化
+  }
+
   // カメラのワールド行列を再計算
   worldMatrix_ = MakeAffineMatrix({1.0f, 1.0f, 1.0f}, matRot_, translation_);
 

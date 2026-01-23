@@ -73,8 +73,9 @@ void MyGame::Initialize() {
 
   // .objファイルからモデルを呼び込む
   // ModelManager::GetInstance()->LoadModel("plane", planeModel_);
-  ModelManager::GetInstance()->LoadModel("terrain", terrainModel_);
-  ModelManager::GetInstance()->LoadModel("teapot", teapotModel_);
+  // ModelManager::GetInstance()->LoadModel("terrain", terrainModel_);
+  // ModelManager::GetInstance()->LoadModel("teapot", teapotModel_);
+  ModelManager::GetInstance()->LoadModel("sphere", sphereModel_);
 
   // パーティクルグループの作成
   // エミッターの設定と登録
@@ -120,22 +121,22 @@ void MyGame::Initialize() {
   object3d_1->Initialize(object3dCommon_);
 
   // モデルの設定
-  object3d_1->SetModel(terrainModel_);
+  object3d_1->SetModel(sphereModel_);
   // オブジェクトの位置を設定
-  object3d_1->SetTranslate({-2.0f, 0.0f, 0.0f});
+  object3d_1->SetTranslate({0.0f, 0.0f, 0.0f});
 
   // 2つ目のオブジェクトを新規作成
-  Object3d *object3d_2 = new Object3d();
-  object3d_2->Initialize(object3dCommon_);
+  // Object3d *object3d_2 = new Object3d();
+  // object3d_2->Initialize(object3dCommon_);
 
   // モデルの設定
-  object3d_2->SetModel(teapotModel_);
+  // object3d_2->SetModel(teapotModel_);
   // オブジェクトの位置を設定
-  object3d_2->SetTranslate({2.0f, 0.0f, 0.0f});
+  // object3d_2->SetTranslate({2.0f, 0.0f, 0.0f});
 
   // Object3dを格納する
   object3ds_.push_back(object3d_1);
-  object3ds_.push_back(object3d_2);
+  // object3ds_.push_back(object3d_2);
 
   // 描画サイズ
   const float spriteCutSize = 64.0f;
@@ -211,10 +212,53 @@ void MyGame::Update() {
     ParticleManager::GetInstance()->Emit(particleGroupName_, playerPos, 10);
   }
 
-  // オブジェクトの更新
-  for (auto *obj : object3ds_) {
-    obj->Update();
+  if (!object3ds_.empty()) {
+      // オブジェクトの操作
+      if (!useDebugCamera_ && isShowMaterial_) {
+          Vector3 pos = object3ds_[objectControlIndex_]->GetTranslate();
+          Vector3 rot = object3ds_[objectControlIndex_]->GetRotation();
+          float moveSpeed = 0.1f;
+          float rotSpeed = 0.02f;
+
+          if (input_->IsKeyDown(DIK_A)) {
+              pos.x -= moveSpeed;
+          }
+          if (input_->IsKeyDown(DIK_D)) {
+              pos.x += moveSpeed;
+          }
+          if (input_->IsKeyDown(DIK_W)) {
+              pos.z += moveSpeed;
+          }
+          if (input_->IsKeyDown(DIK_S)) {
+              pos.z -= moveSpeed;
+          }
+          if (input_->IsKeyDown(DIK_Q)) {
+              pos.y += moveSpeed;
+          }
+          if (input_->IsKeyDown(DIK_E)) {
+              pos.y -= moveSpeed;
+          }
+          if (input_->IsKeyDown(DIK_Z)) {
+              rot.y -= rotSpeed;
+          }
+          if (input_->IsKeyDown(DIK_C)) {
+              rot.y += rotSpeed;
+          }
+          // 共通のリセットキー
+          if (input_->IsKeyDown(DIK_R)) {
+              pos = {0.0f, 0.0f, 0.0f};
+              rot = {0.0f, 0.0f, 0.0f};
+          }
+
+          object3ds_[objectControlIndex_]->SetTranslate(pos);
+          object3ds_[objectControlIndex_]->SetRotation(rot);
+      }
+      // オブジェクトの更新
+      for (auto* obj : object3ds_) {
+          obj->Update();
+      }
   }
+ 
 
   // スプライトの更新
   for (auto *sprite : sprites_) {
@@ -237,21 +281,23 @@ void MyGame::Draw() {
   object3dCommon_->SetCommonDrawSettings(
       static_cast<BlendState>(currentBlendMode_), pipelineManager_);
 
-  if (showMaterial_) {
+  if (isShowMaterial_ && !object3ds_.empty()) {
     for (auto *obj : object3ds_) {
       obj->Draw();
     }
   }
 
   // 3. パーティクルの描画
-  ParticleManager::GetInstance()->Draw(
-      static_cast<BlendState>(particleBlendMode_));
+  if (isShowParticle_) {
+    ParticleManager::GetInstance()->Draw(
+        static_cast<BlendState>(particleBlendMode_));
+  }
 
   // 4. スプライトの描画
   spriteCommon_->SetCommonDrawSettings(
       static_cast<BlendState>(currentBlendMode_), pipelineManager_);
 
-  if (showSprite_) {
+  if (isShowSprite_) {
     for (size_t i = 0; i < sprites_.size(); ++i) {
       // テクスチャの差し替え（特定の要素だけ変える処理）
       if (i == 6) {
@@ -277,35 +323,23 @@ void MyGame::UpdateGameCamera() {
 
   if (!useDebugCamera_) {
     // キー入力によるカメラ操作
-    if (input_->IsKeyDown(DIK_A)) {
-      gameCameraTranslate_.x -= 0.1f;
-    }
-    if (input_->IsKeyDown(DIK_D)) {
-      gameCameraTranslate_.x += 0.1f;
-    }
-    if (input_->IsKeyDown(DIK_W)) {
-      gameCameraTranslate_.y += 0.1f;
-    }
-    if (input_->IsKeyDown(DIK_S)) {
-      gameCameraTranslate_.y -= 0.1f;
-    }
-    if (input_->IsKeyDown(DIK_Q)) {
-      gameCameraTranslate_.z += 0.1f;
-    }
-    if (input_->IsKeyDown(DIK_E)) {
-      gameCameraTranslate_.z -= 0.1f;
-    }
-    if (input_->IsKeyDown(DIK_C)) {
-      gameCameraRotate_.y += 0.02f;
-    }
-    if (input_->IsKeyDown(DIK_Z)) {
-      gameCameraRotate_.y -= 0.02f;
-    }
-    if (input_->IsKeyReleased(DIK_X)) {
-      gameCameraRotate_.y = 0.0f;
-    }
+     if (input_->IsKeyDown(DIK_LEFT)) {
+       gameCameraTranslate_.x -= 0.1f;
+     }
+     if (input_->IsKeyDown(DIK_RIGHT)) {
+       gameCameraTranslate_.x += 0.1f;
+     }
+     if (input_->IsKeyDown(DIK_UP)) {
+       gameCameraTranslate_.y += 0.1f;
+     }
+     if (input_->IsKeyDown(DIK_DOWN)) {
+       gameCameraTranslate_.y -= 0.1f;
+     }
+     // 共通のリセットキー
+     if (input_->IsKeyDown(DIK_R)) {
+       gameCameraTranslate_ = { 0.0f, 2.0f, -15.0f };
+     }
 
-    camera_->SetRotate(gameCameraRotate_);
     camera_->SetTranslate(gameCameraTranslate_);
   } else {
     debugCamera_.Update(*input_);
@@ -317,13 +351,52 @@ void MyGame::UpdateGameCamera() {
 
 void MyGame::UpdateImGui() {
 #ifdef USE_IMGUI
+  // ImGuiを使ったUI処理
+  // ウィンドウの位置を設定
   ImGui::SetNextWindowPos(ImVec2(Win32Window::kClientWidth - 10.0f, 10.0f),
                           ImGuiCond_Once, ImVec2(1.0f, 0.0f));
+  ImGui::SetNextWindowSize(ImVec2(450.0f, 600.0f), ImGuiCond_Once);
+  // ウィンドウの開始
   ImGui::Begin("Settings");
 
   if (ImGui::TreeNode("Global Settings")) {
-      ImGui::Text("switch camera (F1)");
-    ImGui::Checkbox("useDebugCamera", &useDebugCamera_);
+    ImGui::Checkbox("useDebugCamera (F1)", &useDebugCamera_);
+    ImGui::Checkbox("showParticle", &isShowParticle_);
+    ImGui::Checkbox("showMaterial", &isShowMaterial_);
+    ImGui::Checkbox("showSprite", &isShowSprite_);
+    // 1.
+    // 現在選択されているオブジェクトのラベルを作成（コンボボックスのプレビュー用）
+    std::string currentLabel = "Object " + std::to_string(objectControlIndex_);
+
+    // 2. コンボボックスの開始
+    // "Select Object" はラベル名です。##
+    // を使うことでラベルを表示せずIDとして扱うことも可能です
+    if (ImGui::BeginCombo("Select Object", currentLabel.c_str())) {
+
+      for (size_t i = 0; i < object3ds_.size(); ++i) {
+        // 各項目のラベルを作成
+        std::string label = "Object " + std::to_string(i);
+
+        // 現在選択されている項目かどうかを判定
+        const bool isSelected = (objectControlIndex_ == static_cast<int>(i));
+
+        // 3. 選択肢を表示
+        if (ImGui::Selectable(label.c_str(), isSelected)) {
+          // クリックされたらインデックスを更新
+          objectControlIndex_ = static_cast<int>(i);
+        }
+
+        // 4.
+        // 最初から選択されている項目にスクロールを合わせる（アクセシビリティのため）
+        if (isSelected) {
+          ImGui::SetItemDefaultFocus();
+        }
+      }
+
+      // コンボボックスの終了
+      ImGui::EndCombo();
+    }
+
     ImGui::Combo("BlendMode", &currentBlendMode_,
                  "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
 
@@ -389,7 +462,7 @@ void MyGame::UpdateImGui() {
 
   ImGui::Separator();
   if (ImGui::TreeNode("Object3d")) {
-    ImGui::Checkbox("showMaterial", &showMaterial_);
+    ImGui::Checkbox("showMaterial", &isShowMaterial_);
 
     // ここからループ処理
     for (size_t i = 0; i < object3ds_.size(); ++i) {
@@ -448,7 +521,7 @@ void MyGame::UpdateImGui() {
   ImGui::Separator();
   if (ImGui::TreeNode("Sprite")) {
 
-    ImGui::Checkbox("showSprite", &showSprite_);
+    ImGui::Checkbox("showSprite", &isShowSprite_);
 
     for (size_t i = 0; i < sprites_.size(); ++i) {
       std::string label = "Sprite " + std::to_string(i);
@@ -504,5 +577,25 @@ void MyGame::UpdateImGui() {
   }
 
   ImGui::End(); // "Settings" ウィンドウの終了
+
+  // ヘルプウィンドウ
+  // ウィンドウの位置を設定
+  ImGui::SetNextWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_Once);
+  ImGui::SetNextWindowSize(ImVec2(370.0f, 190.0f), ImGuiCond_Once);
+  ImGui::Begin("Help");
+  ImGui::Text("F1: Toggle Debug Camera");
+  ImGui::Text("R: Reset Camera / Object Position");
+  ImGui::Separator();
+  ImGui::Text("Arrow Keys: Move Camera");
+  ImGui::Separator();
+  ImGui::Text("WASDQE: Move Object");
+  ImGui::Text("ZC: Rotate Object");
+  ImGui::Separator();
+  ImGui::Text("SPACE: Emit Particles");
+  ImGui::Separator();
+  ImGui::Text("Use the combo box to select which object to control.");
+  ImGui::Text("Adjust parameters in the 'Settings' window.");
+  ImGui::End();
+
 #endif
 }
