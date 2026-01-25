@@ -275,7 +275,7 @@ void GamePlayScene::UpdateGameCamera() {
         }
         // 共通のリセットキー
         if (Input::GetInstance()->IsKeyDown(DIK_R)) {
-            gameCameraTranslate_ = { 0.0f, 2.0f, -15.0f };
+            gameCameraTranslate_ = { 0.0f, 4.0f, -10.0f };
         }
 
         camera_->SetTranslate(gameCameraTranslate_);

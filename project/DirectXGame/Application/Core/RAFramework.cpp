@@ -15,6 +15,10 @@
 #include "AudioManager.h"
 #include "Logger.h"
 
+// Scene
+#include "GamePlayScene.h"
+#include "TitleScene.h"
+
 // dump用
 #include <dbghelp.h>
 #include <strsafe.h>
@@ -78,8 +82,6 @@ void RAFramework::Run() {
         }
 
         // 更新
-        // Update()の前に行うことで、ゲームロジック内で最新の入力情報を使える
-        Input::GetInstance()->Update();
 
         Update();
 
@@ -129,15 +131,53 @@ void RAFramework::Initialize() {
     SpriteCommon::GetInstance()->Initialize();
     // Object3dCommon
     Object3dCommon::GetInstance()->Initialize();
+
+
+    // --- ゲーム固有の初期化処理 ---
+    titleScene_ = new TitleScene();
+    titleScene_->Initialize();
+    // gamePlayScene_ = new GamePlayScene();
+    // gamePlayScene_->Initialize();
 }
 
 void RAFramework::Update() {
-    // ここに書いても MyGame::Update に上書きされて消えてしまうので、
-    // ここには何も書かない（またはデフォルト処理が必要ならMyGameから呼ぶルールにする）
+    // MyGameから呼ぶルールにする
+    // 入力の更新
+    Input::GetInstance()->Update();
+
+    // ImGuiの受付開始
+    imGuiManager_->Begin();
+
+    // ゲームプレイシーンの更新
+    titleScene_->Update();
+    //gamePlayScene_->Update();
+
+    // シーンマネージャに現在のシーンを更新させる
+    // (内部で TitleScene->Update() などが呼ばれる)
+    //SceneManager::GetInstance()->Update();
+
+    // ImGuiの受付終了 (内部的な終了処理)
+    imGuiManager_->End();
+}
+
+void RAFramework::Draw() {
+    // ゲームプレイシーンの描画
+    titleScene_->Draw();
+    //gamePlayScene_->Draw();
 }
 
 void RAFramework::Finalize() {
-    // 基盤の解放処理
+    // ゲーム固有の終了処理
+    if (titleScene_) {
+        titleScene_->Finalize();
+        delete titleScene_;
+        titleScene_ = nullptr;
+    }
+    /* if (gamePlayScene_) {
+       gamePlayScene_->Finalize();
+       delete gamePlayScene_;
+       gamePlayScene_ = nullptr;
+     }*/
 
     // マネージャーの終了
     Object3dCommon::GetInstance()->Finalize();

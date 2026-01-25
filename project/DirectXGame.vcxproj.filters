@@ -267,7 +267,10 @@
     <ClCompile Include="DirectXGame\Engine\Graphics\Light\LightManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="DirectXGame\Application\GamePlayScene.cpp">
+    <ClCompile Include="DirectXGame\Application\Scene\GamePlayScene.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Application\Scene\TitleScene.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -377,10 +380,13 @@
     <ClInclude Include="DirectXGame\Engine\Graphics\Light\LightManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXGame\Application\Core\IScene.h">
+    <ClInclude Include="DirectXGame\Engine\Scene\IScene.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXGame\Application\GamePlayScene.h">
+    <ClInclude Include="DirectXGame\Application\Scene\GamePlayScene.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Application\Scene\TitleScene.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

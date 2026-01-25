@@ -9,11 +9,6 @@
 #include "Object3d.h"
 #include "Sprite.h"
 
-// Frameworkの機能を借りるために必要
-class Input;
-class ParticleManager;
-class DX12Context; // 描画前処理等で必要なら
-
 class GamePlayScene : public IScene {
 public:
     void Initialize() override;
