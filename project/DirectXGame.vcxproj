@@ -157,9 +157,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DirectXGame\Application\Core\MyGame.cpp" />
+    <ClCompile Include="DirectXGame\Application\GamePlayScene.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\Camera\Camera.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\BlendMode\BlendMode.cpp" />
-    <ClCompile Include="DirectXGame\Engine\Audio\AudioManeger.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Audio\AudioManager.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\Base\D3DResourceLeakChecker.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\Camera\DebugCamera.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\Base\DX12Context.cpp" />
@@ -241,7 +242,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DirectXGame\Application\Core\IScene.h" />
     <ClInclude Include="DirectXGame\Application\Core\MyGame.h" />
+    <ClInclude Include="DirectXGame\Application\GamePlayScene.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\Camera\Camera.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\BlendMode\BlendMode.h" />
     <ClInclude Include="DirectXGame\Application\Core\ApplicationConfig.h" />

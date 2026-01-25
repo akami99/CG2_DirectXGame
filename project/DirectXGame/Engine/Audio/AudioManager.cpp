@@ -9,6 +9,12 @@
 #pragma comment(lib, "mfreadwrite.lib")
 #pragma comment(lib, "mfuuid.lib")
 
+// シングルトンインスタンスの取得実装
+AudioManager* AudioManager::GetInstance() {
+    static AudioManager instance;
+    return &instance;
+}
+
 // PlayingVoice 構造体のデストラクタの実装
 AudioManager::PlayingVoice::~PlayingVoice() {
   if (pVoice) {

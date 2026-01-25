@@ -23,6 +23,8 @@ public: // namespace省略のためのusing宣言
 
 private: // メンバ変数
 #pragma region privateメンバ変数
+   
+  static DX12Context *instance_; // シングルトンインスタンス
 
   // WindowsAPI
   Win32Window *window_ = nullptr;
@@ -81,11 +83,16 @@ private: // メンバ変数
 
 #pragma endregion privateメンバ変数
 
+public:  // シングルトンインスタンス取得
+    static DX12Context* GetInstance();
+
 public: // メンバ関数
 #pragma region publicメンバ関数
 
   // 初期化
   void Initialize(Win32Window *window);
+  // 終了
+  void Finalize();
   // 描画前処理
   void PreDraw();
   // 描画後処理
@@ -223,8 +230,6 @@ public: // ヘルパー関数
 private: // ヘルパー関数
 #pragma region privateヘルパー関数
 
-#pragma region デスクリプタ
-
 #pragma region ハンドルのゲッター
 
   /// <summary>
@@ -253,5 +258,11 @@ private: // ヘルパー関数
 
 #pragma endregion ハンドルのゲッター
 
-#pragma endregion デスクリプタ
+#pragma endregion privateヘルパー関数
+
+  private: // コンストラクタ・デストラクタ・コピー禁止
+    DX12Context() = default;
+    ~DX12Context() = default;
+    DX12Context(const DX12Context &) = delete;
+    const DX12Context &operator=(const DX12Context &) = delete;
 };

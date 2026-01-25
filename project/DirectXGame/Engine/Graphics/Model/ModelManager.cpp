@@ -1,6 +1,5 @@
 #include "ModelManager.h"
 #include "Model.h"
-#include "ModelCommon.h"
 
 #include "../../Core/Utility/Logger/Logger.h"
 #include "../../Core/Utility/String/StringUtility.h"
@@ -16,11 +15,7 @@ using namespace StringUtility;
 ModelManager *ModelManager::instance_ = nullptr;
 
 // 初期化
-void ModelManager::Initialize(DX12Context *dxBase) {
-
-  // モデルの初期化
-  modelCommon_ = new ModelCommon();
-  modelCommon_->Initialize(dxBase);
+void ModelManager::Initialize() {
 }
 
 // シングルトンインスタンスの取得
@@ -71,7 +66,7 @@ void ModelManager::LoadModel(const std::string &directoryPath,
   // unique_ptrでModelのインスタンスを生成
   std::unique_ptr<Model> model = std::make_unique<Model>();
 
-  model->Initialize(modelCommon_, fullDirectoryPath, filePath);
+  model->Initialize(fullDirectoryPath, filePath);
   Log("INFO: Loaded model at path: " + fullDirectoryPath + "/" + filePath + "\n");
 
   // --- 4. モデルをマップコンテナに格納 ---

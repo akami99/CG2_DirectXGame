@@ -1,7 +1,6 @@
 #pragma once
 #include "Math/MathTypes.h"
 #include "Math/Matrix/MatrixGenerators.h"
-#include "../Input/Input.h"
 
 /// <summary>
 /// デバッグカメラ
@@ -41,7 +40,7 @@ public:
   /// <summary>
   /// 更新
   /// </summary>
-  void Update(Input &input);
+  void Update();
 
   // getter
   const Matrix4x4 &GetWorldMatrix() const { return worldMatrix_; }

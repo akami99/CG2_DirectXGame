@@ -1,13 +1,29 @@
 #include "PipelineManager.h"
 
+#include "Base/DX12Context.h"
 #include "Logger/Logger.h"
+
+#include <cassert>
 
 using namespace Microsoft::WRL;
 using namespace Logger;
 
-void PipelineManager::Initialize(DX12Context *dxBase) {
-  dxBase_ = dxBase;
+// 静的メンバ変数の実体
+PipelineManager* PipelineManager::instance_ = nullptr;
 
+PipelineManager* PipelineManager::GetInstance() {
+    if (instance_ == nullptr) {
+        instance_ = new PipelineManager();
+    }
+    return instance_;
+}
+
+void PipelineManager::Finalize() {
+    delete instance_;
+    instance_ = nullptr;
+}
+
+void PipelineManager::Initialize() {
   // シェーダーのロード
   LoadShader();
 
@@ -69,7 +85,7 @@ PipelineManager::CreateSpritePSO(const D3D12_BLEND_DESC &blendDesc) {
 #pragma region PSO生成
 
   ComPtr<ID3D12PipelineState> pso;
-  HRESULT hr = dxBase_->GetDevice()->CreateGraphicsPipelineState(
+  HRESULT hr = DX12Context::GetInstance()->GetDevice()->CreateGraphicsPipelineState(
       &psoDesc, IID_PPV_ARGS(&pso));
   assert(SUCCEEDED(hr));
 
@@ -165,7 +181,7 @@ PipelineManager::CreateParticlePSO(const D3D12_BLEND_DESC &blendDesc) {
   // ---------------------------------------------------------------------
 
   ComPtr<ID3D12PipelineState> pso;
-  HRESULT hr = dxBase_->GetDevice()->CreateGraphicsPipelineState(
+  HRESULT hr = DX12Context::GetInstance()->GetDevice()->CreateGraphicsPipelineState(
       &psoDesc, IID_PPV_ARGS(&pso));
   assert(SUCCEEDED(hr));
 
@@ -173,10 +189,11 @@ PipelineManager::CreateParticlePSO(const D3D12_BLEND_DESC &blendDesc) {
 }
 
 ComPtr<ID3D12PipelineState> PipelineManager::CreateObject3dPSO(
-    const D3D12_INPUT_ELEMENT_DESC *inputLayout, uint32_t numElements,
-    const D3D12_RASTERIZER_DESC &rasterizerDesc,
-    const D3D12_DEPTH_STENCIL_DESC &depthStencilDesc,
-    const D3D12_BLEND_DESC &blendDesc) {
+    const D3D12_INPUT_ELEMENT_DESC* inputLayout, // Object3dCommonが決定
+    uint32_t numElements,
+    const D3D12_RASTERIZER_DESC& rasterizerDesc, // Object3dCommonが決定
+    const D3D12_DEPTH_STENCIL_DESC& depthStencilDesc,
+    const D3D12_BLEND_DESC& blendDesc) {
   HRESULT hr;
 
   // PSO設定の雛形を作成
@@ -205,7 +222,7 @@ ComPtr<ID3D12PipelineState> PipelineManager::CreateObject3dPSO(
   psoDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
   // PSOの生成
   ComPtr<ID3D12PipelineState> pso;
-  hr = dxBase_->GetDevice()->CreateGraphicsPipelineState(&psoDesc,
+  hr = DX12Context::GetInstance()->GetDevice()->CreateGraphicsPipelineState(&psoDesc,
                                                          IID_PPV_ARGS(&pso));
 
   return pso;
@@ -214,22 +231,22 @@ ComPtr<ID3D12PipelineState> PipelineManager::CreateObject3dPSO(
 // シェーダーの読み込み
 void PipelineManager::LoadShader() {
   // VertexShaderの読み込み
-  vsBlobSprite_ = dxBase_->CompileShader(L"Sprite.VS.hlsl", L"vs_6_0");
+  vsBlobSprite_ = DX12Context::GetInstance()->CompileShader(L"Sprite.VS.hlsl", L"vs_6_0");
   assert(vsBlobSprite_ != nullptr);
   // PixelShaderの読み込み
-  psBlobSprite_ = dxBase_->CompileShader(L"Sprite.PS.hlsl", L"ps_6_0");
+  psBlobSprite_ = DX12Context::GetInstance()->CompileShader(L"Sprite.PS.hlsl", L"ps_6_0");
   assert(psBlobSprite_ != nullptr);
 
   // オブジェクト用
-  vsBlob3D_ = dxBase_->CompileShader(L"Object3d.VS.hlsl", L"vs_6_0");
+  vsBlob3D_ = DX12Context::GetInstance()->CompileShader(L"Object3d.VS.hlsl", L"vs_6_0");
   assert(vsBlob3D_ != nullptr);
-  psBlob3D_ = dxBase_->CompileShader(L"Object3d.PS.hlsl", L"ps_6_0");
+  psBlob3D_ = DX12Context::GetInstance()->CompileShader(L"Object3d.PS.hlsl", L"ps_6_0");
   assert(psBlob3D_ != nullptr);
 
   // パーティクル用
-  vsBlobParticle_ = dxBase_->CompileShader(L"Particle.VS.hlsl", L"vs_6_0");
+  vsBlobParticle_ = DX12Context::GetInstance()->CompileShader(L"Particle.VS.hlsl", L"vs_6_0");
   assert(vsBlobParticle_ != nullptr);
-  psBlobParticle_ = dxBase_->CompileShader(L"Particle.PS.hlsl", L"ps_6_0");
+  psBlobParticle_ = DX12Context::GetInstance()->CompileShader(L"Particle.PS.hlsl", L"ps_6_0");
   assert(psBlobParticle_ != nullptr);
 }
 
@@ -308,7 +325,7 @@ void PipelineManager::CreateRootSignature() {
     Logger::Log(reinterpret_cast<char *>(spriteErrorBlob->GetBufferPointer()));
     assert(false);
   }
-  hr = dxBase_->GetDevice()->CreateRootSignature(
+  hr = DX12Context::GetInstance()->GetDevice()->CreateRootSignature(
       0, spriteSignatureBlob->GetBufferPointer(),
       spriteSignatureBlob->GetBufferSize(),
       IID_PPV_ARGS(&rootSignatureSprite_));
@@ -412,7 +429,7 @@ void PipelineManager::CreateRootSignature() {
     assert(false);
   }
   // バイナリを元に生成
-  hr = dxBase_->GetDevice()->CreateRootSignature(
+  hr = DX12Context::GetInstance()->GetDevice()->CreateRootSignature(
       0, object3dSignatureBlob->GetBufferPointer(),
       object3dSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature3D_));
   assert(SUCCEEDED(hr));
@@ -490,7 +507,7 @@ void PipelineManager::CreateRootSignature() {
     assert(false);
   }
   // バイナリを元に生成
-  hr = dxBase_->GetDevice()->CreateRootSignature(
+  hr = DX12Context::GetInstance()->GetDevice()->CreateRootSignature(
       0, particleSignatureBlob->GetBufferPointer(),
       particleSignatureBlob->GetBufferSize(),
       IID_PPV_ARGS(&rootSignatureParticle_));

@@ -3,16 +3,28 @@
 
 #include <numbers>
 
-void LightManager::Initialize(DX12Context *dxBase) {
-  // DirectX基底部分のポインタを保存
-  dxBase_ = dxBase;
+LightManager *LightManager::instance_ = nullptr;
 
+LightManager* LightManager::GetInstance() {
+    if (instance_ == nullptr) {
+    instance_ = new LightManager;
+  }
+    return instance_;
+}
+
+void LightManager::Initialize() {
   // 平行光源バッファの作成
   CreateDirectionalResource();
   // 点光源バッファの作成
   CreatePointResource();
   // スポットライトバッファの作成
   CreateSpotResource();
+}
+
+void LightManager::Finalize() {
+  // インスタンスの解放
+  delete instance_;
+  instance_ = nullptr;
 }
 
 void LightManager::Update() {
@@ -30,11 +42,25 @@ void LightManager::Update() {
     // spotData_->cosAngle = std::clamp(spotData_->cosAngle, 0.0f, 1.0f);
 }
 
+void LightManager::Draw() {
+    // 平行光源 (RootParameter Index 3)
+    DX12Context::GetInstance()->GetCommandList()->SetGraphicsRootConstantBufferView(
+        3, directionalResource_->GetGPUVirtualAddress());
+
+    // 点光源 (RootParameter Index 5)
+    DX12Context::GetInstance()->GetCommandList()->SetGraphicsRootConstantBufferView(
+        5, pointResource_->GetGPUVirtualAddress());
+
+    // スポットライト (RootParameter Index 6)
+    DX12Context::GetInstance()->GetCommandList()->SetGraphicsRootConstantBufferView(
+        6, spotResource_->GetGPUVirtualAddress());
+}
+
 // 平行光源バッファの作成
 void LightManager::CreateDirectionalResource() {
   // 定数バッファの生成 (サイズは構造体に合わせる)
   directionalResource_ =
-      dxBase_->CreateBufferResource(sizeof(DirectionalLight));
+      DX12Context::GetInstance()->CreateBufferResource(sizeof(DirectionalLight));
 
   // データの書き込み先を取得
   directionalResource_->Map(0, nullptr,
@@ -49,7 +75,7 @@ void LightManager::CreateDirectionalResource() {
 void LightManager::CreatePointResource() {
   // リソース（バッファ）を作成
   // サイズが PointLight 構造体の大きさになる点に注意
-  pointResource_ = dxBase_->CreateBufferResource(sizeof(PointLight));
+  pointResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(PointLight));
 
   // データを書き込むためのアドレスを取得 (Map)
   pointResource_->Map(0, nullptr, reinterpret_cast<void **>(&pointData_));
@@ -64,7 +90,7 @@ void LightManager::CreatePointResource() {
 
 void LightManager::CreateSpotResource() {
   // 定数バッファの生成 (サイズは構造体に合わせる)
-  spotResource_ = dxBase_->CreateBufferResource(sizeof(SpotLight));
+  spotResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(SpotLight));
 
   // データの書き込み先を取得
   spotResource_->Map(0, nullptr, reinterpret_cast<void **>(&spotData_));

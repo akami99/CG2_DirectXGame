@@ -8,7 +8,6 @@
 #include <wrl/client.h>
 
 // 前方宣言
-class Object3dCommon;
 class Model;
 class Camera;
 
@@ -23,8 +22,6 @@ private: // namespace省略のためのusing宣言
 #pragma endregion
 
 private: // メンバ変数
-  // 共通部のポインタ
-  Object3dCommon *object3dCommon_ = nullptr;
   // モデルのポインタ
   Model *model_ = nullptr;
   // カメラのポインタ
@@ -42,7 +39,7 @@ private: // メンバ変数
 
 public: // メンバ関数
   // 初期化
-  void Initialize(Object3dCommon *object3dCommon);
+  void Initialize();
 
   // 更新
   void Update();

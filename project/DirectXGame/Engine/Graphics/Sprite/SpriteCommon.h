@@ -2,12 +2,9 @@
 
 #include <d3d12.h>
 #include <wrl/client.h>
+#include <array> // std::array用に必要
 
 #include "BlendMode/BlendMode.h"
-
-// 前方宣言
-class DX12Context;
-class PipelineManager;
 
 // スプライト共通部
 class SpriteCommon {
@@ -20,8 +17,8 @@ private: // namespace省略のためのusing宣言
 #pragma endregion
 
 private: // メンバ変数
-  // DirectXデバイス
-  DX12Context *dxBase_ = nullptr;
+
+    static SpriteCommon *instance_;
 
   // グラフィックスパイプラインステート (ブレンドモードごとに配列で保持)
   ComPtr<ID3D12PipelineState>
@@ -30,14 +27,22 @@ private: // メンバ変数
   // その他共通設定
   D3D12_RASTERIZER_DESC rasterizerDesc_{};
 
+public: // シングルトンインスタンス取得
+    static SpriteCommon* GetInstance();
+
 public: // メンバ関数
   // 初期化
-  void Initialize(DX12Context *dxBase, PipelineManager *pipelineManager);
+  void Initialize();
+
+  // 終了
+  void Finalize();
 
   // 共通描画設定
-  void SetCommonDrawSettings(BlendMode::BlendState currentBlendMode,
-                             PipelineManager *pipelineManager);
+  void SetCommonDrawSettings(BlendMode::BlendState currentBlendMode);
 
-  // DirectX基底部分を取得
-  DX12Context *GetDX12Context() const { return dxBase_; }
+private: // コンストラクタ周り
+    SpriteCommon() = default;
+    ~SpriteCommon() = default;
+    SpriteCommon(const SpriteCommon&) = delete;
+    const SpriteCommon& operator=(const SpriteCommon&) = delete;
 };

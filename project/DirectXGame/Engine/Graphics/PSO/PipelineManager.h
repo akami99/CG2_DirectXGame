@@ -1,9 +1,9 @@
 #pragma once
 
 #include <d3d12.h>
+#include <dxcapi.h> // IDxcBlob用に必要
 #include <wrl/client.h>
-
-#include "Base/DX12Context.h"
+#include <cstdint> // uint32_t用に必要
 
 class PipelineManager {
 private: // namespace省略のためのusing宣言
@@ -15,9 +15,6 @@ private: // namespace省略のためのusing宣言
 #pragma endregion
 
 private: // メンバ変数
-  // DirectXデバイス
-  DX12Context *dxBase_ = nullptr;
-
   // --- Sprite描画用アセット ---
   ComPtr<IDxcBlob> vsBlobSprite_;                   // Vertex Shader
   ComPtr<IDxcBlob> psBlobSprite_;                   // Pixel Shader
@@ -32,9 +29,16 @@ private: // メンバ変数
   ComPtr<IDxcBlob> psBlobParticle_;                   // Pixel Shader
   ComPtr<ID3D12RootSignature> rootSignatureParticle_; // ルートシグネチャ
 
+private: // シングルトン管理用メンバ変数
+    static PipelineManager* instance_;
+
+public: // シングルトンインスタンスの取得・破棄
+    static PipelineManager* GetInstance();
+    void Finalize();
+
 public: // メンバ関数
   // 初期化(シェーダーとルートシグネチャのロード/生成を実行)
-  void Initialize(DX12Context *dxBase);
+  void Initialize();
 
   // Sprite用のグラフィックスパイプラインを生成して返す関数
   ComPtr<ID3D12PipelineState>
@@ -72,4 +76,10 @@ private: // メンバ関数
   void LoadShader();
   // ルートシグネチャの作成
   void CreateRootSignature();
+
+private: // コンストラクタ関連（隠蔽）
+    PipelineManager() = default;
+    ~PipelineManager() = default;
+    PipelineManager(const PipelineManager&) = delete;
+    const PipelineManager& operator=(const PipelineManager&) = delete;
 };

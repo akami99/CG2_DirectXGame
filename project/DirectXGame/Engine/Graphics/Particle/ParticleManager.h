@@ -11,9 +11,6 @@
 #include <unordered_map>
 #include <wrl/client.h>
 
-class DX12Context;
-class PipelineManager;
-class SrvManager;
 class Camera;
 
 class ParticleManager {
@@ -42,12 +39,8 @@ private: // メンバ変数
   };
   std::unordered_map<std::string, ParticleGroup> particleGroups_{};
 
+  // シングルトンインスタンス
   static ParticleManager *instance_;
-
-  // DirectXの共通機能とSRVマネージャへのポインタ
-  DX12Context *dxBase_ = nullptr;
-  SrvManager *srvManager_ = nullptr;
-  PipelineManager *pipelineManager_ = nullptr;
 
   // パイプライン・頂点リソース関連のメンバ変数
   ComPtr<ID3D12RootSignature> particleRootSignature_{};
@@ -70,10 +63,12 @@ private: // メンバ変数
   // 初期化中に使用したアップロードリソースを保持するリスト
   std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> intermediateResources_;
 
+public: // シングルトンインスタンス取得
+    static ParticleManager* GetInstance();
+
 public: // メンバ関数
   // 初期化処理
-  void Initialize(DX12Context *dxBase, SrvManager *srvManager,
-                  PipelineManager *pipelineManager);
+  void Initialize();
 
   // パーティクルグループの生成
   void CreateParticleGroup(const std::string &name,
@@ -90,8 +85,6 @@ public: // メンバ関数
 
   // 描画処理
   void Draw(BlendMode::BlendState blendMode);
-
-  static ParticleManager *GetInstance();
 
   void SetEmitter(const std::string &name, const ParticleEmitter &emitter);
 

@@ -3,9 +3,9 @@
 #include <format>
 #include <thread>
 
+#include "DX12Context.h"
 #include "../../Core/Utility/Logger/Logger.h"
 #include "../../Core/Utility/String/StringUtility.h"
-#include "Base/DX12Context.h"
 
 #include "externals/DirectXTex/d3dx12.h"
 
@@ -16,6 +16,16 @@
 using namespace Microsoft::WRL;
 using namespace Logger;
 using namespace StringUtility;
+
+DX12Context *DX12Context::instance_ = nullptr;
+
+// シングルトンインスタンスの実装
+DX12Context *DX12Context::GetInstance() {
+    if (instance_ == nullptr) {
+    instance_ = new DX12Context;
+  }
+    return instance_;
+}
 
 #pragma region publicメンバ関数
 
@@ -64,6 +74,19 @@ void DX12Context::Initialize(Win32Window *window) {
   CreateDXCCompiler();
 
   Log("Complete Initialize DX12Context!!!\n"); // 初期化完了のログをだす
+}
+
+// 終了
+void DX12Context::Finalize() {
+  // フェンスイベントのクローズ
+  if (fenceEvent_) {
+    CloseHandle(fenceEvent_);
+    fenceEvent_ = nullptr;
+  }
+  // インスタンスの破棄
+  delete instance_;
+  instance_ = nullptr;
+  Log("Complete Finalize DX12Context!!!\n"); // 終了完了のログをだす
 }
 
 #pragma region 描画処理

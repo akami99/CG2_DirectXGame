@@ -5,8 +5,6 @@
 #include <memory>
 
 // 前方宣言
-class DX12Context;
-class ModelCommon;
 class Model;
 
 // モデルマネージャー
@@ -17,15 +15,13 @@ private: // メンバ変数
   // モデルデータ
   std::map<std::string, std::unique_ptr<Model>> models_;
 
-  // モデルのポインタ
-  ModelCommon *modelCommon_ = nullptr;
+  public: // シングルトンインスタンスの取得
+  static ModelManager* GetInstance();
 
 public: // メンバ関数
   // 初期化
-  void Initialize(DX12Context *dxBase);
+  void Initialize();
 
-  // シングルトンインスタンスの取得
-  static ModelManager *GetInstance();
   // 終了(この後にGetInstance()するとまたnewするので注意)
   void Finalize();
 

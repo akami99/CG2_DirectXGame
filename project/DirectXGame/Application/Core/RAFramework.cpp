@@ -11,6 +11,8 @@
 #include "TextureManager.h"
 #include "ModelManager.h"
 #include "ParticleManager.h"
+#include "LightManager.h"
+#include "AudioManager.h"
 #include "Logger.h"
 
 // dump用
@@ -76,7 +78,13 @@ void RAFramework::Run() {
         }
 
         // 更新
+        // Update()の前に行うことで、ゲームロジック内で最新の入力情報を使える
+        Input::GetInstance()->Update();
+
         Update();
+
+        // ライト更新
+        LightManager::GetInstance()->Update();
 
         // 描画
         Draw();
@@ -94,56 +102,59 @@ void RAFramework::Initialize() {
     window_ = new Win32Window();
     window_->Initialize();
     // DirectXBase
-    dxBase_ = new DX12Context();
-    dxBase_->Initialize(window_);
+    DX12Context::GetInstance()->Initialize(window_);
     // SRVManager
-    srvManager_ = new SrvManager();
-    srvManager_->Initialize(dxBase_);
+    SrvManager::GetInstance()->Initialize();
     // DirectInput
-    input_ = new Input();
-    input_->Initialize(window_);
+    Input::GetInstance()->Initialize(window_);
     // PipelineManager
-    pipelineManager_ = new PipelineManager();
-    pipelineManager_->Initialize(dxBase_);
+    PipelineManager::GetInstance()->Initialize();
     // ImGuiManager
     imGuiManager_ = new ImGuiManager();
-    imGuiManager_->Initialize(dxBase_, window_, srvManager_);
+    imGuiManager_->Initialize(window_);
 
     /// マネージャー類の初期化（シングルトン）
-    TextureManager::GetInstance()->Initialize(dxBase_, srvManager_);
-    ModelManager::GetInstance()->Initialize(dxBase_);
-    ParticleManager::GetInstance()->Initialize(dxBase_, srvManager_, pipelineManager_);
+    LightManager::GetInstance()->Initialize();
+    if (!AudioManager::GetInstance()->Initialize()) {
+        // エラー処理 (ログ出力など)
+        assert(false && "AudioManager Initialize Failed");
+    }
+    TextureManager::GetInstance()->Initialize();
+    ModelManager::GetInstance()->Initialize();
+    ParticleManager::GetInstance()->Initialize();
 
     /// 共通描画設定の生成
+    // ModelCommon
     // SpriteCommon
-    spriteCommon_ = new SpriteCommon();
-    spriteCommon_->Initialize(dxBase_, pipelineManager_);
+    SpriteCommon::GetInstance()->Initialize();
     // Object3dCommon
-    object3dCommon_ = new Object3dCommon();
-    object3dCommon_->Initialize(dxBase_, pipelineManager_);
+    Object3dCommon::GetInstance()->Initialize();
 }
 
 void RAFramework::Update() {
-    // 共通の更新処理があればここに書く（基本は継承先でオーバーライド）
+    // ここに書いても MyGame::Update に上書きされて消えてしまうので、
+    // ここには何も書かない（またはデフォルト処理が必要ならMyGameから呼ぶルールにする）
 }
 
 void RAFramework::Finalize() {
     // 基盤の解放処理
-    delete object3dCommon_;
-    delete spriteCommon_;
 
     // マネージャーの終了
+    Object3dCommon::GetInstance()->Finalize();
+    SpriteCommon::GetInstance()->Finalize();
     ParticleManager::GetInstance()->Finalize();
     ModelManager::GetInstance()->Finalize();
     TextureManager::GetInstance()->Finalize();
+    AudioManager::GetInstance()->Shutdown();
+    LightManager::GetInstance()->Finalize();
 
     imGuiManager_->Finalize();
     delete imGuiManager_;
 
-    delete pipelineManager_;
-    delete input_;
-    delete srvManager_;
-    delete dxBase_;
+    PipelineManager::GetInstance()->Finalize();
+    Input::GetInstance()->Finalize();
+    SrvManager::GetInstance()->Finalize();
+    DX12Context::GetInstance()->Finalize();
 
     window_->Finalize();
     delete window_;

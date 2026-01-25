@@ -2,14 +2,12 @@
 
 #include <d3d12.h>
 #include <wrl/client.h>
+#include <array> // std::array用に必要
 
 #include "BlendMode/BlendMode.h"
 
 // 前方宣言
-class DX12Context;
-class PipelineManager;
 class Camera;
-class LightManager;
 
 // 3Dオブジェクト共通部
 class Object3dCommon {
@@ -22,44 +20,40 @@ private: // namespace省略のためのusing宣言
 #pragma endregion
 
 private: // メンバ変数
-  // DirectXデバイス
-  DX12Context *dxBase_ = nullptr;
+  static Object3dCommon * instance_;
+
+  // デフォルトカメラ
+  Camera* defaultCamera_ = nullptr;
 
   // グラフィックスパイプラインステート (ブレンドモードごとに配列で保持)
   ComPtr<ID3D12PipelineState>
       psoArray_[BlendMode::BlendState::kCountOfBlendMode];
 
-  // デフォルトカメラ
-  Camera *defaultCamera_ = nullptr;
-
-  // ライトマネージャ
-  LightManager *lightManager_ = nullptr;
+public: // シングルトンインスタンス取得
+    static Object3dCommon* GetInstance();
 
 public: // メンバ関数
   // 初期化
-  void Initialize(DX12Context *dxBase, PipelineManager *pipelineManager);
+  void Initialize();
+
+  // 終了
+  void Finalize();
 
   // 共通描画設定
-  void SetCommonDrawSettings(BlendMode::BlendState currentBlendMode,
-                             PipelineManager *pipelineManager);
+  void SetCommonDrawSettings(BlendMode::BlendState currentBlendMode);
   // getter
 
   // デフォルトカメラの取得
-  Camera *GetDefaultCamera() const { return defaultCamera_; };
-
-  // ライトマネージャの取得
-  LightManager *GetLightManager() const { return lightManager_; }
-
-  // DirectX基底部分を取得
-  DX12Context *GetDX12Context() const { return dxBase_; }
+  Camera* GetDefaultCamera() const { return defaultCamera_; };
 
   // setter
 
-  // デフォルトカメラの設定
+  // デフォルトカメラの設定(最初に設定しておく用)
   void SetDefaultCamera(Camera *camera) { defaultCamera_ = camera; };
 
-  // ライトマネージャの設定
-  void SetLightManager(LightManager *lightManager) {
-    lightManager_ = lightManager;
-  }
+private: // コンストラクタ周り
+    Object3dCommon() = default;
+    ~Object3dCommon() = default;
+    Object3dCommon(const Object3dCommon&) = delete;
+    const Object3dCommon& operator=(const Object3dCommon&) = delete;
 };

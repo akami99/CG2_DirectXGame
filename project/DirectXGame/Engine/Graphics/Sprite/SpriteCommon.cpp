@@ -12,41 +12,48 @@ using namespace BlendMode;
 
 HRESULT hr;
 
-// 初期化
-void SpriteCommon::Initialize(DX12Context *dxBase,
-                              PipelineManager *pipelineManager) {
-  // NULLポインタチェック
-  assert(dxBase);
-  assert(pipelineManager);
-  // メンバ変数にセット
-  dxBase_ = dxBase;
+SpriteCommon *SpriteCommon::instance_ = nullptr;
 
+// シングルトンインスタンスの実装
+SpriteCommon *SpriteCommon::GetInstance() {
+    if (instance_ == nullptr) {
+    instance_ = new SpriteCommon;
+  }
+    return instance_;
+}
+
+// 初期化
+void SpriteCommon::Initialize() {
   // BlendModeごとの設定は汎用関数から取得
   std::array<D3D12_BLEND_DESC, kCountOfBlendMode> blendDescs =
       CreateBlendStateDescs();
 
   // パイプラインマネージャを使って、ブレンドモードごとのPSOを生成
   for (size_t i = 0; i < kCountOfBlendMode; ++i) {
-    psoArray_[i] = pipelineManager->CreateSpritePSO(blendDescs[i]);
+    psoArray_[i] = PipelineManager::GetInstance()->CreateSpritePSO(blendDescs[i]);
   }
 }
 
-void SpriteCommon::SetCommonDrawSettings(BlendState currentBlendMode,
-                                         PipelineManager *pipelineManager) {
+void SpriteCommon::Finalize() {
+    delete instance_;
+    instance_ = nullptr;
+}
+
+void SpriteCommon::SetCommonDrawSettings(BlendState currentBlendMode) {
   // RootSignatureを設定
-  dxBase_->GetCommandList()->SetGraphicsRootSignature(
-      pipelineManager->GetSpriteRootSignature());
+  DX12Context::GetInstance()->GetCommandList()->SetGraphicsRootSignature(
+      PipelineManager::GetInstance()->GetSpriteRootSignature());
   // ブレンドモードに応じたPSOを設定
   if (currentBlendMode >= 0 && currentBlendMode < kCountOfBlendMode) {
     // PSOを設定
-    dxBase_->GetCommandList()->SetPipelineState(
+    DX12Context::GetInstance()->GetCommandList()->SetPipelineState(
         psoArray_[currentBlendMode].Get());
   } else {
     // 不正な値の場合
-    dxBase_->GetCommandList()->SetPipelineState(
+    DX12Context::GetInstance()->GetCommandList()->SetPipelineState(
         psoArray_[kBlendModeNormal].Get());
   }
   // トポロジを設定
-  dxBase_->GetCommandList()->IASetPrimitiveTopology(
+  DX12Context::GetInstance()->GetCommandList()->IASetPrimitiveTopology(
       D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }

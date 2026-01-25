@@ -5,9 +5,6 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
-// 前方宣言
-class ModelCommon;
-
 // 3Dモデル
 class Model {
 private: // namespace省略のためのusing宣言
@@ -19,9 +16,6 @@ private: // namespace省略のためのusing宣言
 #pragma endregion
 
 private: // メンバ変数
-  // ModelCommonのポインタ
-  ModelCommon *modelCommon_ = nullptr;
-
   // Objのファイルデータ
   ModelData modelData_{};
 
@@ -43,7 +37,7 @@ private: // メンバ変数
 
 public: // メンバ関数
   // 初期化(テクスチャロードでコマンドリスト積んでいるので注意)
-  void Initialize(ModelCommon *modelCommon, const std::string &directoryPath,
+  void Initialize(const std::string &directoryPath,
                   const std::string &filename);
 
   // 描画処理

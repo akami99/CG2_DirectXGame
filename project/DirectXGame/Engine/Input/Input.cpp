@@ -1,8 +1,19 @@
 #include "Input.h"
+#include "Base/Win32Window.h" // DX12Contextのヘッダーファイル
 #include <cassert> // assertのために必要
 
 #pragma comment(lib, "dinput8.lib") // DirectInputのライブラリ
 #pragma comment(lib, "dxguid.lib")  // DirectInputのGUIDを使うためのライブラリ
+
+Input *Input::instance_ = nullptr;
+
+// シングルトンインスタンスの取得
+Input* Input::GetInstance() {
+    if (instance_ == nullptr) {
+        instance_ = new Input;
+    }
+    return instance_;
+}
 
 // 初期化
 // ウィンドウハンドルとHINSTANCEを引数として受け取る
@@ -39,6 +50,18 @@ void Input::Initialize(Win32Window *window) {
   // デバイスの取得開始 (Acquire)
   // 初期化時に一度Acquireしておくと、初回UpdateでGetDeviceStateを呼ぶ際にエラーになりにくい
   keyboard_->Acquire();
+}
+
+// 終了
+void Input::Finalize() {
+  // DirectInputオブジェクトとキーボードデバイスを解放する
+  if (keyboard_) {
+    keyboard_->Unacquire(); // デバイスの取得を解除
+    keyboard_.Reset();
+  }
+  if (directInput_) {
+    directInput_.Reset();
+  }
 }
 
 // デストラクタ

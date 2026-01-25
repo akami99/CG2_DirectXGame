@@ -8,6 +8,7 @@
 #include "../Camera/DebugCamera.h"
 #include "../../Core/Utility/Math/Functions/MathUtils.h"
 #include "ImGuiManager.h"
+#include "../Input/Input.h"
 
 using namespace MathUtils;
 using namespace MathGenerators;
@@ -28,7 +29,7 @@ void DebugCamera::Initialize() {
   orbitDistance_ = 50.0f;                    // オービット距離の初期値
 }
 
-void DebugCamera::Update([[maybe_unused]] Input &input) {
+void DebugCamera::Update() {
 #ifdef USE_IMGUI
   // デバッグ用ImGuiウィンドウ
 
@@ -39,7 +40,7 @@ void DebugCamera::Update([[maybe_unused]] Input &input) {
   ImGui::Text("R: Reset Camera");
   ImGui::Text("Mode Change: TAB");
   // TABキー入力でモードを切り替える
-  if (input.IsKeyTriggered(DIK_TAB)) {
+  if (Input::GetInstance()->IsKeyTriggered(DIK_TAB)) {
     isOrbitMode_ = !isOrbitMode_;
     // モード切り替え時にカメラの状態をリセットまたは調整することもできるが、
     // まずはシンプルな切り替えから
@@ -81,17 +82,17 @@ void DebugCamera::Update([[maybe_unused]] Input &input) {
 
     // ピボット回転モード用の回転差分計算
     Vector3 deltaRotationEuler = {0.0f, 0.0f, 0.0f};
-    if (input.IsKeyDown(DIK_W) && input.IsKeyDown(DIK_LSHIFT)) {
+    if (Input::GetInstance()->IsKeyDown(DIK_W) && Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       deltaRotationEuler.x +=
           rotateSpeed; // ピボット回転：Wで上方向に移動 (ピッチ角度増加)
-    } else if (input.IsKeyDown(DIK_S) && input.IsKeyDown(DIK_LSHIFT)) {
+    } else if (Input::GetInstance()->IsKeyDown(DIK_S) && Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       deltaRotationEuler.x -=
           rotateSpeed; // ピボット回転：Sで下方向に移動 (ピッチ角度減少)
     }
-    if (input.IsKeyDown(DIK_A) && input.IsKeyDown(DIK_LSHIFT)) {
+    if (Input::GetInstance()->IsKeyDown(DIK_A) && Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       deltaRotationEuler.y +=
           rotateSpeed; // ピボット回転：Aで左方向に移動 (ヨー角度増加)
-    } else if (input.IsKeyDown(DIK_D) && input.IsKeyDown(DIK_LSHIFT)) {
+    } else if (Input::GetInstance()->IsKeyDown(DIK_D) && Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       deltaRotationEuler.y -=
           rotateSpeed; // ピボット回転：Dで右方向に移動 (ヨー角度減少)
     }
@@ -175,19 +176,19 @@ void DebugCamera::Update([[maybe_unused]] Input &input) {
     Vector3 localMove = {0.0f, 0.0f, 0.0f}; // ローカル移動ベクトルを初期化
 
     // キーボード入力に応じてローカル移動ベクトルを設定
-    if (input.IsKeyDown(DIK_W) && !input.IsKeyDown(DIK_LSHIFT)) {
+    if (Input::GetInstance()->IsKeyDown(DIK_W) && !Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       localMove.z += moveSpeed; // 前方へ移動 (カメラのローカルZ軸方向)
-    } else if (input.IsKeyDown(DIK_S) && !input.IsKeyDown(DIK_LSHIFT)) {
+    } else if (Input::GetInstance()->IsKeyDown(DIK_S) && !Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       localMove.z -= moveSpeed; // 後方へ移動 (カメラのローカルZ軸方向)
     }
-    if (input.IsKeyDown(DIK_A) && !input.IsKeyDown(DIK_LSHIFT)) {
+    if (Input::GetInstance()->IsKeyDown(DIK_A) && !Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       localMove.x -= moveSpeed; // 左へ移動 (カメラのローカルX軸方向)
-    } else if (input.IsKeyDown(DIK_D) && !input.IsKeyDown(DIK_LSHIFT)) {
+    } else if (Input::GetInstance()->IsKeyDown(DIK_D) && !Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       localMove.x += moveSpeed; // 右へ移動 (カメラのローカルX軸方向)
     }
-    if (input.IsKeyDown(DIK_Q)) {
+    if (Input::GetInstance()->IsKeyDown(DIK_Q)) {
       localMove.y += moveSpeed; // 上へ移動 (カメラのローカルY軸方向)
-    } else if (input.IsKeyDown(DIK_E)) {
+    } else if (Input::GetInstance()->IsKeyDown(DIK_E)) {
       localMove.y -= moveSpeed; // 下へ移動 (カメラのローカルY軸方向)
     }
 
@@ -218,17 +219,17 @@ void DebugCamera::Update([[maybe_unused]] Input &input) {
 
     // 一人称視点モード用の回転差分計算
     Vector3 deltaRotationEuler = {0.0f, 0.0f, 0.0f};
-    if (input.IsKeyDown(DIK_W) && input.IsKeyDown(DIK_LSHIFT)) {
+    if (Input::GetInstance()->IsKeyDown(DIK_W) && Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       deltaRotationEuler.x -=
           rotateSpeed; // 一人称視点：Wで下を向く (ピッチ角度減少)
-    } else if (input.IsKeyDown(DIK_S) && input.IsKeyDown(DIK_LSHIFT)) {
+    } else if (Input::GetInstance()->IsKeyDown(DIK_S) && Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       deltaRotationEuler.x +=
           rotateSpeed; // 一人称視点：Sで上を向く (ピッチ角度増加)
     }
-    if (input.IsKeyDown(DIK_A) && input.IsKeyDown(DIK_LSHIFT)) {
+    if (Input::GetInstance()->IsKeyDown(DIK_A) && Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       deltaRotationEuler.y -=
           rotateSpeed; // 一人称視点：Aで右を向く (ヨー角度減少)
-    } else if (input.IsKeyDown(DIK_D) && input.IsKeyDown(DIK_LSHIFT)) {
+    } else if (Input::GetInstance()->IsKeyDown(DIK_D) && Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       deltaRotationEuler.y +=
           rotateSpeed; // 一人称視点：Dで左を向く (ヨー角度増加)
     }
@@ -249,23 +250,23 @@ void DebugCamera::Update([[maybe_unused]] Input &input) {
     Vector3 localMove = {0.0f, 0.0f, 0.0f};
 
     // 前後移動
-    if (input.IsKeyDown(DIK_W) && !input.IsKeyDown(DIK_LSHIFT)) {
+    if (Input::GetInstance()->IsKeyDown(DIK_W) && !Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       localMove.z += moveSpeed; // 前方へ移動
-    } else if (input.IsKeyDown(DIK_S) && !input.IsKeyDown(DIK_LSHIFT)) {
+    } else if (Input::GetInstance()->IsKeyDown(DIK_S) && !Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       localMove.z -= moveSpeed; // 後方へ移動
     }
 
     // 左右移動
-    if (input.IsKeyDown(DIK_A) && !input.IsKeyDown(DIK_LSHIFT)) {
+    if (Input::GetInstance()->IsKeyDown(DIK_A) && !Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       localMove.x -= moveSpeed; // 左へ移動
-    } else if (input.IsKeyDown(DIK_D) && !input.IsKeyDown(DIK_LSHIFT)) {
+    } else if (Input::GetInstance()->IsKeyDown(DIK_D) && !Input::GetInstance()->IsKeyDown(DIK_LSHIFT)) {
       localMove.x += moveSpeed; // 右へ移動
     }
 
     // 上下移動
-    if (input.IsKeyDown(DIK_Q)) {
+    if (Input::GetInstance()->IsKeyDown(DIK_Q)) {
       localMove.y += moveSpeed; // 上へ移動
-    } else if (input.IsKeyDown(DIK_E)) {
+    } else if (Input::GetInstance()->IsKeyDown(DIK_E)) {
       localMove.y -= moveSpeed; // 下へ移動
     }
 
@@ -287,7 +288,7 @@ void DebugCamera::Update([[maybe_unused]] Input &input) {
   // --- 共通の処理 ---
   
   // リセット
-  if (input.IsKeyTriggered(DIK_R)) {
+  if (Input::GetInstance()->IsKeyTriggered(DIK_R)) {
     Initialize(); // カメラを初期化
   }
 

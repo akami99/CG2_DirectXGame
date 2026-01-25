@@ -11,11 +11,7 @@ using namespace Microsoft::WRL;
 TextureManager *TextureManager::instance_ = nullptr;
 
 // 初期化
-void TextureManager::Initialize(DX12Context *dxBase, SrvManager *srvManager) {
-  dxBase_ = dxBase;
-
-  srvManager_ = srvManager;
-
+void TextureManager::Initialize() {
   // SRVの数と同数
   textureDatas_.reserve(SrvManager::kMaxSRVCount);
 }
@@ -62,7 +58,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE
 TextureManager::GetSrvHandleGPU(const std::string &filePath) {
 
   // 配列の境界チェック（arrayIndexが配列のサイズ未満であることを確認）
-  assert(srvManager_->AllocatableTexture() &&
+  assert(SrvManager::GetInstance()->AllocatableTexture() &&
          "Error: texture array index out of bounds!");
 
   std::string fullPath = filePath;
@@ -90,7 +86,7 @@ TextureManager::GetSrvHandleGPU(const std::string &filePath) {
 const DirectX::TexMetadata &
 TextureManager::GetMetaData(const std::string &filePath) {
   // 配列の境界チェック（arrayIndexが配列のサイズ未満であることを確認）
-  assert(srvManager_->AllocatableTexture() &&
+  assert(SrvManager::GetInstance()->AllocatableTexture() &&
          "Error: texture array index out of bounds!");
 
   std::string fullPath = filePath;
@@ -141,7 +137,7 @@ void TextureManager::LoadTexture(const std::string &filePath) {
   }
 
   // テクスチャ枚数上限チェック
-  assert(srvManager_->AllocatableTexture());
+  assert(SrvManager::GetInstance()->AllocatableTexture());
 
   HRESULT hr;
 
@@ -165,22 +161,22 @@ void TextureManager::LoadTexture(const std::string &filePath) {
   TextureData &textureData = textureDatas_[fullPath];
 
   textureData.metadata = mipImages.GetMetadata();
-  textureData.resource = dxBase_->CreateTextureResource(textureData.metadata);
+  textureData.resource = DX12Context::GetInstance()->CreateTextureResource(textureData.metadata);
 
   // SRV確保
-  textureData.srvIndex = srvManager_->Allocate();
+  textureData.srvIndex = SrvManager::GetInstance()->Allocate();
   textureData.srvHandleCPU =
-      srvManager_->GetCPUDescriptorHandle(textureData.srvIndex);
+      SrvManager::GetInstance()->GetCPUDescriptorHandle(textureData.srvIndex);
   textureData.srvHandleGPU =
-      srvManager_->GetGPUDescriptorHandle(textureData.srvIndex);
+      SrvManager::GetInstance()->GetGPUDescriptorHandle(textureData.srvIndex);
 
-  srvManager_->CreateSRVForTexture(
+  SrvManager::GetInstance()->CreateSRVForTexture(
       textureData.srvIndex, textureData.resource, textureData.metadata.format,
       UINT(textureData.metadata.mipLevels));
 
   // テクスチャリソースをアップロードし、コマンドリストに積む
   textureData.intermediateResource =
-      dxBase_->UploadTextureData(textureData.resource, mipImages);
+      DX12Context::GetInstance()->UploadTextureData(textureData.resource, mipImages);
 }
 
 // 中間リソースをまとめて解放する

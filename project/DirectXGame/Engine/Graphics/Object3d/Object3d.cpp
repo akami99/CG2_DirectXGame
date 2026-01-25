@@ -16,11 +16,8 @@ using namespace Microsoft::WRL;
 using namespace MathUtils;
 using namespace MathGenerators;
 
-void Object3d::Initialize(Object3dCommon *object3dCommon) {
-  // 引数で受け取ってメンバ変数に記録する
-  object3dCommon_ = object3dCommon;
-
-  camera_ = object3dCommon_->GetDefaultCamera();
+void Object3d::Initialize() {
+  camera_ = Object3dCommon::GetInstance()->GetDefaultCamera();
 
   // 変換行列バッファの作成
   CreateTransformationMatrixResource();
@@ -63,41 +60,10 @@ void Object3d::Update() {
 // 描画処理
 void Object3d::Draw() {
   // 変換行列CBVの設定
-  object3dCommon_->GetDX12Context()
+    DX12Context::GetInstance()
       ->GetCommandList()
       ->SetGraphicsRootConstantBufferView(
           1, transformationMatrixResource_->GetGPUVirtualAddress());
-  // DirectionalLightのCBufferの場所を設定 (PS b1, rootParameter[3]に対応)
-  object3dCommon_->GetDX12Context()
-      ->GetCommandList()
-      ->SetGraphicsRootConstantBufferView(
-          3,
-          object3dCommon_->GetLightManager()
-              ->GetDirectionalLightAddress() // directionalLightのCBV
-      );
-  // RootParameter Index 4: Camera (b2)
-  if (camera_) {
-    object3dCommon_->GetDX12Context()
-        ->GetCommandList()
-        ->SetGraphicsRootConstantBufferView(
-            4, camera_->GetConstantBufferGPUVirtualAddress());
-  }
-  // PointLightのCBufferの場所を設定 (PS b3, rootParameter[5]に対応)
-  object3dCommon_->GetDX12Context()
-      ->GetCommandList()
-      ->SetGraphicsRootConstantBufferView(
-          5,
-          object3dCommon_->GetLightManager()
-              ->GetPointLightAddress() // pointLightのCBV
-      );
-  // SpotLightのCBufferの場所を設定 (PS b4, rootParameter[6]に対応)
-  object3dCommon_->GetDX12Context()
-      ->GetCommandList()
-      ->SetGraphicsRootConstantBufferView(
-          6,
-          object3dCommon_->GetLightManager()
-              ->GetSpotLightAddress() // spotLightのCBV
-      );
 
   // 描画コマンド
   if (model_) {
@@ -114,7 +80,7 @@ void Object3d::SetModel(const std::string &filepath) {
 void Object3d::CreateTransformationMatrixResource() {
   // 変換行列リソースの作成
   transformationMatrixResource_ =
-      object3dCommon_->GetDX12Context()->CreateBufferResource(
+      DX12Context::GetInstance()->CreateBufferResource(
           sizeof(TransformationMatrix));
 
   // TransformationMatrixDataの設定

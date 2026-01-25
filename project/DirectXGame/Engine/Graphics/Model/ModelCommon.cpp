@@ -1,15 +1,16 @@
 #include "ModelCommon.h"
 
-#include <cassert>
-
 #include "Base/DX12Context.h"
 
-#include "externals/DirectXTex/d3dx12.h"
 
-using namespace Microsoft::WRL;
+ModelCommon* ModelCommon::GetInstance() {
+    static ModelCommon instance;
+    return &instance;
+}
 
-void ModelCommon::Initialize(DX12Context *dxBase) {
-  // メンバ変数にセット
-  dxBase_ = dxBase;
-
+// 初期化
+void ModelCommon::Initialize() {
+    // 引数で受け取る必要なし。
+    // 必要な処理があれば DX12Context::GetInstance() を使って記述
+    // 例: DX12Context::GetInstance()->GetDevice()...
 }

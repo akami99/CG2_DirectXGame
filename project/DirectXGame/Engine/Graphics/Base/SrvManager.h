@@ -3,9 +3,7 @@
 #include <cstdint>
 #include <d3d12.h>
 #include <wrl/client.h>
-
-// 前方宣言
-class DX12Context;
+#include <cassert> // assert用に必要
 
 // SRV管理
 class SrvManager {
@@ -22,7 +20,8 @@ public: // メンバ変数
   static const uint32_t kMaxSRVCount;
 
 private: // メンバ変数
-  DX12Context *dxBase_ = nullptr;
+  // シングルトンインスタンス
+  static SrvManager *instance_;
 
   // デスクリプタヒープサイズ
   uint32_t descriptorSize_ = 0; // SRV/UAV/CBV用
@@ -32,9 +31,15 @@ private: // メンバ変数
   // 次に使用するSRVインデックス
   uint32_t useIndex_ = 0;
 
+public: // シングルトンインスタンス取得
+    static SrvManager* GetInstance();
+
 public: // メンバ関数
   // 初期化
-  void Initialize(DX12Context *dxBase);
+  void Initialize();
+
+  // 終了
+  void Finalize();
 
   // 描画前処理
   void PreDraw();
@@ -47,12 +52,6 @@ public: // メンバ関数
   // SRVをセット
   void SetGraphicRootDescriptorTable(UINT RootParameterIndex,
                                      uint32_t srvIndex);
-
-  // SrvManager.h
-  /// <summary>
-  /// 次に使用するSRVインデックスを取得
-  /// </summary>
-  uint32_t GetNewIndex();
 
   /// <summary>
   /// デスクリプタヒープのゲッター
@@ -95,4 +94,10 @@ public: // メンバ関数
                                     ComPtr<ID3D12Resource> resource,
                                     uint32_t numElement,
                                     uint32_t structureByteStride);
+
+private: // コンストラクタ周りをprivateへ
+    SrvManager() = default;
+    ~SrvManager() = default;
+    SrvManager(const SrvManager&) = delete;
+    const SrvManager& operator=(const SrvManager&) = delete;
 };

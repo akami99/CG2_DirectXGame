@@ -3,10 +3,7 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
-// 前方宣言
-class DX12Context;
-
-// 3Dモデル共通部
+// 3Dモデル共通部(基本何もしていないので、現状では使っていない)
 class ModelCommon {
 private: // namespace省略のためのusing宣言
 #pragma region using宣言
@@ -16,14 +13,10 @@ private: // namespace省略のためのusing宣言
 
 #pragma endregion
 
-private: // メンバ変数
-  // DirectXデバイス
-  DX12Context *dxBase_ = nullptr;
+public: // シングルトン取得
+    static ModelCommon* GetInstance();
 
 public: // メンバ関数
   // 初期化
-  void Initialize(DX12Context *dxBase);
-
-  // DirectX基底部分を取得
-  DX12Context *GetDX12Context() const { return dxBase_; }
+  void Initialize();
 };

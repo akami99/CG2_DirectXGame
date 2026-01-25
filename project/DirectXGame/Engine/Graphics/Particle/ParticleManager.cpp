@@ -80,20 +80,14 @@ void ParticleManager::Finalize() {
   delete GetInstance(); // シングルトンインスタンス自身を解放
 }
 
-void ParticleManager::Initialize(DX12Context *dxBase, SrvManager *srvManager,
-                                 PipelineManager *pipelineManager) {
-  // 引数で受け取ったポインタをメンバ変数に記録する
-  dxBase_ = dxBase;
-  srvManager_ = srvManager;
-  pipelineManager_ = pipelineManager;
-
+void ParticleManager::Initialize() {
   // BlendModeごとの設定は汎用関数から取得
   std::array<D3D12_BLEND_DESC, kCountOfBlendMode> blendDescs =
       CreateBlendStateDescs();
 
   // パイプラインマネージャを使って、ブレンドモードごとのPSOを生成
   for (size_t i = 0; i < kCountOfBlendMode; ++i) {
-    particlePsoArray_[i] = pipelineManager_->CreateParticlePSO(blendDescs[i]);
+    particlePsoArray_[i] = PipelineManager::GetInstance()->CreateParticlePSO(blendDescs[i]);
   }
 
   // ランダムエンジンの初期化
@@ -132,15 +126,16 @@ void ParticleManager::Initialize(DX12Context *dxBase, SrvManager *srvManager,
   const D3D12_HEAP_PROPERTIES defaultHeapProps =
       CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
-  HRESULT hr = dxBase_->GetDevice()->CreateCommittedResource(
+  HRESULT hr = DX12Context::GetInstance()->GetDevice()->CreateCommittedResource(
       &defaultHeapProps, // Default Heap!
       D3D12_HEAP_FLAG_NONE, &vertexResourceDesc, D3D12_RESOURCE_STATE_COMMON,
       nullptr, IID_PPV_ARGS(&vertexResource_));
   assert(SUCCEEDED(hr));
 
   // 2. 中間アップロードリソースを生成
-  ComPtr<ID3D12Resource> vertexUploadResource = dxBase_->CreateBufferResource(
-      sizeVB); // UploadHeapリソース生成はここで利用
+  ComPtr<ID3D12Resource> vertexUploadResource =
+      DX12Context::GetInstance()->CreateBufferResource(
+          sizeVB); // UploadHeapリソース生成はここで利用
 
   // 3. 中間リソースに頂点データを Map & Copy
   VertexData *mappedVertexData = nullptr;
@@ -150,15 +145,16 @@ void ParticleManager::Initialize(DX12Context *dxBase, SrvManager *srvManager,
   vertexUploadResource->Unmap(0, nullptr); // アンマップ
 
   // 4. コマンドリストにコピーを積む
-  dxBase_->GetCommandList()->CopyResource(vertexResource_.Get(),
-                                          vertexUploadResource.Get());
+  DX12Context::GetInstance()->GetCommandList()->CopyResource(
+      vertexResource_.Get(), vertexUploadResource.Get());
 
   // 5. 状態遷移コマンドを積む
   D3D12_RESOURCE_BARRIER vertexBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
       vertexResource_.Get(), D3D12_RESOURCE_STATE_COPY_DEST,
       D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
-  dxBase_->GetCommandList()->ResourceBarrier(1, &vertexBarrier);
+  DX12Context::GetInstance()->GetCommandList()->ResourceBarrier(1,
+                                                                &vertexBarrier);
 
   // 最後に、このリソースをリストに移動して保持する
   intermediateResources_.push_back(vertexUploadResource);
@@ -184,15 +180,16 @@ void ParticleManager::Initialize(DX12Context *dxBase, SrvManager *srvManager,
   const D3D12_HEAP_PROPERTIES defaultIndexHeapProps =
       CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
-  hr = dxBase_->GetDevice()->CreateCommittedResource(
+  hr = DX12Context::GetInstance()->GetDevice()->CreateCommittedResource(
       &defaultIndexHeapProps, // Default Heap!
       D3D12_HEAP_FLAG_NONE, &indexResourceDesc, D3D12_RESOURCE_STATE_COMMON,
       nullptr, IID_PPV_ARGS(&indexResource_));
   assert(SUCCEEDED(hr));
 
   // 2. 中間アップロードリソースを生成
-  ComPtr<ID3D12Resource> indexUploadResource = dxBase_->CreateBufferResource(
-      kIndexSize); // UploadHeapリソース生成はここで利用
+  ComPtr<ID3D12Resource> indexUploadResource =
+      DX12Context::GetInstance()->CreateBufferResource(
+          kIndexSize); // UploadHeapリソース生成はここで利用
 
   // 3. 中間リソースに頂点データを Map & Copy
   uint16_t *mappedIndexData = nullptr;
@@ -204,15 +201,16 @@ void ParticleManager::Initialize(DX12Context *dxBase, SrvManager *srvManager,
   indexUploadResource->Unmap(0, nullptr); // アンマップ
 
   // 4. コマンドリストにコピーを積む
-  dxBase_->GetCommandList()->CopyResource(indexResource_.Get(),
-                                          indexUploadResource.Get());
+  DX12Context::GetInstance()->GetCommandList()->CopyResource(
+      indexResource_.Get(), indexUploadResource.Get());
 
   // 5. 状態遷移コマンドを積む (COPY_DEST → VERTEX_AND_CONSTANT_BUFFER)
   D3D12_RESOURCE_BARRIER indexBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
       indexResource_.Get(), //
       D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
 
-  dxBase_->GetCommandList()->ResourceBarrier(1, &indexBarrier);
+  DX12Context::GetInstance()->GetCommandList()->ResourceBarrier(1,
+                                                                &indexBarrier);
 
   // 最後に、このリソースをリストに移動して保持する
   intermediateResources_.push_back(indexUploadResource);
@@ -244,21 +242,21 @@ void ParticleManager::CreateParticleGroup(const std::string &name,
   // 新しいパーティクルグループのインスタンシング用リソースの生成とSRVの確保/生成
 
   // インスタンシング用にSRVを確保してSRVインデックスとGPUハンドルを記録
-  uint32_t instanceDataIndex = srvManager_->GetNewIndex();
+  uint32_t instanceDataIndex = SrvManager::GetInstance()->Allocate();
 
   // インスタンシング用リソース（StructuredBuffer）を生成
-  newGroup.instanceResource = dxBase_->CreateBufferResource(
+  newGroup.instanceResource = DX12Context::GetInstance()->CreateBufferResource(
       sizeof(ParticleInstanceData) * kNumMaxParticle);
 
   // SRV生成 (StructuredBuffer用設定)
   // StructuredBuffer用のSRVを作成します
-  srvManager_->CreateSRVForStructuredBuffer(
+  SrvManager::GetInstance()->CreateSRVForStructuredBuffer(
       instanceDataIndex, newGroup.instanceResource, kNumMaxParticle,
       sizeof(ParticleInstanceData));
 
   // 描画時に使用するStructuredBufferのGPUハンドルをメンバに記録
   newGroup.instanceSrvHandleGPU =
-      srvManager_->GetGPUDescriptorHandle(instanceDataIndex);
+      SrvManager::GetInstance()->GetGPUDescriptorHandle(instanceDataIndex);
 
   // 書き込み用ポインタを取得し、単位行列で初期化
   newGroup.instanceResource->Map(
@@ -275,7 +273,7 @@ void ParticleManager::CreateParticleGroup(const std::string &name,
 
   // 1. マテリアルデータ用のCBVリソースを生成
   const UINT kCbvAlignedSize = 256;
-  newGroup.materialResource = dxBase_->CreateBufferResource(
+  newGroup.materialResource = DX12Context::GetInstance()->CreateBufferResource(
       (sizeof(MaterialData) + kCbvAlignedSize - 1) & ~(kCbvAlignedSize - 1));
 
   // 2. リソースをMapし、ポインタを取得
@@ -486,22 +484,24 @@ void ParticleManager::Update(const Camera &camera, bool &isUpdate,
 
 void ParticleManager::Draw(BlendMode::BlendState blendMode) {
   // 1. コマンド: ルートシグネチャを設定
-  dxBase_->GetCommandList()->SetGraphicsRootSignature(
-      pipelineManager_->GetParticleRootSignature());
+  DX12Context::GetInstance()->GetCommandList()->SetGraphicsRootSignature(
+      PipelineManager::GetInstance()->GetParticleRootSignature());
 
   // 2. コマンド: PSO(Pipeline State Object)を設定
-  dxBase_->GetCommandList()->SetPipelineState(
+  DX12Context::GetInstance()->GetCommandList()->SetPipelineState(
       particlePsoArray_[blendMode].Get());
   // PSOのインデックスは、ParticleManager::Initializeで生成したブレンドモードの配列順に合わせる
 
   // 3. コマンド: プリミティブトポロジー (描画形状)を設定
-  dxBase_->GetCommandList()->IASetPrimitiveTopology(
+  DX12Context::GetInstance()->GetCommandList()->IASetPrimitiveTopology(
       D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
   // 4. コマンド: VBV(Vertex Buffer View)を設定
-  dxBase_->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferView_);
+  DX12Context::GetInstance()->GetCommandList()->IASetVertexBuffers(
+      0, 1, &vertexBufferView_);
   // インデックスバッファビューを設定
-  dxBase_->GetCommandList()->IASetIndexBuffer(&indexBufferView_);
+  DX12Context::GetInstance()->GetCommandList()->IASetIndexBuffer(
+      &indexBufferView_);
 
   // 5. 全てのパーティクルグループについて処理
   // 1グループ分で1DrawCallなので、こちらは二重for文にはならない。
@@ -515,8 +515,10 @@ void ParticleManager::Draw(BlendMode::BlendState blendMode) {
 
     // コマンド：マテリアルデータのCBVを設定 (RootParameter[0])
     if (group.materialResource) {
-      dxBase_->GetCommandList()->SetGraphicsRootConstantBufferView(
-          0, group.materialResource->GetGPUVirtualAddress());
+      DX12Context::GetInstance()
+          ->GetCommandList()
+          ->SetGraphicsRootConstantBufferView(
+              0, group.materialResource->GetGPUVirtualAddress());
 
     } else {
       // 警告またはアサート: マテリアルリソースがNULLです
@@ -524,22 +526,26 @@ void ParticleManager::Draw(BlendMode::BlendState blendMode) {
     }
 
     // コマンド：インスタンシングデータのSRVのDescriptorTableを設定(RootParameter[1])
-    dxBase_->GetCommandList()->SetGraphicsRootDescriptorTable(
-        1, group.instanceSrvHandleGPU);
+    DX12Context::GetInstance()
+        ->GetCommandList()
+        ->SetGraphicsRootDescriptorTable(1, group.instanceSrvHandleGPU);
 
     // コマンド：テクスチャのSRVのDescriptorTableを設定(RootParameter[2])
-    dxBase_->GetCommandList()->SetGraphicsRootDescriptorTable(
-        2, TextureManager::GetInstance()->GetSrvHandleGPU(
-               group.materialData.textureFilePath));
+    DX12Context::GetInstance()
+        ->GetCommandList()
+        ->SetGraphicsRootDescriptorTable(
+            2, TextureManager::GetInstance()->GetSrvHandleGPU(
+                   group.materialData.textureFilePath));
 
     // コマンド：DrawCall (インスタンシング描画)
     // インスタンス数: group.instanceCount
     if (group.instanceCount > 0) {
-      dxBase_->GetCommandList()->DrawIndexedInstanced(
+      DX12Context::GetInstance()->GetCommandList()->DrawIndexedInstanced(
           numIndices_, // ParticleManager::numIndices_
           group.instanceCount, 0, 0, 0);
     }
 
-    // dxBase_->GetCommandList()->DrawInstanced(6, group.instanceCount, 0, 0);
+    // DX12Context::GetInstance()->GetCommandList()->DrawInstanced(6,
+    // group.instanceCount, 0, 0);
   }
 }

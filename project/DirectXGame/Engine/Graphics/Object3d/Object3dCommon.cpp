@@ -3,6 +3,8 @@
 #include <cassert>
 
 #include "Base/DX12Context.h"
+#include "Camera/Camera.h"
+#include "Light/LightManager.h"
 #include "PSO/PipelineManager.h"
 
 #include "externals/DirectXTex/d3dx12.h"
@@ -10,14 +12,17 @@
 using namespace Microsoft::WRL;
 using namespace BlendMode;
 
-void Object3dCommon::Initialize(DX12Context *dxBase,
-                                PipelineManager *pipelineManager) {
-  // NULLポインタチェック
-  assert(dxBase);
-  assert(pipelineManager);
-  // メンバ変数にセット
-  dxBase_ = dxBase;
+Object3dCommon *Object3dCommon::instance_ = nullptr;
 
+// シングルトンインスタンスの実装
+Object3dCommon *Object3dCommon::GetInstance() {
+    if (instance_ == nullptr) {
+        instance_ = new Object3dCommon;
+    }
+    return instance_;
+}
+
+void Object3dCommon::Initialize() {
   // 頂点レイアウト
   D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
       {"POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
@@ -29,7 +34,7 @@ void Object3dCommon::Initialize(DX12Context *dxBase,
        D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
        0},
   };
-  const UINT kNumElements = _countof(inputLayout);
+  // const UINT kNumElements = _countof(inputLayout);
 
   // ラスタライザステート
   D3D12_RASTERIZER_DESC rasterizerDesc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -45,28 +50,48 @@ void Object3dCommon::Initialize(DX12Context *dxBase,
 
   // パイプラインマネージャを使って、ブレンドモードごとのPSOを生成
   for (size_t i = 0; i < kCountOfBlendMode; ++i) {
-    psoArray_[i] = pipelineManager->CreateObject3dPSO(
-        inputLayout, _countof(inputLayout), rasterizerDesc, depthStencilDesc,
-        blendDescs[i]);
+      // ★ここがポイント：半透明描画の場合は深度書き込みを禁止する
+      if (i == kBlendModeNone || i == kBlendModeNormal) {
+          depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL; // 書き込み有効
+      } else {
+          depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; // 書き込み無効
+      }
+
+      psoArray_[i] = PipelineManager::GetInstance()->CreateObject3dPSO(
+          inputLayout, _countof(inputLayout), rasterizerDesc, depthStencilDesc,
+          blendDescs[i]);
   }
 }
 
-void Object3dCommon::SetCommonDrawSettings(BlendState currentBlendMode,
-                                           PipelineManager *pipelineManager) {
-  // RootSignatureを設定
-  dxBase_->GetCommandList()->SetGraphicsRootSignature(
-      pipelineManager->Get3DRootSignature());
-  // ブレンドモードに応じたPSOを設定
+void Object3dCommon::Finalize() {
+    delete instance_;
+    instance_ = nullptr;
+}
+
+void Object3dCommon::SetCommonDrawSettings(BlendState currentBlendMode) {
+  // ルートシグネチャ、PSO、トポロジの設定
+  DX12Context::GetInstance()->GetCommandList()->SetGraphicsRootSignature(
+      PipelineManager::GetInstance()->Get3DRootSignature());
   if (currentBlendMode >= 0 && currentBlendMode < kCountOfBlendMode) {
     // PSOを設定
-    dxBase_->GetCommandList()->SetPipelineState(
+    DX12Context::GetInstance()->GetCommandList()->SetPipelineState(
         psoArray_[currentBlendMode].Get());
   } else {
     // 不正な値の場合
-    dxBase_->GetCommandList()->SetPipelineState(
+    DX12Context::GetInstance()->GetCommandList()->SetPipelineState(
         psoArray_[kBlendModeNormal].Get());
   }
-  // トポロジを設定
-  dxBase_->GetCommandList()->IASetPrimitiveTopology(
+  DX12Context::GetInstance()->GetCommandList()->IASetPrimitiveTopology(
       D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+  // 2. ライトの一括設定
+  LightManager::GetInstance()->Draw();
+
+  // 3. カメラの一括設定 (RootParameter Index 4)
+  if (defaultCamera_) {
+    DX12Context::GetInstance()
+        ->GetCommandList()
+        ->SetGraphicsRootConstantBufferView(
+            4, defaultCamera_->GetConstantBufferGPUVirtualAddress());
+  }
 }

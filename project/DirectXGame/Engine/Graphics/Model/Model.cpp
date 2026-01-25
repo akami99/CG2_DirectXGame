@@ -1,7 +1,5 @@
 #include "Model.h"
-#include "../Input/Input.h"
 #include "Base/DX12Context.h"
-#include "ModelCommon.h"
 #include "Texture/TextureManager.h"
 
 #include "Math/Functions/MathUtils.h"
@@ -16,12 +14,8 @@ using namespace Microsoft::WRL;
 using namespace MathUtils;
 using namespace MathGenerators;
 
-void Model::Initialize(ModelCommon *modelCommon,
-                       const std::string &directoryPath,
+void Model::Initialize(const std::string &directoryPath,
                        const std::string &filename) {
-  // 引数で受け取ってメンバ変数に記録する
-  modelCommon_ = modelCommon;
-
   // モデル読み込み
   LoadObjFile(directoryPath, filename);
 
@@ -41,21 +35,21 @@ void Model::Initialize(ModelCommon *modelCommon,
 // 描画処理
 void Model::Draw() {
   // VertexBufferの設定
-  modelCommon_->GetDX12Context()->GetCommandList()->IASetVertexBuffers(
+    DX12Context::GetInstance()->GetCommandList()->IASetVertexBuffers(
       0, 1, &vertexBufferView_);
   // マテリアルCBVの設定
-  modelCommon_->GetDX12Context()
+    DX12Context::GetInstance()
       ->GetCommandList()
       ->SetGraphicsRootConstantBufferView(
           0, materialResource_->GetGPUVirtualAddress());
   // SRVのDescriptorTableの先頭を設定。2はrootParameter[2]である。
-  modelCommon_->GetDX12Context()
+    DX12Context::GetInstance()
       ->GetCommandList()
       ->SetGraphicsRootDescriptorTable(
           2, TextureManager::GetInstance()->GetSrvHandleGPU(
                  modelData_.material.textureFilePath));
   // 描画コマンド
-  modelCommon_->GetDX12Context()->GetCommandList()->DrawInstanced(
+    DX12Context::GetInstance()->GetCommandList()->DrawInstanced(
       UINT(modelData_.vertices.size()), 1, 0, 0);
 }
 
@@ -175,7 +169,7 @@ void Model::CreateVertexResource() {
   // リソースとバッファビューの作成
 
   // VertexResourceを作る
-  vertexResource_ = modelCommon_->GetDX12Context()->CreateBufferResource(
+  vertexResource_ = DX12Context::GetInstance()->CreateBufferResource(
       sizeof(VertexData) * modelData_.vertices.size());
 
   // VertexBufferViewを作成する
@@ -211,7 +205,7 @@ void Model::CreateMaterialResource() {
 
   // マテリアルリソースを作る
   materialResource_ =
-      modelCommon_->GetDX12Context()->CreateBufferResource(sizeof(Material));
+      DX12Context::GetInstance()->CreateBufferResource(sizeof(Material));
 
 #pragma endregion ここまで
 

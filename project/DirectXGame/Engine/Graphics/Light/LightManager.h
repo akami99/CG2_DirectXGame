@@ -3,12 +3,14 @@
 #include <d3d12.h>
 #include <wrl.h>
 
-class DX12Context; // 前方宣言
-
 class LightManager {
 public:
-  void Initialize(DX12Context *dxBase);
+    static LightManager* GetInstance();
+public:
+  void Initialize();
+  void Finalize();
   void Update();
+  void Draw();
 
   // それぞれのライトのGPUアドレスを取得
   D3D12_GPU_VIRTUAL_ADDRESS GetDirectionalLightAddress() const {
@@ -57,6 +59,12 @@ public:
   SpotLight &GetSpotLightData() { return *spotData_; }
 
 private:
+    LightManager() = default;
+    ~LightManager() = default;
+    LightManager(const LightManager&) = delete;
+    const LightManager& operator=(const LightManager&) = delete;
+
+private:
   // 平行光源バッファの作成
   void CreateDirectionalResource();
 
@@ -67,8 +75,8 @@ private:
   void CreateSpotResource();
 
 private:
-  // DirectX基底部分のポインタ
-  DX12Context *dxBase_ = nullptr;
+  // シングルトンインスタンス
+  static LightManager *instance_;
 
   // 平行光源用
   Microsoft::WRL::ComPtr<ID3D12Resource> directionalResource_;

@@ -5,8 +5,6 @@
 #include <d3d12.h>       // ID3D12Resource のため
 #include <wrl/client.h>   // Microsoft::WRL::ComPtr のため
 
-class DX12Context;
-
 // カメラ
 class Camera {
 private: // メンバ変数
@@ -31,15 +29,13 @@ private: // メンバ変数
   Microsoft::WRL::ComPtr<ID3D12Resource> constBuffer_;
   // 定数バッファのデータポインタ
   CameraForGPU *constData_ = nullptr;
-  // DX12Contextへのポインタ
-  DX12Context *dxBase_ = nullptr;
 
 public: // メンバ関数
   // コンストラクタ
   Camera();
 
   // 初期化関数
-  void Initialize(DX12Context *dxBase);
+  void Initialize();
 
   // 更新
   void Update();

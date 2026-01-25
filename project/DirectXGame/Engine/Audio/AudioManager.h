@@ -70,11 +70,8 @@ private:
   };
 
 public:
-  // コンストラクタ
-  AudioManager();
-
-  // デストラクタ
-  ~AudioManager();
+  // 追加: シングルトンインスタンス取得
+    static AudioManager* GetInstance();
 
   // XAudio2 エンジンを初期化する
   bool Initialize();
@@ -100,4 +97,12 @@ public:
 
   // 再生終了したボイスを手動でクリーンアップ
   void CleanupFinishedVoices();
+
+  private:
+      // コンストラクタとデストラクタ
+      AudioManager();
+      ~AudioManager();
+      // コピー禁止
+      AudioManager(const AudioManager&) = delete;
+      const AudioManager& operator=(const AudioManager&) = delete;
 };

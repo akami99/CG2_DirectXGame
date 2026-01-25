@@ -3,13 +3,9 @@
 
 // 前方宣言
 class Win32Window;
-class DX12Context;
 class Input;
 class PipelineManager;
-class SrvManager;
 class ImGuiManager;
-class SpriteCommon;
-class Object3dCommon;
 
 // ゲーム全体を管理するフレームワーククラス
 class RAFramework {
@@ -35,13 +31,6 @@ protected: // 継承先の MyGame でも使えるように protected にする
 
     // --- 基盤システム (これらはFrameworkが持つ) ---
     Win32Window *window_ = nullptr;
-    DX12Context *dxBase_ = nullptr;
-    Input *input_ = nullptr;
-    SrvManager *srvManager_ = nullptr;
     PipelineManager *pipelineManager_ = nullptr;
     ImGuiManager *imGuiManager_ = nullptr;
-
-    // --- 描画共通システム ---
-    SpriteCommon *spriteCommon_ = nullptr;
-    Object3dCommon *object3dCommon_ = nullptr;
 };

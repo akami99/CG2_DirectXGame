@@ -7,9 +7,6 @@
 
 #include "externals/DirectXTex/DirectXTex.h"
 
-class DX12Context;
-class SrvManager;
-
 // テクスチャマネージャー(シングルトン)
 class TextureManager {
 private: // namespace省略のためのusing宣言
@@ -37,13 +34,9 @@ private: // メンバ変数
   std::unordered_map<std::string, TextureData>
       textureDatas_; // キーの順番を保つならunordered_mapの方が高速
 
-  DX12Context *dxBase_ = nullptr;
-
-  SrvManager *srvManager_ = nullptr;
-
 public: // メンバ関数
   // 初期化
-  void Initialize(DX12Context *dxBase, SrvManager *srvManager);
+  void Initialize();
 
   // シングルトンインスタンスの取得
   static TextureManager *GetInstance();

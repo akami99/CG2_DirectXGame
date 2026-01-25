@@ -22,12 +22,10 @@ Camera::Camera()
     viewProjectionMatrix_(viewMatrix_ *projectionMatrix_)
 {}
 
-void Camera::Initialize(DX12Context *dxBase) {
-    dxBase_ = dxBase;
-
+void Camera::Initialize() {
     // カメラ用の定数バッファリソースを作成
     // ※ 16バイトアライメントされた構造体サイズを指定
-    constBuffer_ = dxBase_->CreateBufferResource(sizeof(CameraForGPU));
+    constBuffer_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(CameraForGPU));
 
     // 書き込むためのアドレスを取得（Map）
     constBuffer_->Map(0, nullptr, reinterpret_cast<void **>(&constData_));

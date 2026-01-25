@@ -13,12 +13,8 @@ using namespace MathUtils;
 using namespace MathGenerators;
 
 // 初期化
-void Sprite::Initialize(SpriteCommon *spriteCommon,
-                        const std::string &filePath) {
-  // NULLポインタチェック
-  assert(spriteCommon);
+void Sprite::Initialize(const std::string &filePath) {
   // メンバ変数にセット
-  spriteCommon_ = spriteCommon;
 
   // 頂点バッファとインデックスバッファの作成
   CreateBufferResource();
@@ -136,29 +132,29 @@ void Sprite::Update() {
 // 描画処理
 void Sprite::Draw() {
   // VertexBufferとIndexBufferの設定
-  spriteCommon_->GetDX12Context()->GetCommandList()->IASetVertexBuffers(
+    DX12Context::GetInstance()->GetCommandList()->IASetVertexBuffers(
       0, 1, &vertexBufferView_);
-  spriteCommon_->GetDX12Context()->GetCommandList()->IASetIndexBuffer(
+    DX12Context::GetInstance()->GetCommandList()->IASetIndexBuffer(
       &indexBufferView_);
 
   // マテリアルCBVの設定
-  spriteCommon_->GetDX12Context()
+    DX12Context::GetInstance()
       ->GetCommandList()
       ->SetGraphicsRootConstantBufferView(
           0, materialResource_->GetGPUVirtualAddress());
   // 変換行列CBVの設定
-  spriteCommon_->GetDX12Context()
+    DX12Context::GetInstance()
       ->GetCommandList()
       ->SetGraphicsRootConstantBufferView(
           1, transformationMatrixResource_->GetGPUVirtualAddress());
 
   // SRVのDescriptorTableの先頭を設定。2はrootParameter[2]である。
-  spriteCommon_->GetDX12Context()
+    DX12Context::GetInstance()
       ->GetCommandList()
       ->SetGraphicsRootDescriptorTable(
           2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_));
   // 描画コマンド
-  spriteCommon_->GetDX12Context()->GetCommandList()->DrawIndexedInstanced(
+    DX12Context::GetInstance()->GetCommandList()->DrawIndexedInstanced(
       6, 1, 0, 0, 0);
 }
 
@@ -177,10 +173,10 @@ void Sprite::CreateBufferResource() {
   // リソースとバッファビューの作成
 
   // VertexResourceを作る
-  vertexResource_ = spriteCommon_->GetDX12Context()->CreateBufferResource(
+  vertexResource_ = DX12Context::GetInstance()->CreateBufferResource(
       sizeof(VertexData) * 6);
   // IndexResourceを作る
-  indexResource_ = spriteCommon_->GetDX12Context()->CreateBufferResource(
+  indexResource_ = DX12Context::GetInstance()->CreateBufferResource(
       sizeof(uint32_t) * 6);
 
   // VertexBufferViewを作成する
@@ -226,7 +222,7 @@ void Sprite::CreateMaterialResource() {
 
   // マテリアルリソースを作る
   materialResource_ =
-      spriteCommon_->GetDX12Context()->CreateBufferResource(sizeof(Material));
+      DX12Context::GetInstance()->CreateBufferResource(sizeof(Material));
 
 #pragma endregion ここまで
 
@@ -252,7 +248,7 @@ void Sprite::CreateTransformationMatrixResource() {
 
   // 変換行列リソースを作る
   transformationMatrixResource_ =
-      spriteCommon_->GetDX12Context()->CreateBufferResource(
+      DX12Context::GetInstance()->CreateBufferResource(
           sizeof(TransformationMatrix));
 
 #pragma endregion ここまで

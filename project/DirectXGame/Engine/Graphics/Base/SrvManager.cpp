@@ -1,4 +1,4 @@
-#include "Base/SrvManager.h"
+#include "SrvManager.h"
 
 #include "Base/DX12Context.h"
 
@@ -6,17 +6,33 @@ using namespace Microsoft::WRL;
 
 const uint32_t SrvManager::kMaxSRVCount = 512;
 
-// 初期化
-void SrvManager::Initialize(DX12Context *dxBase) {
-  // 引数で受け取ってメンバ変数に記録する
-  dxBase_ = dxBase;
+SrvManager *SrvManager::instance_ = nullptr;
 
+// ★追加: シングルトンインスタンスの実装
+SrvManager* SrvManager::GetInstance() {
+    if (instance_ == nullptr) {
+    instance_ = new SrvManager();
+  }
+    return instance_;
+}
+
+// 初期化
+void SrvManager::Initialize() {
   // デスクリプタヒープの生成
-  descriptorHeap_ = dxBase_->CreateDescriptorHeap(
+  descriptorHeap_ = DX12Context::GetInstance()->CreateDescriptorHeap(
       D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, kMaxSRVCount, true);
   // デスクリプタヒープ1個分のサイズを取得して記録
-  descriptorSize_ = dxBase_->GetDevice()->GetDescriptorHandleIncrementSize(
+  descriptorSize_ = DX12Context::GetInstance()->GetDevice()->GetDescriptorHandleIncrementSize(
       D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+}
+
+// 終了
+void SrvManager::Finalize() {
+  descriptorHeap_.Reset();
+
+  // シングルトンインスタンスの解放
+  delete instance_;
+  instance_ = nullptr;
 }
 
 // 描画開始前処理
@@ -26,7 +42,7 @@ void SrvManager::PreDraw() {
   ID3D12DescriptorHeap *descriptorHeaps[] = {descriptorHeap_.Get()};
 
   // 生のポインタ配列をSetDescriptorHeapsに渡す
-  dxBase_->GetCommandList()->SetDescriptorHeaps(1, descriptorHeaps);
+  DX12Context::GetInstance()->GetCommandList()->SetDescriptorHeaps(1, descriptorHeaps);
 }
 
 bool SrvManager::AllocatableTexture() {
@@ -54,13 +70,8 @@ uint32_t SrvManager::Allocate() {
 // SRVをセット
 void SrvManager::SetGraphicRootDescriptorTable(UINT RootParameterIndex,
                                                uint32_t srvIndex) {
-  dxBase_->GetCommandList()->SetGraphicsRootDescriptorTable(
+    DX12Context::GetInstance()->GetCommandList()->SetGraphicsRootDescriptorTable(
       RootParameterIndex, GetGPUDescriptorHandle(srvIndex));
-}
-
-uint32_t SrvManager::GetNewIndex() {
-    assert(useIndex_ < kMaxSRVCount);
-    return useIndex_++;
 }
 
 // SRVの指定したインデックスのCPUディスクリプタハンドルを取得
@@ -97,7 +108,7 @@ void SrvManager::CreateSRVForTexture(uint32_t srvIndex,
   D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU = GetCPUDescriptorHandle(srvIndex);
 
   // SRVの生成
-  dxBase_->GetDevice()->CreateShaderResourceView(resource.Get(), &srvDesc,
+  DX12Context::GetInstance()->GetDevice()->CreateShaderResourceView(resource.Get(), &srvDesc,
                                                  srvHandleCPU);
 }
 
@@ -121,6 +132,6 @@ void SrvManager::CreateSRVForStructuredBuffer(uint32_t srvIndex,
   D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU = GetCPUDescriptorHandle(srvIndex);
 
   // SRVの生成
-  dxBase_->GetDevice()->CreateShaderResourceView(resource.Get(), &srvDesc,
+  DX12Context::GetInstance()->GetDevice()->CreateShaderResourceView(resource.Get(), &srvDesc,
                                                  srvHandleCPU);
 }

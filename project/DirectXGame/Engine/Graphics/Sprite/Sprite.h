@@ -8,8 +8,6 @@
 #include "../../Core/Utility/Math/MathTypes.h"
 #include "Types/GraphicsTypes.h"
 
-// 前方宣言
-class SpriteCommon;
 
 // スプライト
 class Sprite {
@@ -22,7 +20,6 @@ private: // namespace省略のためのusing宣言
 #pragma endregion
 
 private: // メンバ変数
-  SpriteCommon *spriteCommon_ = nullptr;
 
   // 頂点データ
   // バッファリソース
@@ -74,7 +71,7 @@ private: // メンバ変数
 
 public: // メンバ関数
   // 初期化
-  void Initialize(SpriteCommon *spriteCommon, const std::string &filePath);
+  void Initialize(const std::string &filePath);
 
   // 更新処理
   void Update();

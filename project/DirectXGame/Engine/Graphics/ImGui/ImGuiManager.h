@@ -6,21 +6,16 @@
 #include "imgui_impl_win32.h"
 #endif
 
-class DX12Context;
 class Win32Window;
-class SrvManager;
 
 // ImGuiの管理
 class ImGuiManager {
 private:
-  static DX12Context *dxBase_;
   static Win32Window *window_;
-  static SrvManager *srvManager_;
 
 public:
   // 初期化
-  static void Initialize(DX12Context *dxBase, Win32Window *window,
-                         SrvManager *srvManager);
+  static void Initialize(Win32Window *window);
   // 終了
   void Finalize();
 

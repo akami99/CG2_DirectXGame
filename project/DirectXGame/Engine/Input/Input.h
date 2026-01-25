@@ -5,7 +5,7 @@
 #include <dinput.h>                   // DirectInputのヘッダーファイル
 #include <wrl.h>                      // Microsoft::WRL::ComPtrのために必要
 
-#include "Base/DX12Context.h" // DX12Contextのヘッダーファイル
+class Win32Window; // 前方宣言
 
 using namespace Microsoft::WRL; // ComPtrを使うために必要
 
@@ -16,22 +16,25 @@ public:
   template <class T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 private:                                 // メンバ変数
+  static Input *instance_; // シングルトンインスタンス
+
   ComPtr<IDirectInput8> directInput_;    // DirectInputオブジェクト
   ComPtr<IDirectInputDevice8> keyboard_; // DirectInputキーボードデバイス
   BYTE key_[256] = {};                   // 現在のキー状態
   BYTE preKey_[256] = {};                // 前回のキー状態
-
   // WindowsAPI
   Win32Window *window_ = nullptr;
 
 public: // メンバ関数
+  // シングルトンインスタンスの取得
+	static Input* GetInstance();
+
   // 初期化
   // ウィンドウハンドルとHINSTANCEを引数として受け取る
   void Initialize(Win32Window *window);
 
-  // デストラクタ
-  // デバイスの取得を解除
-  ~Input();
+  // 終了
+  void Finalize();
 
   // キーボードの状態を更新するメソッド (毎フレーム呼び出す)
   void Update();
@@ -42,8 +45,6 @@ public: // メンバ関数
   /// <param name="keyNumber">キー番号</param>
   /// <returns>押されているか (押しっぱなしも含む)</returns>
   bool IsKeyDown(BYTE keyNumber);
-
-  // 指定されたキーが押された瞬間か (トリガー)
 
   /// <summary>
   /// キーのトリガーをチェック
@@ -59,4 +60,11 @@ public: // メンバ関数
   /// <param name="keyNumber">キー番号</param>
   /// <returns>離された瞬間か</returns>
   bool IsKeyReleased(BYTE keyNumber);
+
+private:
+  // コンストラクタ
+  Input() = default;
+  ~Input();
+  Input(const Input &) = delete;
+  const Input &operator=(const Input &) = delete;
 };
