@@ -62,6 +62,9 @@ void Input::Finalize() {
   if (directInput_) {
     directInput_.Reset();
   }
+  // インスタンスの解放
+  delete instance_;
+  instance_ = nullptr;
 }
 
 // デストラクタ

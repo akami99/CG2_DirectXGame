@@ -6,9 +6,6 @@
 #include "MathTypes.h"
 #include <vector>
 
-class GamePlayScene;
-class TitleScene;
-
 // Frameworkを継承する
 class MyGame : public RAFramework {
 public: // メンバ関数

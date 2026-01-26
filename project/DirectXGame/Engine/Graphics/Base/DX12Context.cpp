@@ -27,6 +27,13 @@ DX12Context *DX12Context::GetInstance() {
     return instance_;
 }
 
+void DX12Context::Destroy() {
+    if (instance_) {
+        delete instance_;
+        instance_ = nullptr;
+    }
+}
+
 #pragma region publicメンバ関数
 
 // 初期化
@@ -73,20 +80,57 @@ void DX12Context::Initialize(Win32Window *window) {
   // DCXコンパイラの生成
   CreateDXCCompiler();
 
+  // ★ ここがポイント：生成直後に一度閉じる
+    // これにより「最初は Closed 状態」というルールが確定する
+  HRESULT hr;
+  hr = commandList_->Close();
+  assert(SUCCEEDED(hr));
+
   Log("Complete Initialize DX12Context!!!\n"); // 初期化完了のログをだす
 }
 
 // 終了
 void DX12Context::Finalize() {
-  // フェンスイベントのクローズ
-  if (fenceEvent_) {
-    CloseHandle(fenceEvent_);
-    fenceEvent_ = nullptr;
-  }
-  // インスタンスの破棄
-  delete instance_;
-  instance_ = nullptr;
-  Log("Complete Finalize DX12Context!!!\n"); // 終了完了のログをだす
+    // 1. まずGPUの処理完了を待つ
+    WaitForGpu();
+    // 1. コマンドリスト関連
+    commandList_.Reset();
+    commandAllocator_.Reset();
+    commandQueue_.Reset();
+
+    // 2. スワップチェーンとそのリソース（重要！）
+    // これらがDeviceを参照しているので、必ず先に消す
+    swapChain_.Reset();
+    for (auto& resource : swapChainResources_) {
+        resource.Reset();
+    }
+
+    // 3. 深度バッファ（重要！）
+    depthStencilResource_.Reset();
+
+    // 4. デスクリプタヒープ（重要！）
+    rtvDescriptorHeap_.Reset(); 
+    dsvDescriptorHeap_.Reset(); 
+
+    // 5. その他ツール類
+    dxcUtils_.Reset();
+    dxcCompiler_.Reset();
+    includeHandler_.Reset();
+    dxgiFactory_.Reset();
+
+    // 6. フェンスイベント閉じる
+    if (fenceEvent_) {
+        CloseHandle(fenceEvent_);
+        fenceEvent_ = nullptr;
+    }
+    fence_.Reset();
+
+    // 7. 最後に親玉であるデバイスを放す
+    device_.Reset();
+
+    // window_ はポインタなのでここではなく delete window_ でOK（RAFramework側でやってる通り）
+
+    Log("Complete Finalize DX12Context!!!\n");
 }
 
 #pragma region 描画処理
@@ -209,6 +253,21 @@ DX12Context::GetDSVCPUDescriptorHandle(uint32_t index) {
 }
 
 #pragma endregion ゲッター
+
+void DX12Context::WaitForGpu() {
+    // コマンドリストを閉じて実行（もし開いていれば）
+    // ※ 実行中のコマンドがないなら、単にFenceで待つだけでもOK
+
+    // フェンス値を更新してシグナルを送る
+    fenceValue_++;
+    commandQueue_->Signal(fence_.Get(), fenceValue_);
+
+    // フェンス値が到達するまで待つ
+    if (fence_->GetCompletedValue() < fenceValue_) {
+        fence_->SetEventOnCompletion(fenceValue_, fenceEvent_);
+        WaitForSingleObject(fenceEvent_, INFINITE);
+    }
+}
 
 #pragma endregion publicメンバ関数
 
@@ -589,22 +648,7 @@ void DX12Context::ExecuteInitialCommandAndSync() {
   ID3D12CommandList *commandLists[] = {commandList_.Get()};
   commandQueue_->ExecuteCommandLists(1, commandLists);
 
-  // Fenceの値を更新
-  fenceValue_++;
-
-  // GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
-  hr = commandQueue_->Signal(fence_.Get(), fenceValue_);
-  assert(SUCCEEDED(hr));
-
-  // Fenceの値が指定したSignal値にたどり着いているか確認する
-  // GetCompletedValueの初期値はFence作成時に渡した初期値
-  if (fence_->GetCompletedValue() < fenceValue_) {
-    // 指定したSignalにたどりついていないので、たどり着くまで待つようにイベントを設定する
-    hr = fence_->SetEventOnCompletion(fenceValue_, fenceEvent_);
-    assert(SUCCEEDED(hr));
-    // イベントを待つ
-    WaitForSingleObject(fenceEvent_, INFINITE);
-  }
+  WaitForGpu();
 
   // 次のフレーム用のコマンドリストを準備
   hr = commandAllocator_->Reset();
@@ -728,6 +772,10 @@ ComPtr<ID3D12Resource> DX12Context::CreateBufferResource(size_t sizeInBytes) {
       D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
       IID_PPV_ARGS(&vertexResource));
   assert(SUCCEEDED(hr));
+
+  // リークが分からない場合にのみ使う追跡用コード: 生成されたリソースのアドレスをログに出す
+  /*Logger::Log(std::format("Resource CREATED: Ptr = 0x{:X}, Size = {}\n",
+      reinterpret_cast<uint64_t>(vertexResource.Get()), sizeInBytes));*/
 
   return vertexResource;
 }

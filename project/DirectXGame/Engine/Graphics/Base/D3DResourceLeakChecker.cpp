@@ -5,6 +5,8 @@
 
 #include "Base/D3DResourceLeakChecker.h"
 
+#pragma comment(lib, "dxguid.lib") // 必須ライブラリ
+
 using namespace Microsoft::WRL;
 
 D3DResourceLeakChecker::~D3DResourceLeakChecker() {
@@ -16,7 +18,7 @@ D3DResourceLeakChecker::~D3DResourceLeakChecker() {
 
     // すべてのDXGIオブジェクトのリークをレポート
     OutputDebugStringA("--- DXGI_DEBUG_ALL ---\n");
-    debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
+    debug->ReportLiveObjects(DXGI_DEBUG_ALL, /*DXGI_DEBUG_RLO_ALL | */DXGI_DEBUG_RLO_DETAIL/* | DXGI_DEBUG_RLO_IGNORE_INTERNAL*/);
 
     // アプリケーション固有のリークをレポート
     OutputDebugStringA("--- DXGI_DEBUG_APP ---\n");

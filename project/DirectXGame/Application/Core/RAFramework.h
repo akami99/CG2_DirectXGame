@@ -4,7 +4,6 @@
 // 前方宣言
 class Win32Window;
 class ImGuiManager;
-class BaseScene;
 
 // ゲーム全体を管理するフレームワーククラス
 class RAFramework {
@@ -17,8 +16,8 @@ public:
     // 継承先で実装する関数
     virtual void Initialize();
     virtual void Finalize();
-    virtual void Update();
-    virtual void Draw();
+    virtual void Update() = 0;
+    virtual void Draw() = 0;
     // 終了フラグ
     virtual bool IsEndRequest() {
         return endRequest_;
@@ -32,9 +31,4 @@ protected: // 継承先の MyGame でも使えるように protected にする
     ImGuiManager *imGuiManager_ = nullptr;
 
 private:
-
-    // タイトルシーン
-    BaseScene* titleScene_ = nullptr;
-    // ゲームプレイシーン
-    //BaseScene *gamePlayScene_ = nullptr;
 };

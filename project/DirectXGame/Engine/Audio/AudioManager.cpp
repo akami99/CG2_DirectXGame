@@ -9,10 +9,14 @@
 #pragma comment(lib, "mfreadwrite.lib")
 #pragma comment(lib, "mfuuid.lib")
 
+AudioManager* AudioManager::instance_ = nullptr;
+
 // シングルトンインスタンスの取得実装
 AudioManager* AudioManager::GetInstance() {
-    static AudioManager instance;
-    return &instance;
+    if (instance_ == nullptr) {
+        instance_ = new AudioManager;
+    }
+    return instance_;
 }
 
 // PlayingVoice 構造体のデストラクタの実装
@@ -92,6 +96,12 @@ bool AudioManager::Initialize() {
     return false;
 
   return true;
+}
+
+void AudioManager::Finalize() {
+    // インスタンスの解放
+    delete instance_;
+    instance_ = nullptr;
 }
 
 // XAudio2 エンジンをシャットダウンする

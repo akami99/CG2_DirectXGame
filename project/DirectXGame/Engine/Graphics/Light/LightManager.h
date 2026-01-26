@@ -9,6 +9,7 @@ public:
 public:
   void Initialize();
   void Finalize();
+  // 更新の最後に呼ぶ
   void Update();
   void Draw();
 

@@ -1,23 +1,20 @@
 #include "RAFramework.h"
 // 必要なエンジンのインクルード
-#include "Win32Window.h"
-#include "DX12Context.h"
-#include "Input.h"
-#include "SrvManager.h"
-#include "PipelineManager.h"
-#include "ImGuiManager.h"
-#include "SpriteCommon.h"
-#include "Object3dCommon.h"
-#include "TextureManager.h"
-#include "ModelManager.h"
-#include "ParticleManager.h"
-#include "LightManager.h"
 #include "AudioManager.h"
+#include "DX12Context.h"
+#include "ImGuiManager.h"
+#include "Input.h"
+#include "LightManager.h"
 #include "Logger.h"
-
-// Scene
-#include "GamePlayScene.h"
-#include "TitleScene.h"
+#include "ModelManager.h"
+#include "Object3dCommon.h"
+#include "ParticleManager.h"
+#include "PipelineManager.h"
+#include "SceneManager.h"
+#include "SpriteCommon.h"
+#include "SrvManager.h"
+#include "TextureManager.h"
+#include "Win32Window.h"
 
 // dump用
 #include <dbghelp.h>
@@ -27,175 +24,143 @@
 
 // ダンプ出力関数（static関数としてこのファイル内だけで使う）
 static LONG WINAPI ExportDump(EXCEPTION_POINTERS *exception) {
-    // ログと同じく、exeと同じ階層に「dumps」フォルダを作成する
-    const wchar_t *dumpDir = L"dumps";
+  // ログと同じく、exeと同じ階層に「dumps」フォルダを作成する
+  const wchar_t *dumpDir = L"dumps";
 
-    CreateDirectoryW(dumpDir, nullptr);
+  CreateDirectoryW(dumpDir, nullptr);
 
-    // 時刻を取得して、時刻を名前に入れたファイルを作成。Dumpsディレクトリいかに出力
-    SYSTEMTIME time;
-    GetLocalTime(&time);
-    wchar_t filePath[MAX_PATH] = { 0 };
+  // 時刻を取得して、時刻を名前に入れたファイルを作成。Dumpsディレクトリいかに出力
+  SYSTEMTIME time;
+  GetLocalTime(&time);
+  wchar_t filePath[MAX_PATH] = {0};
 
-    StringCchPrintfW(filePath, MAX_PATH, L"%s/%04d-%02d%02d-%02d%02d%02d.dmp",
-        dumpDir, time.wYear, time.wMonth, time.wDay, time.wHour,
-        time.wMinute, time.wSecond);
+  StringCchPrintfW(filePath, MAX_PATH, L"%s/%04d-%02d%02d-%02d%02d%02d.dmp",
+                   dumpDir, time.wYear, time.wMonth, time.wDay, time.wHour,
+                   time.wMinute, time.wSecond);
 
-    HANDLE dumpFileHandle =
-        CreateFile(filePath, GENERIC_READ | GENERIC_WRITE,
-            FILE_SHARE_WRITE | FILE_SHARE_READ, 0, CREATE_ALWAYS, 0, 0);
+  HANDLE dumpFileHandle =
+      CreateFile(filePath, GENERIC_READ | GENERIC_WRITE,
+                 FILE_SHARE_WRITE | FILE_SHARE_READ, 0, CREATE_ALWAYS, 0, 0);
 
-    // 4. ハンドルの有効性チェック
-    if (dumpFileHandle == INVALID_HANDLE_VALUE) {
-        // ファイル作成に失敗した場合（権限不足など）、ダンプ処理はスキップして終了
-        // エラーコードをログに記録できれば理想だが、ここではシンプルな終了とする
-        return EXCEPTION_EXECUTE_HANDLER;
-    }
-
-    // processId（このexeのID）とクラッシュ（例外）の発生したthreadIdを取得
-    DWORD processId = GetCurrentProcessId();
-    DWORD threadId = GetCurrentThreadId();
-    // 設定情報を入力
-    MINIDUMP_EXCEPTION_INFORMATION minidumpInformation{ 0 };
-    minidumpInformation.ThreadId = threadId;
-    minidumpInformation.ExceptionPointers = exception;
-    minidumpInformation.ClientPointers = TRUE;
-    // Dumpを出力、MiniDumpNormalは最低限の情報を出力するフラグ
-    MiniDumpWriteDump(GetCurrentProcess(), processId, dumpFileHandle,
-        MiniDumpNormal, &minidumpInformation, nullptr, nullptr);
-
-    // ファイルハンドルを閉じる
-    CloseHandle(dumpFileHandle);
-
-    // 他に関連付けられているSEH例外ハンドラがあれば実行。通常はプロセスを終了する
+  // 4. ハンドルの有効性チェック
+  if (dumpFileHandle == INVALID_HANDLE_VALUE) {
+    // ファイル作成に失敗した場合（権限不足など）、ダンプ処理はスキップして終了
+    // エラーコードをログに記録できれば理想だが、ここではシンプルな終了とする
     return EXCEPTION_EXECUTE_HANDLER;
+  }
+
+  // processId（このexeのID）とクラッシュ（例外）の発生したthreadIdを取得
+  DWORD processId = GetCurrentProcessId();
+  DWORD threadId = GetCurrentThreadId();
+  // 設定情報を入力
+  MINIDUMP_EXCEPTION_INFORMATION minidumpInformation{0};
+  minidumpInformation.ThreadId = threadId;
+  minidumpInformation.ExceptionPointers = exception;
+  minidumpInformation.ClientPointers = TRUE;
+  // Dumpを出力、MiniDumpNormalは最低限の情報を出力するフラグ
+  MiniDumpWriteDump(GetCurrentProcess(), processId, dumpFileHandle,
+                    MiniDumpNormal, &minidumpInformation, nullptr, nullptr);
+
+  // ファイルハンドルを閉じる
+  CloseHandle(dumpFileHandle);
+
+  // 他に関連付けられているSEH例外ハンドラがあれば実行。通常はプロセスを終了する
+  return EXCEPTION_EXECUTE_HANDLER;
 }
 
 void RAFramework::Run() {
-    Initialize();
+  Initialize();
 
-    // ウィンドウのxボタンが押されるまでループ
-    while (true) {
-        // メッセージ処理
-        if (window_->ProcessMessage() || IsEndRequest()) {
-            break;
-        }
-
-        // 更新
-
-        Update();
-
-        // ライト更新
-        LightManager::GetInstance()->Update();
-
-        // 描画
-        Draw();
+  // ウィンドウのxボタンが押されるまでループ
+  while (true) {
+    // メッセージ処理
+    if (window_->ProcessMessage() || IsEndRequest()) {
+      break;
     }
 
-    Finalize();
+    // 更新
+    Update();
+
+    // 描画
+    Draw();
+  }
+
+  Finalize();
 }
 
 void RAFramework::Initialize() {
-    // ログ初期化
-    Logger::InitializeFileLogging();
+  // ログ初期化
+  Logger::InitializeFileLogging();
 
-    /// システム基盤の初期化
-    // Window
-    window_ = new Win32Window();
-    window_->Initialize();
-    // DirectXBase
-    DX12Context::GetInstance()->Initialize(window_);
-    // SRVManager
-    SrvManager::GetInstance()->Initialize();
-    // DirectInput
-    Input::GetInstance()->Initialize(window_);
-    // PipelineManager
-    PipelineManager::GetInstance()->Initialize();
-    // ImGuiManager
-    imGuiManager_ = new ImGuiManager();
-    imGuiManager_->Initialize(window_);
+  /// システム基盤の初期化
+  // Window
+  window_ = new Win32Window();
+  window_->Initialize();
+  // DirectXBase
+  DX12Context::GetInstance()->Initialize(window_);
+  // SRVManager
+  SrvManager::GetInstance()->Initialize();
+  // DirectInput
+  Input::GetInstance()->Initialize(window_);
+  // PipelineManager
+  PipelineManager::GetInstance()->Initialize();
+  // ImGuiManager
+  imGuiManager_ = new ImGuiManager();
+  imGuiManager_->Initialize(window_);
 
-    /// マネージャー類の初期化（シングルトン）
-    LightManager::GetInstance()->Initialize();
-    if (!AudioManager::GetInstance()->Initialize()) {
-        // エラー処理 (ログ出力など)
-        assert(false && "AudioManager Initialize Failed");
-    }
-    TextureManager::GetInstance()->Initialize();
-    ModelManager::GetInstance()->Initialize();
-    ParticleManager::GetInstance()->Initialize();
+  // リソース系マネージャのためにコマンドリストを開く
+  // (Texture, Model, ParticleなどはGPUにデータを送るためリストが必要)
+  DX12Context::GetInstance()->GetCommandList()->Reset(
+      DX12Context::GetInstance()->GetCommandAllocator(), nullptr);
 
-    /// 共通描画設定の生成
-    // ModelCommon
-    // SpriteCommon
-    SpriteCommon::GetInstance()->Initialize();
-    // Object3dCommon
-    Object3dCommon::GetInstance()->Initialize();
+  /// マネージャー類の初期化（シングルトン）
+  LightManager::GetInstance()->Initialize();
+  if (!AudioManager::GetInstance()->Initialize()) {
+    // エラー処理 (ログ出力など)
+    assert(false && "AudioManager Initialize Failed");
+  }
+  TextureManager::GetInstance()->Initialize();
+  ModelManager::GetInstance()->Initialize();
+  ParticleManager::GetInstance()->Initialize();
 
+  /// 共通描画設定の生成
+  // SpriteCommon
+  SpriteCommon::GetInstance()->Initialize();
+  // Object3dCommon
+  Object3dCommon::GetInstance()->Initialize();
 
-    // --- ゲーム固有の初期化処理 ---
-    titleScene_ = new TitleScene();
-    titleScene_->Initialize();
-    // gamePlayScene_ = new GamePlayScene();
-    // gamePlayScene_->Initialize();
-}
-
-void RAFramework::Update() {
-    // MyGameから呼ぶルールにする
-    // 入力の更新
-    Input::GetInstance()->Update();
-
-    // ImGuiの受付開始
-    imGuiManager_->Begin();
-
-    // ゲームプレイシーンの更新
-    titleScene_->Update();
-    //gamePlayScene_->Update();
-
-    // シーンマネージャに現在のシーンを更新させる
-    // (内部で TitleScene->Update() などが呼ばれる)
-    //SceneManager::GetInstance()->Update();
-
-    // ImGuiの受付終了 (内部的な終了処理)
-    imGuiManager_->End();
-}
-
-void RAFramework::Draw() {
-    // ゲームプレイシーンの描画
-    titleScene_->Draw();
-    //gamePlayScene_->Draw();
+  // 初期化コマンドを一気に実行して完了を待つ
+  // これにより、すべてのマネージャが準備完了状態でゲームが始まる
+  DX12Context::GetInstance()->ExecuteInitialCommandAndSync();
 }
 
 void RAFramework::Finalize() {
-    // ゲーム固有の終了処理
-    if (titleScene_) {
-        titleScene_->Finalize();
-        delete titleScene_;
-        titleScene_ = nullptr;
-    }
-    /* if (gamePlayScene_) {
-       gamePlayScene_->Finalize();
-       delete gamePlayScene_;
-       gamePlayScene_ = nullptr;
-     }*/
+  // シーンを消す前に、GPUが現在描画しているフレームの処理を完全に終わらせる
+  DX12Context::GetInstance()->WaitForGpu();
 
-    // マネージャーの終了
-    Object3dCommon::GetInstance()->Finalize();
-    SpriteCommon::GetInstance()->Finalize();
-    ParticleManager::GetInstance()->Finalize();
-    ModelManager::GetInstance()->Finalize();
-    TextureManager::GetInstance()->Finalize();
-    AudioManager::GetInstance()->Shutdown();
-    LightManager::GetInstance()->Finalize();
+  // シーンマネージャに現在のシーンを終了させる
+  SceneManager::GetInstance()->Finalize();
+  SceneManager::GetInstance()->Destroy();
 
-    imGuiManager_->Finalize();
-    delete imGuiManager_;
+  //// マネージャーの終了
+  Object3dCommon::GetInstance()->Finalize();
+  SpriteCommon::GetInstance()->Finalize();
+  ParticleManager::GetInstance()->Finalize();
+  ModelManager::GetInstance()->Finalize();
+  TextureManager::GetInstance()->Finalize();
+  AudioManager::GetInstance()->Shutdown();
+  AudioManager::GetInstance()->Finalize();
+  LightManager::GetInstance()->Finalize();
 
-    PipelineManager::GetInstance()->Finalize();
-    Input::GetInstance()->Finalize();
-    SrvManager::GetInstance()->Finalize();
-    DX12Context::GetInstance()->Finalize();
+  imGuiManager_->Finalize();
+  delete imGuiManager_;
 
-    window_->Finalize();
-    delete window_;
+  PipelineManager::GetInstance()->Finalize();
+  Input::GetInstance()->Finalize();
+  SrvManager::GetInstance()->Finalize();
+  DX12Context::GetInstance()->Finalize();
+  DX12Context::GetInstance()->Destroy();
+
+  window_->Finalize();
+  delete window_;
 }

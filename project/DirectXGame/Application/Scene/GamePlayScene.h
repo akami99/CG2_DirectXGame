@@ -1,6 +1,7 @@
 #pragma once
-#include "IScene.h"
+#include "BaseScene.h"
 #include <vector>
+#include <memory>
 #include "MathTypes.h"
 
 // 必要なクラスをインクルード or 前方宣言
@@ -9,7 +10,7 @@
 #include "Object3d.h"
 #include "Sprite.h"
 
-class GamePlayScene : public IScene {
+class GamePlayScene : public BaseScene {
 public:
     void Initialize() override;
     void Update() override;
@@ -27,15 +28,16 @@ private:
     // --- ここから下は MyGame.h から移動してきたゲーム固有変数 ---
 
     // カメラ
-    Camera* camera_ = nullptr;
+    std::unique_ptr<Camera> camera_;
+
     DebugCamera debugCamera_;
     bool useDebugCamera_ = false;
     Vector3 gameCameraRotate_{};
     Vector3 gameCameraTranslate_{};
 
     // ゲームオブジェクト
-    std::vector<Object3d*> object3ds_;
-    std::vector<Sprite*> sprites_;
+    std::vector < std::unique_ptr<Object3d>> object3ds_;
+    std::vector<std::unique_ptr<Sprite>> sprites_;
 
     // パーティクル設定など
     Vector3 particleRotation_{};

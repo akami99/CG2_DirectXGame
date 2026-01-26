@@ -1,6 +1,7 @@
 #pragma once
-#include "IScene.h"
+#include "BaseScene.h"
 #include <vector>
+#include <memory>
 #include "MathTypes.h"
 
 // 必要なクラスをインクルード or 前方宣言
@@ -26,14 +27,15 @@ private:
     // --- ここから下は MyGame.h から移動してきたゲーム固有変数 ---
 
     // カメラ
-    Camera* camera_ = nullptr;
+    std::unique_ptr<Camera> camera_;
+
     DebugCamera debugCamera_;
     bool useDebugCamera_ = false;
     Vector3 gameCameraRotate_{};
     Vector3 gameCameraTranslate_{};
 
     // ゲームオブジェクト
-    std::vector<Sprite*> sprites_;
+    std::vector<std::unique_ptr<Sprite>> sprites_;
 
     // パーティクル設定など
     int currentBlendMode_ = 1;  // NormalBlend

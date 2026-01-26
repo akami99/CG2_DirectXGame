@@ -1,5 +1,6 @@
 #include "Camera.h"
 #include "Base/DX12Context.h"
+#include "Logger.h"
 
 #include "Math/Functions/MathUtils.h"
 #include "Math/Matrix/MatrixGenerators.h"
@@ -22,13 +23,21 @@ Camera::Camera()
     viewProjectionMatrix_(viewMatrix_ *projectionMatrix_)
 {}
 
+// デストラクタはシンプルに
+Camera::~Camera() {
+}
+
 void Camera::Initialize() {
     // カメラ用の定数バッファリソースを作成
     // ※ 16バイトアライメントされた構造体サイズを指定
     constBuffer_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(CameraForGPU));
+    constBuffer_->SetName(L"CameraConstantBuffer"); // 名前をつける
 
     // 書き込むためのアドレスを取得（Map）
-    constBuffer_->Map(0, nullptr, reinterpret_cast<void **>(&constData_));
+    HRESULT hr = constBuffer_->Map(0, nullptr, reinterpret_cast<void**>(&constData_));
+    if (SUCCEEDED(hr)) {
+        isMapped_ = true;
+    }
 }
 
 // 更新処理

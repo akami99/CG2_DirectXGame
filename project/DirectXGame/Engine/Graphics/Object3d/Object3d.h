@@ -38,6 +38,7 @@ private: // メンバ変数
       {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}};
 
 public: // メンバ関数
+    ~Object3d();
   // 初期化
   void Initialize();
 

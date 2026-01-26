@@ -1,5 +1,6 @@
 #include "GamePlayScene.h"
 #include "Win32Window.h"
+#include "DX12Context.h"
 #include "ModelManager.h"
 #include "TextureManager.h"
 #include "ParticleManager.h"
@@ -8,14 +9,17 @@
 #include "Input.h"
 #include "SpriteCommon.h"
 #include "Object3dCommon.h"
-#include "Object3d.h"
 #include "Model.h"
 #include "LightManager.h"
+#include "SceneManager.h"
 #include "BlendMode.h"
 #include "ApplicationConfig.h" // kDeltaTimeなど
 // 計算用関数など
 #include "MathUtils.h"
 #include "MatrixGenerators.h"
+
+// scene
+#include "TitleScene.h"
 
 // using
 using namespace MathUtils;
@@ -23,20 +27,24 @@ using namespace MathGenerators;
 using namespace BlendMode;
 
 void GamePlayScene::Initialize() {
-    // MyGame::Initialize の中身をここに移動
-    // ※ただし、WindowやDirectXの初期化コードは MyGame/Framework に残っているので、ここには書きません。
+    // --- 0. コマンドリストを一旦リセットして書き込める状態にする ---
+    // (MyGameのInitializeから呼ばれる際、リストが閉じている可能性があるため)
+    DX12Context::GetInstance()->GetCommandList()->Reset(
+        DX12Context::GetInstance()->GetCommandAllocator(), nullptr);
+
 
     // カメラ生成
-    camera_ = new Camera();
+    camera_ = std::make_unique<Camera>();
     camera_->Initialize();
     camera_->SetRotate({ 0.3f, 0.0f, 0.0f });
     camera_->SetTranslate({ 0.0f, 4.0f, -10.0f });
     gameCameraRotate_ = camera_->GetRotate();
+
     gameCameraTranslate_ = camera_->GetTranslate();
 
     debugCamera_.Initialize();
 
-    Object3dCommon::GetInstance()->SetDefaultCamera(camera_);
+    Object3dCommon::GetInstance()->SetDefaultCamera(camera_.get());
 
     // ライトの設定
     LightManager::GetInstance()->SetDirectionalLightIntensity(0.0f);
@@ -73,7 +81,7 @@ void GamePlayScene::Initialize() {
     // マテリアル
 
     // 1つ目のオブジェクト
-    Object3d* object3d_1 = new Object3d(); // object3dをobject3d_1に変更
+    std::unique_ptr <Object3d> object3d_1 = std::make_unique<Object3d>();
     object3d_1->Initialize();
 
     // モデルの設定
@@ -82,7 +90,7 @@ void GamePlayScene::Initialize() {
     object3d_1->SetTranslate({ 0.0f, 0.0f, 0.0f });
 
      // 2つ目のオブジェクトを新規作成
-     Object3d *object3d_2 = new Object3d();
+    std::unique_ptr <Object3d> object3d_2 = std::make_unique<Object3d>();
      object3d_2->Initialize();
 
      // モデルの設定
@@ -91,8 +99,8 @@ void GamePlayScene::Initialize() {
      object3d_2->SetTranslate({2.0f, 0.0f, 0.0f});
 
     // Object3dを格納する
-    object3ds_.push_back(object3d_1);
-    object3ds_.push_back(object3d_2);
+     object3ds_.push_back(std::move(object3d_1));
+    object3ds_.push_back(std::move(object3d_2));
 
     // --- スプライト生成 ---
     // 描画サイズ
@@ -100,7 +108,7 @@ void GamePlayScene::Initialize() {
     const float spriteScale = 64.0f;
     // 生成
     for (uint32_t i = 0; i < 10; ++i) {
-        Sprite* newSprite = new Sprite();
+        std::unique_ptr<Sprite> newSprite = std::make_unique<Sprite>();
         newSprite->Initialize(uvCheckerPath_);
         newSprite->SetAnchorPoint({ 0.5f, 0.5f });
         if (i == 7) {
@@ -118,12 +126,29 @@ void GamePlayScene::Initialize() {
         }
         newSprite->SetTranslate(
             { float(i * spriteScale / 3), float(i * spriteScale / 3) });
-        sprites_.push_back(newSprite);
+        sprites_.push_back(std::move(newSprite));
     }
+
+    // --- 3. 全ての初期化コマンドをここで一気に実行して待機 ---
+    DX12Context::GetInstance()->ExecuteInitialCommandAndSync();
+    TextureManager::GetInstance()->ReleaseIntermediateResources();
+    ParticleManager::GetInstance()->ReleaseIntermediateResources();
 
 }
 
+void GamePlayScene::Finalize() {
+    // Object3dCommonの参照をクリア
+    Object3dCommon::GetInstance()->SetDefaultCamera(nullptr);
+    // Object3dを削除
+    object3ds_.clear();
+
+    // スプライトを削除
+    sprites_.clear();
+}
+
 void GamePlayScene::Update() {
+    // 入力の更新
+    Input::GetInstance()->Update();
     // 3. UI処理 (ImGuiの定義)
     UpdateImGui();
 
@@ -189,14 +214,14 @@ void GamePlayScene::Update() {
             object3ds_[objectControlIndex_]->SetRotation(rot);
         }
         // オブジェクトの更新
-        for (auto* obj : object3ds_) {
+        for (const auto& obj : object3ds_) {
             obj->Update();
         }
     }
 
 
     // スプライトの更新
-    for (auto* sprite : sprites_) {
+    for (const auto& sprite : sprites_) {
         sprite->Update();
     }
 }
@@ -213,7 +238,7 @@ void GamePlayScene::Draw() {
     // 2. 3Dオブジェクトの描画
 
     if (isShowMaterial_ && !object3ds_.empty()) {
-        for (auto* obj : object3ds_) {
+        for (const auto& obj : object3ds_) {
             obj->Draw();
         }
     }
@@ -239,18 +264,6 @@ void GamePlayScene::Draw() {
             sprites_[i]->Draw();
         }
     }
-}
-
-void GamePlayScene::Finalize() {
-    for (auto obj : object3ds_) { 
-        delete obj; 
-    }
-    for (auto spr : sprites_) { 
-        delete spr; 
-    }
-    object3ds_.clear();
-    sprites_.clear();
-    delete camera_;
 }
 
 void GamePlayScene::UpdateGameCamera() {
@@ -404,7 +417,7 @@ void GamePlayScene::UpdateImGui() {
 
         // ここからループ処理
         for (size_t i = 0; i < object3ds_.size(); ++i) {
-            Object3d* object3d = object3ds_[i]; // 現在のオブジェクトを取得
+            Object3d* object3d = object3ds_[i].get(); // 現在のオブジェクトを取得
 
             // ノードのラベルを動的に生成
             std::string label = "Object3d " + std::to_string(i + 1);
@@ -464,7 +477,7 @@ void GamePlayScene::UpdateImGui() {
         for (size_t i = 0; i < sprites_.size(); ++i) {
             std::string label = "Sprite " + std::to_string(i);
             if (ImGui::TreeNode(label.c_str())) {
-                Sprite* sprite = sprites_[i];
+                Sprite *sprite = sprites_[i].get();
 
                 Vector2 spritePosition = sprite->GetTranslate();
                 float spriteRotation = sprite->GetRotation();

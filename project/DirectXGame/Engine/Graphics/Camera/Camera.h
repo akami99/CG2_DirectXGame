@@ -30,9 +30,15 @@ private: // メンバ変数
   // 定数バッファのデータポインタ
   CameraForGPU *constData_ = nullptr;
 
+  bool isMapped_ = false;
+
 public: // メンバ関数
   // コンストラクタ
   Camera();
+  ~Camera();
+  // コピー禁止にする（これを追加）
+  Camera(const Camera&) = delete;
+  Camera& operator=(const Camera&) = delete;
 
   // 初期化関数
   void Initialize();

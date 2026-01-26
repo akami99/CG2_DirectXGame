@@ -21,6 +21,7 @@ void SrvManager::Initialize() {
   // デスクリプタヒープの生成
   descriptorHeap_ = DX12Context::GetInstance()->CreateDescriptorHeap(
       D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, kMaxSRVCount, true);
+  descriptorHeap_->SetName(L"SrvManager_DescriptorHeap");
   // デスクリプタヒープ1個分のサイズを取得して記録
   descriptorSize_ = DX12Context::GetInstance()->GetDevice()->GetDescriptorHandleIncrementSize(
       D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);

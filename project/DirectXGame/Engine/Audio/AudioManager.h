@@ -14,7 +14,10 @@
 
 // AudioManager クラス
 class AudioManager {
+public:
+    static AudioManager* instance_;
 private:
+
   std::mutex playingVoicesMutex; // playingVoicesリストを保護するミューテックス
   Microsoft::WRL::ComPtr<IXAudio2> xAudio2; // XAudio2 エンジンオブジェクト
   IXAudio2MasteringVoice *masterVoice;      // マスターボイス
@@ -75,6 +78,8 @@ public:
 
   // XAudio2 エンジンを初期化する
   bool Initialize();
+
+  void Finalize();
 
   // XAudio2 エンジンをシャットダウンする
   void Shutdown();

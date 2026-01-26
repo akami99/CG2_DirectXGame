@@ -26,6 +26,7 @@ TextureManager *TextureManager::GetInstance() {
 
 // 終了
 void TextureManager::Finalize() {
+    textureDatas_.clear();
   delete instance_;
   instance_ = nullptr;
 }

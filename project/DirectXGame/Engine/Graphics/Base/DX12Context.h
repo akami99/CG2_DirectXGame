@@ -85,6 +85,8 @@ private: // メンバ変数
 
 public:  // シングルトンインスタンス取得
     static DX12Context* GetInstance();
+    // インスタンス破棄用関数
+    static void Destroy();
 
 public: // メンバ関数
 #pragma region publicメンバ関数
@@ -128,6 +130,12 @@ public: // メンバ関数
   uint32_t GetSwapChainResourceCount() const {
     return kSwapChainResourcesCount;
   }
+
+  ID3D12CommandAllocator *GetCommandAllocator() {
+      return commandAllocator_.Get();
+  }
+
+  void WaitForGpu();
 
 #pragma endregion
 

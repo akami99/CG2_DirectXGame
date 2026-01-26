@@ -64,6 +64,9 @@ void Object3dCommon::Initialize() {
 }
 
 void Object3dCommon::Finalize() {
+    // デフォルトカメラの参照をクリア
+    defaultCamera_ = nullptr;
+
     delete instance_;
     instance_ = nullptr;
 }
