@@ -3,17 +3,9 @@
 #include "Base/SrvManager.h"
 #include "Base/Win32Window.h"
 
-// 静的メンバ変数の初期化
-Win32Window *ImGuiManager::window_ = nullptr;
-
 // 初期化
-void ImGuiManager::Initialize([[maybe_unused]] Win32Window *window) {
+void ImGuiManager::Initialize() {
 #ifdef USE_IMGUI
-
-  // 渡されたポインタが有効かチェック
-  assert(window);
-
-  window_ = window;
 
   // ヒープが既に生成されているかチェック
   // もしここで止まるなら、srvManager->Initialize() が呼ばれていない
@@ -29,7 +21,7 @@ void ImGuiManager::Initialize([[maybe_unused]] Win32Window *window) {
   //  ImGuiのスタイルを設定
   ImGui::StyleColorsDark();
   // ImGuiをWin32に対応させる初期化
-  ImGui_ImplWin32_Init(window_->GetHwnd());
+  ImGui_ImplWin32_Init(Win32Window::GetInstance()->GetHwnd());
   // ImGuiをDirectX12に対応させる初期化
   ImGui_ImplDX12_Init(
       DX12Context::GetInstance()->GetDevice(), // デバイス

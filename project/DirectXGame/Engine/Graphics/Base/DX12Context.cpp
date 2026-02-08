@@ -4,6 +4,7 @@
 #include <thread>
 
 #include "DX12Context.h"
+#include "Base/Win32Window.h"
 #include "../../Core/Utility/Logger/Logger.h"
 #include "../../Core/Utility/String/StringUtility.h"
 
@@ -37,15 +38,9 @@ void DX12Context::Destroy() {
 #pragma region publicメンバ関数
 
 // 初期化
-void DX12Context::Initialize(Win32Window *window) {
+void DX12Context::Initialize() {
   // FPS固定初期化
   InitializeFixFPS();
-
-  // NULLポインタチェック
-  assert(window);
-
-  // メンバ変数にウィンドウをセット
-  window_ = window;
 
   // デバイスの生成
   InitializeDevice();
@@ -127,8 +122,6 @@ void DX12Context::Finalize() {
 
     // 7. 最後に親玉であるデバイスを放す
     device_.Reset();
-
-    // window_ はポインタなのでここではなく delete window_ でOK（RAFramework側でやってる通り）
 
     Log("Complete Finalize DX12Context!!!\n");
 }
@@ -422,7 +415,7 @@ void DX12Context::CreateSwapChain() {
 
   // コマンドキュー、ウィンドウハンドル、設定を渡して生成する
   hr = dxgiFactory_->CreateSwapChainForHwnd(
-      commandQueue_.Get(), window_->GetHwnd(), &swapChainDesc, nullptr, nullptr,
+      commandQueue_.Get(), Win32Window::GetInstance()->GetHwnd(), &swapChainDesc, nullptr, nullptr,
       reinterpret_cast<IDXGISwapChain1 **>(swapChain_.GetAddressOf()));
   assert(SUCCEEDED(hr));
 }

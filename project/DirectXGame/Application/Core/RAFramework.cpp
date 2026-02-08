@@ -74,7 +74,7 @@ void RAFramework::Run() {
   // ウィンドウのxボタンが押されるまでループ
   while (true) {
     // メッセージ処理
-    if (window_->ProcessMessage() || IsEndRequest()) {
+    if (Win32Window::GetInstance()->ProcessMessage() || IsEndRequest()) {
       break;
     }
 
@@ -94,19 +94,18 @@ void RAFramework::Initialize() {
 
   /// システム基盤の初期化
   // Window
-  window_ = new Win32Window();
-  window_->Initialize();
+  Win32Window::GetInstance()->Initialize();
   // DirectXBase
-  DX12Context::GetInstance()->Initialize(window_);
+  DX12Context::GetInstance()->Initialize();
   // SRVManager
   SrvManager::GetInstance()->Initialize();
   // DirectInput
-  Input::GetInstance()->Initialize(window_);
+  Input::GetInstance()->Initialize();
   // PipelineManager
   PipelineManager::GetInstance()->Initialize();
   // ImGuiManager
   imGuiManager_ = new ImGuiManager();
-  imGuiManager_->Initialize(window_);
+  imGuiManager_->Initialize();
 
   // リソース系マネージャのためにコマンドリストを開く
   // (Texture, Model, ParticleなどはGPUにデータを送るためリストが必要)
@@ -161,6 +160,5 @@ void RAFramework::Finalize() {
   DX12Context::GetInstance()->Finalize();
   DX12Context::GetInstance()->Destroy();
 
-  window_->Finalize();
-  delete window_;
+  Win32Window::GetInstance()->Destroy();
 }

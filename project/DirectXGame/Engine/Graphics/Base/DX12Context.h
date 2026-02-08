@@ -7,8 +7,6 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 
-#include "Base/Win32Window.h"
-
 #include "externals/DirectXTex/DirectXTex.h"
 
 // DirectX基盤
@@ -25,9 +23,6 @@ private: // メンバ変数
 #pragma region privateメンバ変数
    
   static DX12Context *instance_; // シングルトンインスタンス
-
-  // WindowsAPI
-  Win32Window *window_ = nullptr;
 
   // DirectX12デバイス
   ComPtr<ID3D12Device> device_ = nullptr;
@@ -92,7 +87,7 @@ public: // メンバ関数
 #pragma region publicメンバ関数
 
   // 初期化
-  void Initialize(Win32Window *window);
+  void Initialize();
   // 終了
   void Finalize();
   // 描画前処理

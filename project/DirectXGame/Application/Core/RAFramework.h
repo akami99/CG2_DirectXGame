@@ -27,7 +27,6 @@ protected: // 継承先の MyGame でも使えるように protected にする
     bool endRequest_ = false;
 
     // --- 基盤システム (これらはFrameworkが持つ) ---
-    Win32Window *window_ = nullptr;
     ImGuiManager *imGuiManager_ = nullptr;
 
 private:

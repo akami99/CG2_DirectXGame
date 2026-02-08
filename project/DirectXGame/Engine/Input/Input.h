@@ -6,8 +6,6 @@
 #include <wrl.h>                   // ComPtr
 #include <memory>                  // unique_ptr
 
-class Win32Window; // 前方宣言
-
 // キーボード入力を管理するクラス
 class Input {
 public:
@@ -43,8 +41,7 @@ public: // メンバ関数
     static void Destroy();
 
     // 初期化
-    // ウィンドウハンドルとHINSTANCEを引数として受け取る
-    void Initialize(Win32Window* window);
+    void Initialize();
 
     // キーボードの状態を更新するメソッド (毎フレーム呼び出す)
     void Update();
@@ -78,7 +75,4 @@ private: // メンバ変数
     ComPtr<IDirectInputDevice8> keyboard_; // DirectInputキーボードデバイス
     BYTE key_[256] = {};                   // 現在のキー状態
     BYTE preKey_[256] = {};                // 前回のキー状態
-
-    // WindowsAPI
-    Win32Window* window_ = nullptr;
 };

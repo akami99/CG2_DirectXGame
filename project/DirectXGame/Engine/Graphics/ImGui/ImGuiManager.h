@@ -6,16 +6,11 @@
 #include "imgui_impl_win32.h"
 #endif
 
-class Win32Window;
-
 // ImGuiの管理
 class ImGuiManager {
-private:
-  static Win32Window *window_;
-
 public:
   // 初期化
-  static void Initialize(Win32Window *window);
+  static void Initialize();
   // 終了
   void Finalize();
 

@@ -1,18 +1,44 @@
-#include <Windows.h>
+#include <Windows.h> //timeBeginPeriod
+#include "Win32Window.h"
 #include <imgui_impl_win32.h>
-
-#include "Base/Win32Window.h"
-
 
 #pragma comment(lib, "winmm.lib")
 
 #ifdef USE_IMGUI
-// ImGuiのWin32用ウィンドウプロシージャハンドラの宣言
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd,
-                                                             UINT msg,
-                                                             WPARAM wParam,
-                                                             LPARAM lParam);
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 #endif
+
+// スマートポインタの実体定義
+std::unique_ptr<Win32Window> Win32Window::instance_ = nullptr;
+
+// シングルトン取得
+Win32Window* Win32Window::GetInstance() {
+    if (instance_ == nullptr) {
+        instance_ = std::make_unique<Win32Window>(Token{});
+    }
+    return instance_.get();
+}
+
+// 終了処理
+void Win32Window::Destroy() {
+    instance_.reset(); // デストラクタが呼ばれ、ウィンドウクラスの登録解除などが行われる
+}
+
+// コンストラクタ
+Win32Window::Win32Window(Token) {
+    // コンストラクタでは特に何もしない（Initializeで行う）
+}
+
+// デストラクタ (旧Finalizeの内容はここに移動すると安全です)
+Win32Window::~Win32Window() {
+    // ウィンドウの破棄
+    if (hwnd_) {
+        CloseWindow(hwnd_);
+        hwnd_ = nullptr;
+    }
+    // ウィンドウクラスの登録解除
+    UnregisterClass(wc_.lpszClassName, wc_.hInstance);
+}
 
 // ウィンドウプロシージャ
 LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT msg, WPARAM wparam,
@@ -78,13 +104,6 @@ void Win32Window::Initialize() {
 
   // ウィンドウを表示する
   ShowWindow(hwnd_, SW_SHOW);
-}
-
-// 終了
-void Win32Window::Finalize() {
-  // ウィンドウ破棄
-  CloseWindow(hwnd_);
-  CoUninitialize();
 }
 
 // メッセージ処理

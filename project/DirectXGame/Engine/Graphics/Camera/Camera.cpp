@@ -1,5 +1,6 @@
 #include "Camera.h"
 #include "Base/DX12Context.h"
+#include "Base/Win32Window.h"
 #include "Logger.h"
 
 #include "Math/Functions/MathUtils.h"

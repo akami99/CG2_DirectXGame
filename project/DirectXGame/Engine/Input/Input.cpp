@@ -38,18 +38,15 @@ Input::~Input() {
 
 // 初期化
 // ウィンドウハンドルとHINSTANCEを引数として受け取る
-void Input::Initialize(Win32Window *window) {
+void Input::Initialize() {
   ZeroMemory(key_, sizeof(key_));
   ZeroMemory(preKey_, sizeof(preKey_));
-
-  // 借りてきたウィンドウの情報をメンバ変数にセット
-  window_ = window;
 
   // DirectInputの初期化
   HRESULT result;
 
   result =
-      DirectInput8Create(window->GetHinstance(), DIRECTINPUT_VERSION,
+      DirectInput8Create(Win32Window::GetInstance()->GetHinstance(), DIRECTINPUT_VERSION,
                          IID_IDirectInput8, (void **)&directInput_, nullptr);
   assert(SUCCEEDED(result));
 
@@ -64,7 +61,7 @@ void Input::Initialize(Win32Window *window) {
 
   // 排他制御のレベルのセット
   result = keyboard_->SetCooperativeLevel(
-      window->GetHwnd(),
+      Win32Window::GetInstance()->GetHwnd(),
       DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
   assert(SUCCEEDED(result));
 
