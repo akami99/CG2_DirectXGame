@@ -27,12 +27,6 @@ using namespace MathGenerators;
 using namespace BlendMode;
 
 void GamePlayScene::Initialize() {
-    // --- 0. コマンドリストを一旦リセットして書き込める状態にする ---
-    // (MyGameのInitializeから呼ばれる際、リストが閉じている可能性があるため)
-    DX12Context::GetInstance()->GetCommandList()->Reset(
-        DX12Context::GetInstance()->GetCommandAllocator(), nullptr);
-
-
     // カメラ生成
     camera_ = std::make_unique<Camera>();
     camera_->Initialize();
@@ -128,12 +122,6 @@ void GamePlayScene::Initialize() {
             { float(i * spriteScale / 3), float(i * spriteScale / 3) });
         sprites_.push_back(std::move(newSprite));
     }
-
-    // --- 3. 全ての初期化コマンドをここで一気に実行して待機 ---
-    DX12Context::GetInstance()->ExecuteInitialCommandAndSync();
-    TextureManager::GetInstance()->ReleaseIntermediateResources();
-    ParticleManager::GetInstance()->ReleaseIntermediateResources();
-
 }
 
 void GamePlayScene::Finalize() {

@@ -28,13 +28,19 @@ void MyGame::Initialize() {
   RAFramework::Initialize();
 
   // 最初のシーンの生成
-  BaseScene* scene = new TitleScene();
-  // マネージャにセットするだけでなく、ここで即座に初期化を呼ぶ
-  scene->Initialize();
-  // シーンマネージャに最初のシーンをセット
-  SceneManager::GetInstance()->SetNextScene(scene);
+  std::unique_ptr<BaseScene> scene = std::make_unique<TitleScene>();
+  DX12Context::GetInstance()->GetCommandList()->Reset(DX12Context::GetInstance()->GetCommandAllocator(), nullptr);
 
-  // コマンド実行と完了待機
+  // 2. 初期化実行（ロード命令の記録）
+  scene->Initialize();
+
+  // 3. 実行と同期
+  DX12Context::GetInstance()->ExecuteInitialCommandAndSync();
+  TextureManager::GetInstance()->ReleaseIntermediateResources();
+  ParticleManager::GetInstance()->ReleaseIntermediateResources();
+
+  // シーンマネージャにセット
+  SceneManager::GetInstance()->SetNextScene(std::move(scene));
 }
 
 void MyGame::Finalize() {

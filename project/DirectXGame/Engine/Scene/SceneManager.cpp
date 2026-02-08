@@ -1,5 +1,7 @@
 #include "SceneManager.h"
-#include "Logger.h"
+#include "DX12Context.h"
+#include "TextureManager.h"
+#include "ParticleManager.h"
 
 SceneManager *SceneManager::instance_ = nullptr;
 
@@ -11,26 +13,16 @@ SceneManager *SceneManager::GetInstance() {
 }
 
 void SceneManager::Finalize() {
-      Logger::Log("=== SceneManager::Finalize Start ===\n");
-    
     if (currentScene_) {
-        Logger::Log("Finalizing current scene...\n");
         currentScene_->Finalize();
         
-        Logger::Log("Deleting current scene...\n");
-        delete currentScene_;
         currentScene_ = nullptr;
-        
-        Logger::Log("Current scene deleted.\n");
     }
     
     if (nextScene_) {
         nextScene_->Finalize();
-        delete nextScene_;
         nextScene_ = nullptr;
     }
-    
-    Logger::Log("=== SceneManager::Finalize End ===\n");
 }
 
 void SceneManager::Destroy() {
@@ -46,14 +38,24 @@ void SceneManager::Update() {
     // 旧シーンの終了
     if (currentScene_) {
       currentScene_->Finalize();
-      delete currentScene_;
     }
 
-    // 新シーンの開始
-    currentScene_ = nextScene_;
+    // 新シーンの切り替え処理
+    currentScene_ = std::move(nextScene_);
     nextScene_ = nullptr;
 
+    // 1. コマンドリストをリセットして「書き込み可能状態」にする
+    //    (コマンドアロケータは再利用する)
+    DX12Context::GetInstance()->GetCommandList()->Reset(DX12Context::GetInstance()->GetCommandAllocator(), nullptr);
+
+    // 2. シーンの初期化（ここでコマンドリストにロード命令などが積まれる）
     currentScene_->Initialize();
+
+    // 3. コマンドを実行して、完了まで待機する
+    //    (リストをCloseしてExecuteし、Fenceで待つ処理がここに含まれている想定)
+    DX12Context::GetInstance()->ExecuteInitialCommandAndSync();
+    TextureManager::GetInstance()->ReleaseIntermediateResources();
+    ParticleManager::GetInstance()->ReleaseIntermediateResources();
   }
 
   // 現在のシーンを更新

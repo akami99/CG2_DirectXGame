@@ -22,11 +22,6 @@ using namespace MathGenerators;
 using namespace BlendMode;
 
 void TitleScene::Initialize() {
-    // --- 0. コマンドリストを一旦リセットして書き込める状態にする ---
-    // (MyGameのInitializeから呼ばれる際、リストが閉じている可能性があるため)
-    DX12Context::GetInstance()->GetCommandList()->Reset(
-        DX12Context::GetInstance()->GetCommandAllocator(), nullptr);
-
     // カメラ生成
     camera_ = std::make_unique<Camera>(); // メモリ確保と同時にスマートポインタ化
     camera_->Initialize();
@@ -55,11 +50,6 @@ void TitleScene::Initialize() {
         // 配列に「所有権を移動（move）」して追加する
         sprites_.push_back(std::move(newSprite));
     }
-
-    // --- 全ての初期化コマンドをここで一気に実行して待機 ---
-    DX12Context::GetInstance()->ExecuteInitialCommandAndSync();
-    TextureManager::GetInstance()->ReleaseIntermediateResources();
-    ParticleManager::GetInstance()->ReleaseIntermediateResources();
 }
 
 void TitleScene::Update() {
@@ -72,8 +62,8 @@ void TitleScene::Update() {
     UpdateGameCamera();
 
     if (Input::GetInstance()->IsKeyDown(DIK_RETURN)) {
-        BaseScene* scene = new GamePlayScene();
-        SceneManager::GetInstance()->SetNextScene(scene);
+        std::unique_ptr<BaseScene> scene = std::make_unique<GamePlayScene>();
+        SceneManager::GetInstance()->SetNextScene(std::move(scene));
     }
 
     // --- スプライトの更新 ---

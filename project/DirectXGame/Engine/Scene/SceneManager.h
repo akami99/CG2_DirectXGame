@@ -20,7 +20,7 @@ public:
     void Draw();
 
     // 次のシーンを予約する
-    void SetNextScene(BaseScene* nextScene) { nextScene_ = nextScene; }
+    void SetNextScene(std::unique_ptr<BaseScene> nextScene) { nextScene_ = std::move(nextScene); }
 
 private:
     SceneManager() = default;
@@ -28,7 +28,7 @@ private:
     static SceneManager* instance_;
 
     // 現在のシーン
-    BaseScene* currentScene_ = nullptr;
+    std::unique_ptr<BaseScene> currentScene_ = nullptr;
     // 次のシーン（予約用）
-    BaseScene* nextScene_ = nullptr;
+    std::unique_ptr<BaseScene> nextScene_ = nullptr;
 };

@@ -17,7 +17,6 @@ using namespace MathUtils;
 using namespace MathGenerators;
 
 Object3d::~Object3d() {
-    OutputDebugStringA("=== Object3d Destructor Called ===\n");  // ← デバッグ用
     // Map済みリソースをUnmap
     if (transformationMatrixResource_ && transformationMatrixData_) {
         transformationMatrixResource_->Unmap(0, nullptr);

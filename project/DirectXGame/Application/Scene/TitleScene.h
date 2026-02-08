@@ -26,7 +26,7 @@ private:
 private:
     // --- ここから下は MyGame.h から移動してきたゲーム固有変数 ---
 
-    // カメラ
+    // カメラ(必ずスマートポインタにすること)
     std::unique_ptr<Camera> camera_;
 
     DebugCamera debugCamera_;
@@ -34,7 +34,7 @@ private:
     Vector3 gameCameraRotate_{};
     Vector3 gameCameraTranslate_{};
 
-    // ゲームオブジェクト
+    // ゲームオブジェクト(必ずスマートポインタにすること)
     std::vector<std::unique_ptr<Sprite>> sprites_;
 
     // パーティクル設定など
