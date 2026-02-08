@@ -1,18 +1,39 @@
 #include "Input.h"
-#include "Base/Win32Window.h" // DX12Contextのヘッダーファイル
-#include <cassert> // assertのために必要
+#include "Win32Window.h"
+#include <cassert>
 
-#pragma comment(lib, "dinput8.lib") // DirectInputのライブラリ
-#pragma comment(lib, "dxguid.lib")  // DirectInputのGUIDを使うためのライブラリ
+#pragma comment(lib, "dinput8.lib")
+#pragma comment(lib, "dxguid.lib")
 
-Input *Input::instance_ = nullptr;
+// スマートポインタの実体定義
+std::unique_ptr<Input> Input::instance_ = nullptr;
 
 // シングルトンインスタンスの取得
 Input* Input::GetInstance() {
     if (instance_ == nullptr) {
-        instance_ = new Input;
+        // Token{} を渡せるのは Input クラス内だけ！
+        instance_ = std::make_unique<Input>(Token{});
     }
-    return instance_;
+    return instance_.get();
+}
+
+// 終了処理(明示的に破棄したい場合)
+void Input::Destroy() {
+    instance_.reset(); // これでデストラクタが呼ばれる
+}
+
+// コンストラクタ
+Input::Input(Token) {
+    // コンストラクタでの特別な処理があれば記述
+    // 現在はメンバ初期化子で初期化済み
+}
+
+// デストラクタ
+// DirectInputオブジェクトとキーボードデバイスを解放する
+Input::~Input() {
+  if (keyboard_) {
+    keyboard_->Unacquire(); // デバイスの取得を解除
+  }
 }
 
 // 初期化
@@ -50,29 +71,6 @@ void Input::Initialize(Win32Window *window) {
   // デバイスの取得開始 (Acquire)
   // 初期化時に一度Acquireしておくと、初回UpdateでGetDeviceStateを呼ぶ際にエラーになりにくい
   keyboard_->Acquire();
-}
-
-// 終了
-void Input::Finalize() {
-  // DirectInputオブジェクトとキーボードデバイスを解放する
-  if (keyboard_) {
-    keyboard_->Unacquire(); // デバイスの取得を解除
-    keyboard_.Reset();
-  }
-  if (directInput_) {
-    directInput_.Reset();
-  }
-  // インスタンスの解放
-  delete instance_;
-  instance_ = nullptr;
-}
-
-// デストラクタ
-// DirectInputオブジェクトとキーボードデバイスを解放する
-Input::~Input() {
-  if (keyboard_) {
-    keyboard_->Unacquire(); // デバイスの取得を解除
-  }
 }
 
 // キーボードの状態を更新する関数 (毎フレーム呼び出す)

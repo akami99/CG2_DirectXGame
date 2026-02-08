@@ -156,7 +156,7 @@ void RAFramework::Finalize() {
   delete imGuiManager_;
 
   PipelineManager::GetInstance()->Finalize();
-  Input::GetInstance()->Finalize();
+  Input::GetInstance()->Destroy();
   SrvManager::GetInstance()->Finalize();
   DX12Context::GetInstance()->Finalize();
   DX12Context::GetInstance()->Destroy();
