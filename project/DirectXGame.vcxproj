@@ -192,6 +192,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="DirectXGame\Engine\Graphics\ImGui\ImGuiManager.cpp" />
     <ClCompile Include="DirectXGame\Application\Core\RAFramework.cpp" />
     <ClCompile Include="DirectXGame\Engine\Scene\SceneManager.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Scene\SceneFactory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Particle.PS.hlsl">
@@ -244,6 +245,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DirectXGame\Engine\Scene\AbstractSceneFactory.h" />
     <ClInclude Include="DirectXGame\Engine\Scene\BaseScene.h" />
     <ClInclude Include="DirectXGame\Engine\Scene\IScene.h" />
     <ClInclude Include="DirectXGame\Application\Core\MyGame.h" />
@@ -284,6 +286,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="DirectXGame\Engine\Graphics\ImGui\ImGuiManager.h" />
     <ClInclude Include="DirectXGame\Application\Core\RAFramework.h" />
     <ClInclude Include="DirectXGame\Engine\Scene\SceneManager.h" />
+    <ClInclude Include="DirectXGame\Engine\Scene\SceneFactory.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

@@ -13,7 +13,7 @@
 #include "LightManager.h"
 #include "SceneManager.h"
 // Scene
-#include "TitleScene.h"
+#include "SceneFactory.h"
 
 // .lidはヘッダに書いてはいけない
 #pragma comment(lib, "Dbghelp.lib")
@@ -27,20 +27,12 @@ void MyGame::Initialize() {
   // --- 基盤システムの初期化は親クラスに任せる ---
   RAFramework::Initialize();
 
-  // 最初のシーンの生成
-  std::unique_ptr<BaseScene> scene = std::make_unique<TitleScene>();
-  DX12Context::GetInstance()->GetCommandList()->Reset(DX12Context::GetInstance()->GetCommandAllocator(), nullptr);
+  // ファクトリーを作成し、SceneManagerにセット
+  auto sceneFactory = std::make_unique<SceneFactory>();
+  SceneManager::GetInstance()->SetSceneFactory(std::move(sceneFactory));
 
-  // 2. 初期化実行（ロード命令の記録）
-  scene->Initialize();
-
-  // 3. 実行と同期
-  DX12Context::GetInstance()->ExecuteInitialCommandAndSync();
-  TextureManager::GetInstance()->ReleaseIntermediateResources();
-  ParticleManager::GetInstance()->ReleaseIntermediateResources();
-
-  // シーンマネージャにセット
-  SceneManager::GetInstance()->SetNextScene(std::move(scene));
+  // 文字列で指定
+  SceneManager::GetInstance()->ChangeScene("TITLE");
 }
 
 void MyGame::Finalize() {

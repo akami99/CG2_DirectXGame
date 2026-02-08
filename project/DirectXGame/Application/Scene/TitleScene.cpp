@@ -13,9 +13,6 @@
 #include "MathUtils.h"
 #include "MatrixGenerators.h"
 
-//scene
-#include "GamePlayScene.h"
-
 // using
 using namespace MathUtils;
 using namespace MathGenerators;
@@ -62,8 +59,8 @@ void TitleScene::Update() {
     UpdateGameCamera();
 
     if (Input::GetInstance()->IsKeyDown(DIK_RETURN)) {
-        std::unique_ptr<BaseScene> scene = std::make_unique<GamePlayScene>();
-        SceneManager::GetInstance()->SetNextScene(std::move(scene));
+        // ★ 文字列で指定するだけ！
+        SceneManager::GetInstance()->ChangeScene("GAMEPLAY");
     }
 
     // --- スプライトの更新 ---

@@ -2,6 +2,7 @@
 #include "DX12Context.h"
 #include "TextureManager.h"
 #include "ParticleManager.h"
+#include "Logger.h" // ログ用
 
 SceneManager *SceneManager::instance_ = nullptr;
 
@@ -33,35 +34,49 @@ void SceneManager::Destroy() {
 }
 
 void SceneManager::Update() {
-  // シーン切り替え予約があるか確認
-  if (nextScene_) {
-    // 旧シーンの終了
-    if (currentScene_) {
-      currentScene_->Finalize();
+    // シーン切り替え予約があるか確認
+    if (nextScene_) {
+        // 1. 旧シーンの終了
+        if (currentScene_) {
+            currentScene_->Finalize();
+            currentScene_.reset(); // unique_ptrならこれで消える
+        }
+
+        // 2. 新シーンへの入れ替え（所有権移動）
+        currentScene_ = std::move(nextScene_);
+
+        // 3. 新シーンの初期化処理
+        // 重要: MyGame::Initializeと同様に、コマンドリスト管理を行う
+        if (currentScene_) {
+            // (A) コマンドリストをリセット（書き込み可能に）
+            DX12Context::GetInstance()->GetCommandList()->Reset(DX12Context::GetInstance()->GetCommandAllocator(), nullptr);
+
+            // (B) シーンの初期化（ロード命令の書き込み）
+            currentScene_->Initialize();
+
+            // (C) コマンド実行と待機
+            DX12Context::GetInstance()->ExecuteInitialCommandAndSync();
+
+            // (D) 中間リソースの解放
+            TextureManager::GetInstance()->ReleaseIntermediateResources();
+            ParticleManager::GetInstance()->ReleaseIntermediateResources();
+        }
     }
 
-    // 新シーンの切り替え処理
-    currentScene_ = std::move(nextScene_);
-    nextScene_ = nullptr;
-
-    // 1. コマンドリストをリセットして「書き込み可能状態」にする
-    //    (コマンドアロケータは再利用する)
-    DX12Context::GetInstance()->GetCommandList()->Reset(DX12Context::GetInstance()->GetCommandAllocator(), nullptr);
-
-    // 2. シーンの初期化（ここでコマンドリストにロード命令などが積まれる）
-    currentScene_->Initialize();
-
-    // 3. コマンドを実行して、完了まで待機する
-    //    (リストをCloseしてExecuteし、Fenceで待つ処理がここに含まれている想定)
-    DX12Context::GetInstance()->ExecuteInitialCommandAndSync();
-    TextureManager::GetInstance()->ReleaseIntermediateResources();
-    ParticleManager::GetInstance()->ReleaseIntermediateResources();
-  }
-
-  // 現在のシーンを更新
-  if (currentScene_) {
-    currentScene_->Update();
-  }
+    // 現在のシーンを更新
+    if (currentScene_) {
+        currentScene_->Update();
+    }
 }
 
 void SceneManager::Draw() { currentScene_->Draw(); }
+
+void SceneManager::ChangeScene(const std::string& sceneName) {
+    if (!sceneFactory_) {
+        // ファクトリーがセットされていない場合のエラー処理
+        return;
+    }
+
+    // 次のシーンを生成して nextScene_ にセット
+    nextScene_ = sceneFactory_->CreateScene(sceneName);
+}
