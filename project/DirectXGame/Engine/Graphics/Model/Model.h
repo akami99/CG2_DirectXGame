@@ -19,7 +19,9 @@ private: // メンバ変数
   // Objのファイルデータ
   ModelData modelData_{};
 
-  // 頂点データ
+  // インデックスデータ用リソース
+  ComPtr<ID3D12Resource> indexResource_ = nullptr;
+  D3D12_INDEX_BUFFER_VIEW indexBufferView_{};
 
   // バッファリソース
   ComPtr<ID3D12Resource> vertexResource_ = nullptr;
@@ -70,12 +72,12 @@ public: // メンバ関数
   }
 
 private: // メンバ関数
-  // .mtlファイルの読み取り
-  static MaterialData LoadMaterialTemplateFile(const std::string &directoryPath,
-                                               const std::string &fileName);
   // .objファイルの読み取り
-  void LoadObjFile(const std::string &directoryPath,
+  void LoadModelFile(const std::string &directoryPath,
                    const std::string &fileName);
+
+  // インデックスバッファ作成用関数
+  void CreateIndexResource();
 
   // 頂点データの作成
   void CreateVertexResource();

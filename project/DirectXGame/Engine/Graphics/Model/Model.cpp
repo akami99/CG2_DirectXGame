@@ -4,11 +4,16 @@
 
 #include "Math/Functions/MathUtils.h"
 #include "Math/Matrix/MatrixGenerators.h"
+#include "Logger.h"
 
 #include <assert.h>
 #include <fstream>
 #include <sstream>
 #include <string>
+
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
 using namespace Microsoft::WRL;
 using namespace MathUtils;
@@ -17,10 +22,13 @@ using namespace MathGenerators;
 void Model::Initialize(const std::string &directoryPath,
                        const std::string &filename) {
   // モデル読み込み
-  LoadObjFile(directoryPath, filename);
+  LoadModelFile(directoryPath, filename);
 
   // 頂点データを作成する
   CreateVertexResource();
+
+  // インデックスバッファ作成
+  CreateIndexResource();
 
   // マテリアルバッファの作成
   CreateMaterialResource();
@@ -29,137 +37,138 @@ void Model::Initialize(const std::string &directoryPath,
   TextureManager::GetInstance()->LoadTexture(
       modelData_.material.textureFilePath);
 
-  modelData_.material.textureIndex = TextureManager::GetInstance()->GetSrvIndex(modelData_.material.textureFilePath);
+  modelData_.material.textureIndex = TextureManager::GetInstance()->GetSrvIndex(
+      modelData_.material.textureFilePath);
 }
 
 // 描画処理
 void Model::Draw() {
   // VertexBufferの設定
-    DX12Context::GetInstance()->GetCommandList()->IASetVertexBuffers(
+  DX12Context::GetInstance()->GetCommandList()->IASetVertexBuffers(
       0, 1, &vertexBufferView_);
+  // IBV(インデックスバッファビュー)の設定
+  DX12Context::GetInstance()->GetCommandList()->IASetIndexBuffer(
+      &indexBufferView_);
   // マテリアルCBVの設定
-    DX12Context::GetInstance()
+  DX12Context::GetInstance()
       ->GetCommandList()
       ->SetGraphicsRootConstantBufferView(
           0, materialResource_->GetGPUVirtualAddress());
   // SRVのDescriptorTableの先頭を設定。2はrootParameter[2]である。
-    DX12Context::GetInstance()
-      ->GetCommandList()
-      ->SetGraphicsRootDescriptorTable(
-          2, TextureManager::GetInstance()->GetSrvHandleGPU(
-                 modelData_.material.textureFilePath));
+  DX12Context::GetInstance()->GetCommandList()->SetGraphicsRootDescriptorTable(
+      2, TextureManager::GetInstance()->GetSrvHandleGPU(
+             modelData_.material.textureFilePath));
   // 描画コマンド
-    DX12Context::GetInstance()->GetCommandList()->DrawInstanced(
-      UINT(modelData_.vertices.size()), 1, 0, 0);
-}
-
-// .mtlファイルの読み取り
-MaterialData Model::LoadMaterialTemplateFile(const std::string &directoryPath,
-                                             const std::string &fileName) {
-  // 中で必要となる変数の宣言
-  MaterialData materialData; // 構築するMaterialData
-  std::string line;          // ファイルから読んだ1行を格納するもの
-  // ファイルを開く
-  std::ifstream file(directoryPath + "/" + fileName); // ファイルを開く
-  assert(file.is_open()); // とりあえず開けなかったら止める
-  // 実際にファイルを読み、MaterialDataを構築していく
-  while (std::getline(file, line)) {
-    std::string identifier;
-    std::istringstream s(line);
-    s >> identifier; // 先頭の識別子を読む
-
-    // identifierに応じた処理
-    if (identifier == "map_Kd") { // テクスチャファイルパス
-      std::string textureFilename;
-      s >> textureFilename;
-      // 連結してテクスチャファイルパスにする
-      materialData.textureFilePath = textureFilename;
-    }
-  }
-
-  // MaterialDataを返す
-  return materialData;
+  /*DX12Context::GetInstance()->GetCommandList()->DrawInstanced(
+      UINT(modelData_.vertices.size()), 1, 0, 0);*/
+  // ★変更: インデックスを使用した描画コマンド
+  // 引数: (インデックス数, インスタンス数, インデックス開始位置, 頂点オフセット, インスタンスオフセット)
+  DX12Context::GetInstance()->GetCommandList()->DrawIndexedInstanced(
+      UINT(modelData_.indices.size()), 1, 0, 0, 0);
 }
 
 // .objファイルの読み取り
-void Model::LoadObjFile(const std::string &directoryPath,
-                        const std::string &fileName) {
-  // 中で必要となる変数の宣言
-  std::vector<Vector4> positions; // 位置
-  std::vector<Vector3> normals;   // 法線
-  std::vector<Vector2> texcoords; // テクスチャ座標
-  std::string line;               // ファイルから読んだ1行を格納するもの
-  // ファイルを開く
-  std::string fullPath = directoryPath;
-  // 既にパスに"DirectXGame/Resources/Assets/Sounds/"が含まれている場合は追加しない
-  if (directoryPath.find("Resources/Assets/Models/") == std::string::npos &&
-      directoryPath.find("resources/assets/models/") == std::string::npos) {
-    fullPath = "Resources/Assets/Models/" + directoryPath;
-  }
+void Model::LoadModelFile(const std::string &directoryPath,
+                          const std::string &fileName) {
+    Assimp::Importer importer;
+    std::string fullPath = directoryPath + "/" + fileName;
 
-  std::ifstream file(fullPath + "/" + fileName); // ファイルを開く
-  assert(file.is_open()); // とりあえず開けなかったら止める
-  // 実際にファイルを読み、ModelDataを構築していく
-  while (std::getline(file, line)) {
-    std::string identifier;
-    std::istringstream s(line);
-    s >> identifier; // 先頭の識別子を読む
+    // 現在成功している設定（左手系・時計回り・UV反転）を維持
+    const aiScene* scene = importer.ReadFile(fullPath.c_str(),
+        aiProcess_FlipWindingOrder | // 時計回りに変換
+        aiProcess_FlipUVs |          // UV反転
+        //aiProcess_MakeLeftHanded |   // 左手系に変換
+        aiProcess_Triangulate        // 三角形化
+    );
 
-    // identifierに応じた処理
-    if (identifier == "v") { // 頂点位置
-      Vector4 position;
-      s >> position.x >> position.y >> position.z; // x, y, zを読む
-      position.w = 1.0f;                           // wは1.0fに設定
-      positions.push_back(position);               // positionsに追加
-    } else if (identifier == "vt") {               // テクスチャ座標
-      Vector2 texcoord;
-      s >> texcoord.x >> texcoord.y;  // x, yを読む
-      texcoord.y = 1.0f - texcoord.y; // Y軸を反転させる
-      texcoords.push_back(texcoord);  // texcoordsに追加
-    } else if (identifier == "vn") {  // 法線ベクトル
-      Vector3 normal;
-      s >> normal.x >> normal.y >> normal.z; // x, y, zを読む
-      normals.push_back(normal);             // normalsに追加
-    } else if (identifier == "f") {          // 面情報
-      VertexData triangle[3];
-      // 面は三角形限定。その他は未対応
-      for (int32_t faceVertex = 0; faceVertex < 3; ++faceVertex) {
-        std::string vertexDefinition;
-        s >> vertexDefinition;
-        // 頂点の要素へのIndexは「位置/UV/法線」で格納されているので、分解してIndexを取得する
-        std::istringstream v(vertexDefinition);
-        uint32_t elementIndices[3];
-        for (int32_t element = 0; element < 3; ++element) {
-          std::string index;
-          std::getline(v, index, '/'); // 区切りでインデックスを読んでいく
-          elementIndices[element] = std::stoi(index);
-        }
-        // 要素へのIndexから、実際の要素の値を取得して、頂点を読んでいく
-        Vector4 position =
-            positions[elementIndices[0] - 1]; // OBJは1-indexedなので-1する
-        // position.x *= -1.0f; // X軸を反転する
-        Vector2 texcoord =
-            texcoords[elementIndices[1] - 1]; // OBJは1-indexedなので-1する
-        Vector3 normal =
-            normals[elementIndices[2] - 1]; // OBJは1-indexedなので-1する
-        // normal.x *= -1.0f; // X軸を反転する
-        VertexData vertex = {position, texcoord, normal}; // 頂点データを構築
-        modelData_.vertices.push_back(vertex);            // ModelDataに追加
-        triangle[faceVertex] = {position, texcoord, normal};
-      }
-      // 頂点を逆順で登録することで、周り順を逆にする
-      modelData_.vertices.push_back(triangle[2]);
-      modelData_.vertices.push_back(triangle[1]);
-      modelData_.vertices.push_back(triangle[0]);
-    } else if (identifier == "mtllib") {
-      // materialTemplateLibraryファイルの名前を取得する
-      std::string materialFileName;
-      s >> materialFileName;
-      // 基本的にobjファイルと同一階層にmtlは存在させるので、ディレクトリ名とファイル名を渡す
-      modelData_.material =
-          LoadMaterialTemplateFile(fullPath, materialFileName);
+    // シーンの読み込みチェック
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        Logger::Log("ERROR: Assimp import failed: " + std::string(importer.GetErrorString()));
+        assert(false && "Assimp import failed");
+        return;
     }
-  }
+
+    // データをクリアしておく
+    modelData_.vertices.clear();
+    modelData_.indices.clear();
+
+    // --- メッシュの解析（複数メッシュ対応） ---
+    for (uint32_t meshIndex = 0; meshIndex < scene->mNumMeshes; ++meshIndex) {
+        aiMesh* mesh = scene->mMeshes[meshIndex];
+        assert(mesh->HasNormals());
+        assert(mesh->HasTextureCoords(0));
+        assert(mesh->HasFaces());
+
+        // ★重要：現在の頂点数を保持しておく（これがインデックスのオフセットになる）
+        // 1つ目のメッシュなら0、2つ目なら1つ目の頂点数がここに入ります
+        uint32_t indexOffset = static_cast<uint32_t>(modelData_.vertices.size());
+
+        // --- 1. 頂点データの追加 ---
+        for (uint32_t i = 0; i < mesh->mNumVertices; ++i) {
+            aiVector3D& position = mesh->mVertices[i];
+            aiVector3D& normal = mesh->mNormals[i];
+            aiVector3D& texcoord = mesh->mTextureCoords[0][i];
+
+            VertexData vertex;
+            vertex.position = { position.x, position.y, position.z, 1.0f };
+            vertex.normal = { normal.x, normal.y, normal.z };
+            vertex.texcoord = { texcoord.x, texcoord.y };
+
+            vertex.position.x *= -1.0f;
+            vertex.normal.x *= -1.0f;
+
+            modelData_.vertices.push_back(vertex);
+        }
+
+        // --- 2. インデックスデータの追加 ---
+        for (uint32_t faceIndex = 0; faceIndex < mesh->mNumFaces; ++faceIndex) {
+            aiFace& face = mesh->mFaces[faceIndex];
+            assert(face.mNumIndices == 3);
+
+            // インデックスにオフセットを足して、全体の通し番号にする
+            modelData_.indices.push_back(face.mIndices[0] + indexOffset);
+            modelData_.indices.push_back(face.mIndices[1] + indexOffset);
+            modelData_.indices.push_back(face.mIndices[2] + indexOffset);
+        }
+    }
+
+    // --- 3. マテリアルの解析 ---
+    // ※現在の構造（Modelクラスにテクスチャが1つ）だと、複数のテクスチャを持つモデルは正しく表現できません。
+    // そのため、とりあえず「最初にテクスチャを持っているメッシュのマテリアル」を採用する形にします。
+    for (uint32_t i = 0; i < scene->mNumMaterials; ++i) {
+        aiMaterial* material = scene->mMaterials[i];
+        if (material->GetTextureCount(aiTextureType_DIFFUSE) != 0) {
+            aiString textureFilePath;
+            material->GetTexture(aiTextureType_DIFFUSE, 0, &textureFilePath);
+            modelData_.material.textureFilePath = directoryPath + "/" + textureFilePath.C_Str();
+            // ひとつ見つかったら終了（現在の仕様の限界）
+            break;
+        }
+    }
+
+    // データが空でないか最終チェック
+    assert(!modelData_.vertices.empty() && "Vertex data is empty");
+    assert(!modelData_.indices.empty() && "Index data is empty");
+}
+
+void Model::CreateIndexResource() {
+  // リソースのサイズ（インデックス数 * uint32_tのサイズ）
+  size_t sizeInBytes = sizeof(uint32_t) * modelData_.indices.size();
+
+  // リソース作成
+  indexResource_ =
+      DX12Context::GetInstance()->CreateBufferResource(sizeInBytes);
+
+  // インデックスバッファビューの作成
+  indexBufferView_.BufferLocation = indexResource_->GetGPUVirtualAddress();
+  indexBufferView_.SizeInBytes = UINT(sizeInBytes);
+  indexBufferView_.Format = DXGI_FORMAT_R32_UINT; // uint32_tを使用
+
+  // データの書き込み
+  uint32_t *mappedIndex = nullptr;
+  indexResource_->Map(0, nullptr, reinterpret_cast<void **>(&mappedIndex));
+  std::memcpy(mappedIndex, modelData_.indices.data(), sizeInBytes);
+  indexResource_->Unmap(0, nullptr);
 }
 
 // 頂点バッファの作成

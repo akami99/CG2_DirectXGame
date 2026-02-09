@@ -17,6 +17,7 @@ struct MaterialData {
 // モデルデータの構造体
 struct ModelData {
   std::vector<VertexData> vertices; // 頂点データ配列
+  std::vector<uint32_t> indices;    // インデックスデータ
   MaterialData material;            // マテリアルデータ
 };
 

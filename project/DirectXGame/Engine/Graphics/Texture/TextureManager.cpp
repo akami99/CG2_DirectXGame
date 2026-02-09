@@ -33,55 +33,33 @@ void TextureManager::Finalize() {
 
 // SRVインデックスの開始番号
 uint32_t TextureManager::GetSrvIndex(const std::string &filePath) {
-  std::string fullPath = filePath;
-  // 既にパスに"Resources/Textures/"が含まれている場合は追加しない
-  if (filePath.find("Resources/Textures/") == std::string::npos &&
-      filePath.find("resources/textures/") == std::string::npos) {
-    fullPath = "Resources/Textures/" + filePath;
-  }
+    const TextureData* data = FindTextureData(filePath);
 
-  // 読み込み済みテクスチャを検索
-  auto it = textureDatas_.find(fullPath);
+    if (data) {
+        return data->srvIndex;
+    }
 
-  // ロード済みならインデックスを返す
-  if (it != textureDatas_.end()) {
-    // 読み込み済みなら要素番号を返す
-    return it->second.srvIndex;
-  }
-
-  // ロードされていなかったらエラーとして処理する
-  Logger::Log("ERROR: Texture not loaded for path: " + fullPath);
-  assert(false && "Texture not loaded!");
-  return 0;
+    // ロードされていなかったらエラー
+    Logger::Log("ERROR: Texture not loaded for path: " + filePath);
+    assert(false && "Texture not loaded!");
+    return 0;
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE
 TextureManager::GetSrvHandleGPU(const std::string &filePath) {
-
   // 配列の境界チェック（arrayIndexが配列のサイズ未満であることを確認）
   assert(SrvManager::GetInstance()->AllocatableTexture() &&
          "Error: texture array index out of bounds!");
 
-  std::string fullPath = filePath;
-  // 既にパスに"Resources/Textures/"が含まれている場合は追加しない
-  if (filePath.find("Resources/Textures/") == std::string::npos &&
-      filePath.find("resources/textures/") == std::string::npos) {
-      fullPath = "Resources/Textures/" + filePath;
+  const TextureData* data = FindTextureData(filePath);
+
+  if (data) {
+      return data->srvHandleGPU;
   }
 
-  // 読み込み済みテクスチャを検索
-  auto it = textureDatas_.find(fullPath);
-
-  // データが見つかったか確認
-  if (it == textureDatas_.end()) {
-    Logger::Log("ERROR: Requested texture not found in map: " + fullPath);
-    assert(false && "Texture data not found!");
-    // エラー処理として、適切なデフォルト値やエラーテクスチャのハンドルを返す
-    return D3D12_GPU_DESCRIPTOR_HANDLE{};
-  }
-
-  // 見つかった要素 (it->second) からハンドルを返す
-  return it->second.srvHandleGPU;
+  Logger::Log("ERROR: Requested texture not found in map: " + filePath);
+  assert(false && "Texture data not found!");
+  return D3D12_GPU_DESCRIPTOR_HANDLE{};
 }
 
 const DirectX::TexMetadata &
@@ -90,48 +68,39 @@ TextureManager::GetMetaData(const std::string &filePath) {
   assert(SrvManager::GetInstance()->AllocatableTexture() &&
          "Error: texture array index out of bounds!");
 
-  std::string fullPath = filePath;
-  // 既にパスに"Resources/Textures/"が含まれている場合は追加しない
-  if (filePath.find("Resources/Textures/") == std::string::npos &&
-      filePath.find("resources/textures/") == std::string::npos) {
-      fullPath = "Resources/Textures/" + filePath;
+  const TextureData* data = FindTextureData(filePath);
+
+  if (data) {
+      return data->metadata;
   }
 
-  // 読み込み済みテクスチャを検索
-  auto it = textureDatas_.find(fullPath);
-
-  // データが見つかったか確認
-  if (it == textureDatas_.end()) {
-    Logger::Log("ERROR: Requested texture not found in map: " + fullPath);
-    assert(false && "Texture data not found!");
-    // エラー処理として、適切なエラーメタデータを返す（ここでは簡略化）
-    // 実際にはデフォルトの静的なエラー用メタデータを返すのが望ましい
-    static DirectX::TexMetadata errorMetadata{};
-    return errorMetadata;
-  }
-
-  // 見つかった要素 (it->second) からメタデータを返す
-  return it->second.metadata;
+  Logger::Log("ERROR: Requested texture not found in map: " + filePath);
+  assert(false && "Texture data not found!");
+  static DirectX::TexMetadata errorMetadata{};
+  return errorMetadata;
 }
 
 // テクスチャロード
 void TextureManager::LoadTexture(const std::string &filePath) {
 
-  std::string fullPath = filePath;
-  // 既にパスに"Resources/Textures/"が含まれている場合は追加しない
-  if (filePath.find("Resources/Textures/") == std::string::npos &&
-      filePath.find("resources/textures/") == std::string::npos) {
-    fullPath = "Resources/Textures/" + filePath;
-  }
+    std::string finalPath;
 
-  if (!std::filesystem::exists(fullPath)) {
-    Logger::Log("ERROR: Texture file not found at path: " + fullPath);
-    assert(false && "Texture file not found!");
-    return;
-  }
+    // A. まず、渡されたパスそのまま（モデルフォルダ付きパスなど）で存在するか確認
+    if (std::filesystem::exists(filePath)) {
+        finalPath = filePath;
+    } else {
+        // B. 見つからない場合、汎用テクスチャフォルダ内を探す
+        finalPath = "Resources/Textures/" + filePath;
+
+        if (!std::filesystem::exists(finalPath)) {
+            Logger::Log("ERROR: Texture not found. Tried:\n 1. " + filePath + "\n 2. " + finalPath);
+            assert(false);
+            return;
+        }
+    }
 
   // 読み込み済みテクスチャを検索
-  auto it = textureDatas_.find(fullPath);
+  auto it = textureDatas_.find(finalPath);
 
   if (it != textureDatas_.end()) {
     return;
@@ -144,7 +113,7 @@ void TextureManager::LoadTexture(const std::string &filePath) {
 
   // テクスチャを読み込んでプログラムで扱えるようにする
   DirectX::ScratchImage image{};
-  std::wstring filePathW = ConvertString(fullPath);
+  std::wstring filePathW = ConvertString(finalPath);
   hr = DirectX::LoadFromWICFile(filePathW.c_str(),
                                 DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
   assert(SUCCEEDED(hr));
@@ -156,10 +125,10 @@ void TextureManager::LoadTexture(const std::string &filePath) {
                                 0, mipImages);
   assert(SUCCEEDED(hr));
 
-  Log("INFO: Loaded texture at path: " + fullPath + "\n");
+  Log("INFO: Loaded texture at path: " + finalPath + "\n");
 
   // テクスチャデータを追加
-  TextureData &textureData = textureDatas_[fullPath];
+  TextureData &textureData = textureDatas_[finalPath];
 
   textureData.metadata = mipImages.GetMetadata();
   textureData.resource = DX12Context::GetInstance()->CreateTextureResource(textureData.metadata);
@@ -188,4 +157,26 @@ void TextureManager::ReleaseIntermediateResources() {
   }
 
   Logger::Log("INFO: All intermediate texture resources have been released.\n");
+}
+
+const TextureManager::TextureData* TextureManager::FindTextureData(const std::string& filePath) {
+    // 1. そのままのパスで検索（モデル用など）
+    auto it = textureDatas_.find(filePath);
+    if (it != textureDatas_.end()) {
+        return &it->second;
+    }
+
+    // 2. デフォルトディレクトリを付与して検索（スプライト用など）
+    std::string fullPath = filePath;
+    if (filePath.find("Resources/Textures/") == std::string::npos &&
+        filePath.find("resources/textures/") == std::string::npos) {
+        fullPath = "Resources/Textures/" + filePath;
+    }
+
+    it = textureDatas_.find(fullPath);
+    if (it != textureDatas_.end()) {
+        return &it->second;
+    }
+
+    return nullptr; // 見つからない
 }

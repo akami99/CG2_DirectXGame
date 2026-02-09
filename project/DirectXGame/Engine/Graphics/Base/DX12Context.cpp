@@ -742,6 +742,17 @@ ComPtr<IDxcBlob> DX12Context::CompileShader(const std::wstring &filePath,
 // バッファリソースの生成
 ComPtr<ID3D12Resource> DX12Context::CreateBufferResource(size_t sizeInBytes) {
 
+    // ★追加: サイズが0ならエラーになるので、最低でも1バイト（現実的にはアラインメントで増える）確保する
+    if (sizeInBytes == 0) {
+        // 本来は呼び出し元で対処すべきだが、クラッシュ回避のために1にするか、あるいはここでassertしてもよい
+        // sizeInBytes = 1; 
+        assert(false && "CreateBufferResource called with size 0");
+    }
+
+    // ★追加: サイズを256バイトの倍数に切り上げる
+    // (ConstantBufferViewとしても使う可能性がある場合、これは必須です。IndexBufferとしても安全です)
+    size_t alignedSize = (sizeInBytes + 0xff) & ~0xff;
+
   HRESULT hr;
 
   // ヒープ設定（UploadHeap）

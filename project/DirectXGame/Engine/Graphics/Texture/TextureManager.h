@@ -63,6 +63,9 @@ public: // メンバ関数
   /// </summary>
   void ReleaseIntermediateResources();
 
+private:
+    const TextureManager::TextureData* FindTextureData(const std::string& filePath);
+
 private: // メンバ関数
   // コンストラクタ(隠蔽)
   TextureManager() = default;

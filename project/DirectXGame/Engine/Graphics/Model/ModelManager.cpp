@@ -45,15 +45,17 @@ Model *ModelManager::FindModel(const std::string &filePath) {
 void ModelManager::LoadModel(const std::string &directoryPath,
                              const std::string &filePath) {
     std::string fullDirectoryPath = directoryPath;
-    // 既にパスに"Resources/Assets/Models/"が含まれている場合は追加しない
-    if (filePath.find("Resources/Assets/Models/") == std::string::npos &&
-        filePath.find("resources/assets/models/") == std::string::npos) {
+
+    // directoryPath 自体が "Resources/" を含んでいない場合のみ、ベースパスを付与する
+    if (directoryPath.find("Resources/") == std::string::npos &&
+        directoryPath.find("resources/") == std::string::npos) {
         fullDirectoryPath = "Resources/Assets/Models/" + directoryPath;
     }
 
+    // 存在チェック (fullDirectoryPath + "/" + filePath)
     if (!std::filesystem::exists(fullDirectoryPath + "/" + filePath)) {
-        Logger::Log("ERROR: Texture file not found at path: " + fullDirectoryPath + filePath);
-        assert(false && "Texture file not found!");
+        Logger::Log("ERROR: Model file not found at: " + fullDirectoryPath + "/" + filePath);
+        assert(false && "Model file not found!");
     }
 
   // --- 読み込み済みモデルを検索し、存在すれば早期return ---

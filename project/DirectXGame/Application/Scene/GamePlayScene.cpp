@@ -52,7 +52,7 @@ void GamePlayScene::Initialize() {
 
     // モデル読み込み
     ModelManager::GetInstance()->LoadModel("sphere", sphereModel_);
-    ModelManager::GetInstance()->LoadModel("teapot", teapotModel_);
+    ModelManager::GetInstance()->LoadModel("terrain", terrainModel_);
 
     // パーティクル設定
     ParticleManager::GetInstance()->CreateParticleGroup(particleGroupName_, particleTexturePath_);
@@ -88,7 +88,7 @@ void GamePlayScene::Initialize() {
      object3d_2->Initialize();
 
      // モデルの設定
-     object3d_2->SetModel(teapotModel_);
+     object3d_2->SetModel(terrainModel_);
      // オブジェクトの位置を設定
      object3d_2->SetTranslate({2.0f, 0.0f, 0.0f});
 
@@ -258,6 +258,9 @@ void GamePlayScene::UpdateGameCamera() {
 
     if (Input::GetInstance()->IsKeyTriggered(DIK_F1)) {
         useDebugCamera_ = !useDebugCamera_;
+        if (!useDebugCamera_) {
+            camera_->SetRotate({ 0.3f, 0.0f, 0.0f });
+        }
     }
 
     if (!useDebugCamera_) {
@@ -276,6 +279,7 @@ void GamePlayScene::UpdateGameCamera() {
         }
         // 共通のリセットキー
         if (Input::GetInstance()->IsKeyDown(DIK_R)) {
+            camera_->SetRotate({ 0.3f, 0.0f, 0.0f });
             gameCameraTranslate_ = { 0.0f, 4.0f, -10.0f };
         }
 

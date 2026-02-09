@@ -52,7 +52,7 @@ private:
 
     // パス定数
     // 3Dモデルのファイルパス
-    const std::string planeModel_ = "plane.obj";
+    const std::string planeModel_ = "plane.gltf";
     const std::string teapotModel_ = "teapot.obj";
     const std::string terrainModel_ = "terrain.obj";
     const std::string sphereModel_ = "sphere.obj";
