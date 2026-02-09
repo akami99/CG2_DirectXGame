@@ -32,7 +32,8 @@ void MyGame::Initialize() {
   SceneManager::GetInstance()->SetSceneFactory(std::move(sceneFactory));
 
   // 文字列で指定
-  SceneManager::GetInstance()->ChangeScene("TITLE");
+  SceneManager::GetInstance()->ChangeScene("GAMEPLAY");
+  //SceneManager::GetInstance()->ChangeScene("TITLE");
 }
 
 void MyGame::Finalize() {
