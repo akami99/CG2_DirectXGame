@@ -17,7 +17,6 @@
 // 計算用関数など
 #include "MathUtils.h"
 #include "MatrixGenerators.h"
-
 // scene
 #include "TitleScene.h"
 
