@@ -38,7 +38,12 @@ void Object3dCommon::Initialize() {
 
   // ラスタライザステート
   D3D12_RASTERIZER_DESC rasterizerDesc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-  rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK; // 背面カリング
+#ifdef _DEBUG
+  rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE; // 背面カリング <==== ※PSOをそれぞれのカリングに対応させるまでは無しにしておく(ライティングで裏部分は変になるので注意！)
+#else
+  rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK; // 背面カリング <==== ※本来はこっち
+#endif // _DEBUG
+
 
   // デプスステンシルステート
   D3D12_DEPTH_STENCIL_DESC depthStencilDesc =

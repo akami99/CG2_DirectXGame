@@ -11,10 +11,6 @@
 #include <sstream>
 #include <string>
 
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
-
 using namespace Microsoft::WRL;
 using namespace MathUtils;
 using namespace MathGenerators;
@@ -146,9 +142,31 @@ void Model::LoadModelFile(const std::string &directoryPath,
         }
     }
 
+    // --- 3. ノードの解析 ---
+    modelData_.rootNode = ReadNode(scene->mRootNode);
+
     // データが空でないか最終チェック
     assert(!modelData_.vertices.empty() && "Vertex data is empty");
     assert(!modelData_.indices.empty() && "Index data is empty");
+}
+
+Node Model::ReadNode(aiNode* node) {
+    Node result;
+    aiMatrix4x4 aiLocalMatrix = node->mTransformation; // nodeのMatrixを取得
+    aiLocalMatrix.Transpose(); // 列ベクトル形式を行ベクトル形式に転置（Assimpは列優先、DirectXは行優先のため）
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            result.localMatrix.m[i][j] = aiLocalMatrix[i][j];
+        }
+    }
+
+    result.name = node->mName.C_Str(); // Node名を取得
+    result.children.resize(node->mNumChildren); // 子供の数だけ確保
+    for (uint32_t childIndex = 0; childIndex < node->mNumChildren; ++childIndex) {
+        // 再帰的に読んで階層構造を作っていく
+        result.children[childIndex] = ReadNode(node->mChildren[childIndex]);
+    }
+    return result;
 }
 
 void Model::CreateIndexResource() {

@@ -5,6 +5,10 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+
 // 3Dモデル
 class Model {
 private: // namespace省略のためのusing宣言
@@ -47,6 +51,9 @@ public: // メンバ関数
 
   // getter
 
+  // RootNodeを取得するGetter
+  const Node& GetRootNode() const { return modelData_.rootNode; }
+
   // 色の取得
   const Vector4 &GetColor() const { return materialData_->color; }
 
@@ -75,6 +82,9 @@ private: // メンバ関数
   // .objファイルの読み取り
   void LoadModelFile(const std::string &directoryPath,
                    const std::string &fileName);
+
+  // assimpのノードを変換
+  Node ReadNode(aiNode* node);
 
   // インデックスバッファ作成用関数
   void CreateIndexResource();

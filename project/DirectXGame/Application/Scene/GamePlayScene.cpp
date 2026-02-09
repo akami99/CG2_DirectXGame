@@ -51,8 +51,8 @@ void GamePlayScene::Initialize() {
     TextureManager::GetInstance()->LoadTexture(grassPath_);
 
     // モデル読み込み
-    ModelManager::GetInstance()->LoadModel("sphere", sphereModel_);
-    ModelManager::GetInstance()->LoadModel("terrain", terrainModel_);
+    ModelManager::GetInstance()->LoadModel("plane", planeModel_);
+    ModelManager::GetInstance()->LoadModel("plane", planeGltfModel_);
 
     // パーティクル設定
     ParticleManager::GetInstance()->CreateParticleGroup(particleGroupName_, particleTexturePath_);
@@ -79,7 +79,7 @@ void GamePlayScene::Initialize() {
     object3d_1->Initialize();
 
     // モデルの設定
-    object3d_1->SetModel(sphereModel_);
+    object3d_1->SetModel(planeModel_);
     // オブジェクトの位置を設定
     object3d_1->SetTranslate({ 0.0f, 0.0f, 0.0f });
 
@@ -88,7 +88,7 @@ void GamePlayScene::Initialize() {
      object3d_2->Initialize();
 
      // モデルの設定
-     object3d_2->SetModel(terrainModel_);
+     object3d_2->SetModel(planeGltfModel_);
      // オブジェクトの位置を設定
      object3d_2->SetTranslate({2.0f, 0.0f, 0.0f});
 

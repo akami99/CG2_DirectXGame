@@ -42,6 +42,17 @@ void Object3d::Update() {
   Matrix4x4 worldMatrix = MakeAffineMatrix(transform_.scale, transform_.rotate,
                                            transform_.translate);
 
+  // 2. Model側のRootNodeのTransformを反映する
+    // これがないと、glTF等で作ったモデルの原点ズレや初期回転が反映されません
+  if (model_) {
+      // ModelからRootNodeのローカル行列を取得
+      Matrix4x4 rootMatrix = model_->GetRootNode().localMatrix;
+
+      // ★行列の掛け合わせ
+      // 先に「モデル内の変形(RootMatrix)」を行い、その後に「ワールドへの配置(WorldMatrix)」を行う
+      worldMatrix = rootMatrix * worldMatrix;
+  }
+
   // ワールドビュー射影行列の計算
   Matrix4x4 wvpMatrix;
   if (camera_) {
