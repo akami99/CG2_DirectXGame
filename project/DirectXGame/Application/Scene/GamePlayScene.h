@@ -48,7 +48,7 @@ private:
     int currentBlendMode_ = 1;  // NormalBlend
     int particleBlendMode_ = 2; // AddBlend
     bool isShowMaterial_ = true;
-    bool isShowSprite_ = false;
+    bool isShowSprite_ = true;
 
     // パス定数
     // 3Dモデルのファイルパス
