@@ -51,7 +51,7 @@ void GamePlayScene::Initialize() {
     TextureManager::GetInstance()->LoadTexture(grassPath_);
 
     // モデル読み込み
-    ModelManager::GetInstance()->LoadModel("plane", planeModel_);
+    ModelManager::GetInstance()->LoadModel("sphere", sphereModel_);
     ModelManager::GetInstance()->LoadModel("plane", planeGltfModel_);
 
     // パーティクル設定
@@ -79,7 +79,7 @@ void GamePlayScene::Initialize() {
     object3d_1->Initialize();
 
     // モデルの設定
-    object3d_1->SetModel(planeModel_);
+    object3d_1->SetModel(sphereModel_);
     // オブジェクトの位置を設定
     object3d_1->SetTranslate({ 0.0f, 0.0f, 0.0f });
 
