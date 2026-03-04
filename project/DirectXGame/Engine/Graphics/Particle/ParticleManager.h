@@ -14,6 +14,14 @@
 class Camera;
 
 class ParticleManager {
+public:
+  // 【Passkey Idiom】
+  struct Token {
+  private:
+    friend class ParticleManager;
+    Token() {}
+  };
+
 private: // namespace省略のためのusing宣言
 #pragma region using宣言
 
@@ -40,7 +48,7 @@ private: // メンバ変数
   std::unordered_map<std::string, ParticleGroup> particleGroups_{};
 
   // シングルトンインスタンス
-  static ParticleManager *instance_;
+  static std::unique_ptr<ParticleManager> instance_;
 
   // パイプライン・頂点リソース関連のメンバ変数
   ComPtr<ID3D12RootSignature> particleRootSignature_{};
@@ -65,8 +73,11 @@ private: // メンバ変数
 
 public: // シングルトンインスタンス取得
     static ParticleManager* GetInstance();
+    static void Destroy();
 
 public: // メンバ関数
+  // コンストラクタ(隠蔽)
+  explicit ParticleManager(Token);
   // 初期化処理
   void Initialize();
 
@@ -95,12 +106,12 @@ public: // メンバ関数
   void Finalize();
 
 private: // メンバ関数
-  // コンストラクタ(隠蔽)
-  ParticleManager() = default;
   // デストラクタ(隠蔽)
   ~ParticleManager() = default;
   // コピーコンストラクタの封印
   ParticleManager(const ParticleManager &) = delete;
   // コピー代入演算子の封印
   ParticleManager &operator=(const ParticleManager &) = delete;
+
+  friend std::default_delete<ParticleManager>;
 };

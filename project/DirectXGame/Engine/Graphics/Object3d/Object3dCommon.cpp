@@ -12,14 +12,22 @@
 using namespace Microsoft::WRL;
 using namespace BlendMode;
 
-Object3dCommon *Object3dCommon::instance_ = nullptr;
+std::unique_ptr<Object3dCommon> Object3dCommon::instance_ = nullptr;
 
 // シングルトンインスタンスの実装
 Object3dCommon *Object3dCommon::GetInstance() {
     if (instance_ == nullptr) {
-        instance_ = new Object3dCommon;
+        instance_ = std::make_unique<Object3dCommon>(Token{});
     }
-    return instance_;
+    return instance_.get();
+}
+
+void Object3dCommon::Destroy() {
+    instance_.reset();
+}
+
+Object3dCommon::Object3dCommon(Token) {
+    // コンストラクタ
 }
 
 void Object3dCommon::Initialize() {
@@ -72,8 +80,7 @@ void Object3dCommon::Finalize() {
     // デフォルトカメラの参照をクリア
     defaultCamera_ = nullptr;
 
-    delete instance_;
-    instance_ = nullptr;
+    instance_.reset();
 }
 
 void Object3dCommon::SetCommonDrawSettings(BlendState currentBlendMode) {

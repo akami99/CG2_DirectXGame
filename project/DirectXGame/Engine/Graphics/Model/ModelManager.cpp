@@ -12,7 +12,7 @@
 using namespace Logger;
 using namespace StringUtility;
 
-ModelManager *ModelManager::instance_ = nullptr;
+std::unique_ptr<ModelManager> ModelManager::instance_ = nullptr;
 
 // 初期化
 void ModelManager::Initialize() {
@@ -21,15 +21,22 @@ void ModelManager::Initialize() {
 // シングルトンインスタンスの取得
 ModelManager *ModelManager::GetInstance() {
   if (instance_ == nullptr) {
-    instance_ = new ModelManager;
+    instance_ = std::make_unique<ModelManager>(Token{});
   }
-  return instance_;
+  return instance_.get();
+}
+
+void ModelManager::Destroy() {
+    instance_.reset();
+}
+
+ModelManager::ModelManager(Token) {
+    // コンストラクタ
 }
 
 // 終了
 void ModelManager::Finalize() {
-  delete instance_;
-  instance_ = nullptr;
+  instance_.reset();
 }
 
 Model *ModelManager::FindModel(const std::string &filePath) {

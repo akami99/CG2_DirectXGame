@@ -18,21 +18,22 @@ using namespace Microsoft::WRL;
 using namespace Logger;
 using namespace StringUtility;
 
-DX12Context *DX12Context::instance_ = nullptr;
+std::unique_ptr<DX12Context> DX12Context::instance_ = nullptr;
 
 // シングルトンインスタンスの実装
 DX12Context *DX12Context::GetInstance() {
     if (instance_ == nullptr) {
-    instance_ = new DX12Context;
-  }
-    return instance_;
+        instance_ = std::make_unique<DX12Context>(Token{});
+    }
+    return instance_.get();
 }
 
 void DX12Context::Destroy() {
-    if (instance_) {
-        delete instance_;
-        instance_ = nullptr;
-    }
+    instance_.reset();
+}
+
+DX12Context::DX12Context(Token) {
+    // コンストラクタ
 }
 
 #pragma region publicメンバ関数

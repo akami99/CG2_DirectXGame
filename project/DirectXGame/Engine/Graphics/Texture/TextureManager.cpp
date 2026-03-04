@@ -8,7 +8,7 @@ using namespace Logger;
 using namespace StringUtility;
 using namespace Microsoft::WRL;
 
-TextureManager *TextureManager::instance_ = nullptr;
+std::unique_ptr<TextureManager> TextureManager::instance_ = nullptr;
 
 // 初期化
 void TextureManager::Initialize() {
@@ -19,16 +19,23 @@ void TextureManager::Initialize() {
 // シングルトンインスタンスの取得
 TextureManager *TextureManager::GetInstance() {
   if (instance_ == nullptr) {
-    instance_ = new TextureManager;
+    instance_ = std::make_unique<TextureManager>(Token{});
   }
-  return instance_;
+  return instance_.get();
+}
+
+void TextureManager::Destroy() {
+    instance_.reset();
+}
+
+TextureManager::TextureManager(Token) {
+    // コンストラクタ
 }
 
 // 終了
 void TextureManager::Finalize() {
     textureDatas_.clear();
-  delete instance_;
-  instance_ = nullptr;
+    instance_.reset();
 }
 
 // SRVインデックスの開始番号

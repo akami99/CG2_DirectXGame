@@ -4,9 +4,18 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 #include <cassert> // assert用に必要
+#include <memory> // std::unique_ptr用に必要
 
 // SRV管理
 class SrvManager {
+public:
+  // 【Passkey Idiom】
+  struct Token {
+  private:
+    friend class SrvManager;
+    Token() {}
+  };
+
 private: // namespace省略のためのusing宣言
 #pragma region using宣言
 
@@ -21,7 +30,7 @@ public: // メンバ変数
 
 private: // メンバ変数
   // シングルトンインスタンス
-  static SrvManager *instance_;
+  static std::unique_ptr<SrvManager> instance_;
 
   // デスクリプタヒープサイズ
   uint32_t descriptorSize_ = 0; // SRV/UAV/CBV用
@@ -35,6 +44,7 @@ public: // シングルトンインスタンス取得
     static SrvManager* GetInstance();
 
 public: // メンバ関数
+  explicit SrvManager(Token);
   // 初期化
   void Initialize();
 
@@ -96,8 +106,9 @@ public: // メンバ関数
                                     uint32_t structureByteStride);
 
 private: // コンストラクタ周りをprivateへ
-    SrvManager() = default;
     ~SrvManager() = default;
     SrvManager(const SrvManager&) = delete;
     const SrvManager& operator=(const SrvManager&) = delete;
+
+    friend std::default_delete<SrvManager>;
 };

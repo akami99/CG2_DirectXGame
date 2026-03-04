@@ -7,6 +7,7 @@
 #include <string>       // std::string のために必要
 #include <list>       // 再生中のボイスを管理するために使用(vectorの代わりに追加)
 #include <wrl/client.h> // Microsoft::WRL::ComPtr のために必要
+#include <memory>       // std::unique_ptr
 #include <xaudio2.h>    // XAudio2 のインターフェースと型のために必要
 
 // XAudio2 ライブラリをリンク
@@ -15,7 +16,12 @@
 // AudioManager クラス
 class AudioManager {
 public:
-    static AudioManager* instance_;
+    // 【Passkey Idiom】
+    struct Token {
+    private:
+        friend class AudioManager;
+        Token() {}
+    };
 private:
 
   std::mutex playingVoicesMutex; // playingVoicesリストを保護するミューテックス
@@ -76,6 +82,12 @@ public:
   // 追加: シングルトンインスタンス取得
     static AudioManager* GetInstance();
 
+    // インスタンス破棄
+    static void Destroy();
+
+  // コンストラクタ(隠蔽)
+  explicit AudioManager(Token);
+
   // XAudio2 エンジンを初期化する
   bool Initialize();
 
@@ -104,10 +116,12 @@ public:
   void CleanupFinishedVoices();
 
   private:
-      // コンストラクタとデストラクタ
-      AudioManager();
+      // デストラクタ
       ~AudioManager();
       // コピー禁止
       AudioManager(const AudioManager&) = delete;
       const AudioManager& operator=(const AudioManager&) = delete;
+
+      static std::unique_ptr<AudioManager> instance_;
+      friend std::default_delete<AudioManager>;
 };

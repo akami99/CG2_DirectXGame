@@ -6,14 +6,18 @@ using namespace Microsoft::WRL;
 
 const uint32_t SrvManager::kMaxSRVCount = 512;
 
-SrvManager *SrvManager::instance_ = nullptr;
+std::unique_ptr<SrvManager> SrvManager::instance_ = nullptr;
 
 // ★追加: シングルトンインスタンスの実装
 SrvManager* SrvManager::GetInstance() {
     if (instance_ == nullptr) {
-    instance_ = new SrvManager();
-  }
-    return instance_;
+        instance_ = std::make_unique<SrvManager>(Token{});
+    }
+    return instance_.get();
+}
+
+SrvManager::SrvManager(Token) {
+    // コンストラクタ
 }
 
 // 初期化
@@ -32,8 +36,7 @@ void SrvManager::Finalize() {
   descriptorHeap_.Reset();
 
   // シングルトンインスタンスの解放
-  delete instance_;
-  instance_ = nullptr;
+  instance_.reset();
 }
 
 // 描画開始前処理

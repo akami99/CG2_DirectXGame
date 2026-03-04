@@ -4,8 +4,17 @@
 #include <dxcapi.h> // IDxcBlob用に必要
 #include <wrl/client.h>
 #include <cstdint> // uint32_t用に必要
+#include <memory> // std::unique_ptr用に必要
 
 class PipelineManager {
+public:
+  // 【Passkey Idiom】
+  struct Token {
+  private:
+    friend class PipelineManager;
+    Token() {}
+  };
+
 private: // namespace省略のためのusing宣言
 #pragma region using宣言
 
@@ -30,13 +39,15 @@ private: // メンバ変数
   ComPtr<ID3D12RootSignature> rootSignatureParticle_; // ルートシグネチャ
 
 private: // シングルトン管理用メンバ変数
-    static PipelineManager* instance_;
+    static std::unique_ptr<PipelineManager> instance_;
 
 public: // シングルトンインスタンスの取得・破棄
     static PipelineManager* GetInstance();
-    void Finalize();
+    static void Destroy();
 
 public: // メンバ関数
+  // コンストラクタ(隠蔽)
+  explicit PipelineManager(Token);
   // 初期化(シェーダーとルートシグネチャのロード/生成を実行)
   void Initialize();
 
@@ -78,8 +89,9 @@ private: // メンバ関数
   void CreateRootSignature();
 
 private: // コンストラクタ関連（隠蔽）
-    PipelineManager() = default;
     ~PipelineManager() = default;
     PipelineManager(const PipelineManager&) = delete;
     const PipelineManager& operator=(const PipelineManager&) = delete;
+
+    friend std::default_delete<PipelineManager>;
 };

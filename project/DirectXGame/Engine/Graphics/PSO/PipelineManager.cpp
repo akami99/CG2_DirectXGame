@@ -9,18 +9,21 @@ using namespace Microsoft::WRL;
 using namespace Logger;
 
 // 静的メンバ変数の実体
-PipelineManager* PipelineManager::instance_ = nullptr;
+std::unique_ptr<PipelineManager> PipelineManager::instance_ = nullptr;
 
 PipelineManager* PipelineManager::GetInstance() {
     if (instance_ == nullptr) {
-        instance_ = new PipelineManager();
+        instance_ = std::make_unique<PipelineManager>(Token{});
     }
-    return instance_;
+    return instance_.get();
 }
 
-void PipelineManager::Finalize() {
-    delete instance_;
-    instance_ = nullptr;
+void PipelineManager::Destroy() {
+    instance_.reset();
+}
+
+PipelineManager::PipelineManager(Token) {
+    // コンストラクタ
 }
 
 void PipelineManager::Initialize() {

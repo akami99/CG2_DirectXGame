@@ -2,11 +2,22 @@
 #include "LightTypes.h" // DirectionalLight構造体があるヘッダ
 #include <d3d12.h>
 #include <wrl.h>
+#include <memory> // std::unique_ptr用に必要
 
 class LightManager {
 public:
+    // 【Passkey Idiom】
+    struct Token {
+    private:
+        friend class LightManager;
+        Token() {}
+    };
+
     static LightManager* GetInstance();
+    static void Destroy();
 public:
+  // コンストラクタ(隠蔽)
+  explicit LightManager(Token);
   void Initialize();
   void Finalize();
   // 更新の最後に呼ぶ
@@ -60,10 +71,11 @@ public:
   SpotLight &GetSpotLightData() { return *spotData_; }
 
 private:
-    LightManager() = default;
     ~LightManager() = default;
     LightManager(const LightManager&) = delete;
     const LightManager& operator=(const LightManager&) = delete;
+
+    friend std::default_delete<LightManager>;
 
 private:
   // 平行光源バッファの作成
@@ -77,7 +89,7 @@ private:
 
 private:
   // シングルトンインスタンス
-  static LightManager *instance_;
+  static std::unique_ptr<LightManager> instance_;
 
   // 平行光源用
   Microsoft::WRL::ComPtr<ID3D12Resource> directionalResource_;

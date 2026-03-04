@@ -9,12 +9,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   D3DResourceLeakChecker leakCheck; // リソースリークチェック用のオブジェクト
 
   // ゲームオブジェクトの生成
-  RAFramework* game = new MyGame();
+  std::unique_ptr<RAFramework> game = std::make_unique<MyGame>();
 
   // ゲームの実行
   game->Run();
 
-  delete game;
   CoUninitialize();
 
   return 0;

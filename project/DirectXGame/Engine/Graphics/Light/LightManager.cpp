@@ -3,13 +3,21 @@
 
 #include <numbers>
 
-LightManager *LightManager::instance_ = nullptr;
+std::unique_ptr<LightManager> LightManager::instance_ = nullptr;
 
 LightManager* LightManager::GetInstance() {
     if (instance_ == nullptr) {
-    instance_ = new LightManager;
-  }
-    return instance_;
+        instance_ = std::make_unique<LightManager>(Token{});
+    }
+    return instance_.get();
+}
+
+void LightManager::Destroy() {
+    instance_.reset();
+}
+
+LightManager::LightManager(Token) {
+    // コンストラクタ
 }
 
 void LightManager::Initialize() {
@@ -23,8 +31,7 @@ void LightManager::Initialize() {
 
 void LightManager::Finalize() {
   // インスタンスの解放
-  delete instance_;
-  instance_ = nullptr;
+  instance_.reset();
 }
 
 void LightManager::Update() {

@@ -3,11 +3,20 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 #include <array> // std::array用に必要
+#include <memory> // std::unique_ptr用に必要
 
 #include "BlendMode/BlendMode.h"
 
 // スプライト共通部
 class SpriteCommon {
+public:
+  // 【Passkey Idiom】
+  struct Token {
+  private:
+    friend class SpriteCommon;
+    Token() {}
+  };
+
 private: // namespace省略のためのusing宣言
 #pragma region using宣言
 
@@ -18,7 +27,7 @@ private: // namespace省略のためのusing宣言
 
 private: // メンバ変数
 
-    static SpriteCommon *instance_;
+    static std::unique_ptr<SpriteCommon> instance_;
 
   // グラフィックスパイプラインステート (ブレンドモードごとに配列で保持)
   ComPtr<ID3D12PipelineState>
@@ -29,8 +38,10 @@ private: // メンバ変数
 
 public: // シングルトンインスタンス取得
     static SpriteCommon* GetInstance();
+    static void Destroy();
 
 public: // メンバ関数
+  explicit SpriteCommon(Token);
   // 初期化
   void Initialize();
 
@@ -41,8 +52,9 @@ public: // メンバ関数
   void SetCommonDrawSettings(BlendMode::BlendState currentBlendMode);
 
 private: // コンストラクタ周り
-    SpriteCommon() = default;
     ~SpriteCommon() = default;
     SpriteCommon(const SpriteCommon&) = delete;
     const SpriteCommon& operator=(const SpriteCommon&) = delete;
+
+    friend std::default_delete<SpriteCommon>;
 };

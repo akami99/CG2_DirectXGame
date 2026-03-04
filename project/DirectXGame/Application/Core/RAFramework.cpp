@@ -104,7 +104,7 @@ void RAFramework::Initialize() {
   // PipelineManager
   PipelineManager::GetInstance()->Initialize();
   // ImGuiManager
-  imGuiManager_ = new ImGuiManager();
+  imGuiManager_ = std::make_unique<ImGuiManager>();
   imGuiManager_->Initialize();
 
   // リソース系マネージャのためにコマンドリストを開く
@@ -152,9 +152,9 @@ void RAFramework::Finalize() {
   LightManager::GetInstance()->Finalize();
 
   imGuiManager_->Finalize();
-  delete imGuiManager_;
+  imGuiManager_.reset();
 
-  PipelineManager::GetInstance()->Finalize();
+  PipelineManager::GetInstance()->Destroy();
   Input::GetInstance()->Destroy();
   SrvManager::GetInstance()->Finalize();
   DX12Context::GetInstance()->Finalize();

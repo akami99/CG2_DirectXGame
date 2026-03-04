@@ -4,13 +4,17 @@
 #include "ParticleManager.h"
 #include "Logger.h" // ログ用
 
-SceneManager *SceneManager::instance_ = nullptr;
+std::unique_ptr<SceneManager> SceneManager::instance_ = nullptr;
 
 SceneManager *SceneManager::GetInstance() {
   if (instance_ == nullptr) {
-    instance_ = new SceneManager;
+    instance_ = std::make_unique<SceneManager>(Token{});
   }
-  return instance_;
+  return instance_.get();
+}
+
+SceneManager::SceneManager(Token) {
+    // コンストラクタ
 }
 
 void SceneManager::Finalize() {
@@ -27,10 +31,7 @@ void SceneManager::Finalize() {
 }
 
 void SceneManager::Destroy() {
-    if (instance_) {
-        delete instance_;
-        instance_ = nullptr;
-    }
+    instance_.reset();
 }
 
 void SceneManager::Update() {

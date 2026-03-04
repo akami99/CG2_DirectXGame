@@ -19,10 +19,18 @@ public: // namespace省略のためのusing宣言
 
 #pragma endregion
 
+public:
+  // 【Passkey Idiom】
+  struct Token {
+  private:
+    friend class DX12Context;
+    Token() {}
+  };
+
 private: // メンバ変数
 #pragma region privateメンバ変数
    
-  static DX12Context *instance_; // シングルトンインスタンス
+  static std::unique_ptr<DX12Context> instance_; // シングルトンインスタンス
 
   // DirectX12デバイス
   ComPtr<ID3D12Device> device_ = nullptr;
@@ -86,6 +94,8 @@ public:  // シングルトンインスタンス取得
 public: // メンバ関数
 #pragma region publicメンバ関数
 
+  // コンストラクタ(隠蔽)
+  explicit DX12Context(Token);
   // 初期化
   void Initialize();
   // 終了
@@ -264,8 +274,9 @@ private: // ヘルパー関数
 #pragma endregion privateヘルパー関数
 
   private: // コンストラクタ・デストラクタ・コピー禁止
-    DX12Context() = default;
     ~DX12Context() = default;
     DX12Context(const DX12Context &) = delete;
     const DX12Context &operator=(const DX12Context &) = delete;
+
+    friend std::default_delete<DX12Context>;
 };

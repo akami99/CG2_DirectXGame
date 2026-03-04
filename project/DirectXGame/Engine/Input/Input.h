@@ -23,7 +23,7 @@ public:
 
 public: // メンバ関数
     // コンストラクタ (Tokenがないと呼べない = 実質private)
-    Input(Token);
+    explicit Input(Token);
 
     // デストラクタ
     ~Input();

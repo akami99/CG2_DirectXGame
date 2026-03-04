@@ -1,13 +1,23 @@
 #pragma once
 #include "BaseScene.h"
 #include "AbstractSceneFactory.h"
-#include <memory>
+#include <memory> // std::unique_ptr用に必要
 #include <string>
 
 // シーン管理
 class SceneManager {
 public:
+    // 【Passkey Idiom】
+    struct Token {
+    private:
+        friend class SceneManager;
+        Token() {}
+    };
+
     static SceneManager* GetInstance();
+
+    // コンストラクタ(隠蔽)
+    explicit SceneManager(Token);
 
     // 終了処理
     void Finalize();
@@ -30,9 +40,9 @@ public:
     }
 
 private:
-    SceneManager() = default;
     ~SceneManager() = default;
-    static SceneManager* instance_;
+    static std::unique_ptr<SceneManager> instance_;
+    friend std::default_delete<SceneManager>;
 
     // シーン工場
     std::unique_ptr<AbstractSceneFactory> sceneFactory_;

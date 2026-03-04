@@ -9,20 +9,31 @@ class Model;
 
 // モデルマネージャー
 class ModelManager {
-private: // メンバ変数
-  static ModelManager *instance_;
+public:
+  // 【Passkey Idiom】
+  struct Token {
+  private:
+    friend class ModelManager;
+    Token() {}
+  };
+
+private: // namespace省略のためのusing宣言
+  static std::unique_ptr<ModelManager> instance_;
 
   // モデルデータ
   std::map<std::string, std::unique_ptr<Model>> models_;
 
-  public: // シングルトンインスタンスの取得
-  static ModelManager* GetInstance();
+  public: // シングルトンインスタンス取得
+    static ModelManager* GetInstance();
+    static void Destroy();
 
 public: // メンバ関数
+  // コンストラクタ(隠蔽)
+  explicit ModelManager(Token);
   // 初期化
   void Initialize();
 
-  // 終了(この後にGetInstance()するとまたnewするので注意)
+  // 終了
   void Finalize();
 
   /// <summary>
@@ -40,12 +51,12 @@ public: // メンバ関数
   void LoadModel(const std::string &directoryPath, const std::string &filePath);
 
 private: // メンバ関数
-  // コンストラクタ(隠蔽)
-  ModelManager() = default;
   // デストラクタ(隠蔽)
   ~ModelManager() = default;
   // コピーコンストラクタの封印
-  ModelManager(ModelManager &) = delete;
+  ModelManager(const ModelManager &) = delete;
   // コピー代入演算子の封印
-  ModelManager &operator=(ModelManager &) = delete;
+  ModelManager &operator=(const ModelManager &) = delete;
+
+  friend std::default_delete<ModelManager>;
 };

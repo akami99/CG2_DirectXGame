@@ -1,9 +1,11 @@
 #pragma once
 #include <Windows.h>
+#include <memory> // std::unique_ptr用に必要
+
+#include "ImGuiManager.h"
 
 // 前方宣言
 class Win32Window;
-class ImGuiManager;
 
 // ゲーム全体を管理するフレームワーククラス
 class RAFramework {
@@ -27,7 +29,8 @@ protected: // 継承先の MyGame でも使えるように protected にする
     bool endRequest_ = false;
 
     // --- 基盤システム (これらはFrameworkが持つ) ---
-    ImGuiManager *imGuiManager_ = nullptr;
+    // ImGuiマネージャ
+    std::unique_ptr<ImGuiManager> imGuiManager_;
 
 private:
 };

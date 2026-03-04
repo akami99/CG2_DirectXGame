@@ -9,6 +9,14 @@
 
 // テクスチャマネージャー(シングルトン)
 class TextureManager {
+public:
+  // 【Passkey Idiom】
+  struct Token {
+  private:
+    friend class TextureManager;
+    Token() {}
+  };
+
 private: // namespace省略のためのusing宣言
 #pragma region using宣言
 
@@ -28,20 +36,25 @@ private: // メンバ変数
     ComPtr<ID3D12Resource> intermediateResource;
   };
 
-  static TextureManager *instance_;
+  static std::unique_ptr<TextureManager> instance_;
 
   // テクスチャデータ
   std::unordered_map<std::string, TextureData>
       textureDatas_; // キーの順番を保つならunordered_mapの方が高速
 
 public: // メンバ関数
+  // コンストラクタ(隠蔽)
+  explicit TextureManager(Token);
   // 初期化
   void Initialize();
 
   // シングルトンインスタンスの取得
   static TextureManager *GetInstance();
-  // 終了(この後にGetInstance()するとまたnewするので注意)
+  // 終了
   void Finalize();
+
+  // インスタンス破棄
+  static void Destroy();
 
   // SRVインデックスの取得
   uint32_t GetSrvIndex(const std::string &filePath);
@@ -67,12 +80,12 @@ private:
     const TextureManager::TextureData* FindTextureData(const std::string& filePath);
 
 private: // メンバ関数
-  // コンストラクタ(隠蔽)
-  TextureManager() = default;
   // デストラクタ(隠蔽)
   ~TextureManager() = default;
   // コピーコンストラクタの封印
-  TextureManager(TextureManager &) = delete;
+  TextureManager(const TextureManager &) = delete;
   // コピー代入演算子の封印
-  TextureManager &operator=(TextureManager &) = delete;
+  TextureManager &operator=(const TextureManager &) = delete;
+
+  friend std::default_delete<TextureManager>;
 };

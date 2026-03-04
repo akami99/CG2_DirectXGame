@@ -3,6 +3,7 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 #include <array> // std::array用に必要
+#include <memory> // std::unique_ptr用に必要
 
 #include "BlendMode/BlendMode.h"
 
@@ -11,6 +12,14 @@ class Camera;
 
 // 3Dオブジェクト共通部
 class Object3dCommon {
+public:
+  // 【Passkey Idiom】
+  struct Token {
+  private:
+    friend class Object3dCommon;
+    Token() {}
+  };
+
 private: // namespace省略のためのusing宣言
 #pragma region using宣言
 
@@ -20,7 +29,7 @@ private: // namespace省略のためのusing宣言
 #pragma endregion
 
 private: // メンバ変数
-  static Object3dCommon * instance_;
+  static std::unique_ptr<Object3dCommon> instance_;
 
   // デフォルトカメラ
   Camera* defaultCamera_ = nullptr;
@@ -31,8 +40,11 @@ private: // メンバ変数
 
 public: // シングルトンインスタンス取得
     static Object3dCommon* GetInstance();
+    static void Destroy();
 
 public: // メンバ関数
+  // コンストラクタ(隠蔽)
+  explicit Object3dCommon(Token);
   // 初期化
   void Initialize();
 
@@ -52,8 +64,9 @@ public: // メンバ関数
   void SetDefaultCamera(Camera *camera) { defaultCamera_ = camera; };
 
 private: // コンストラクタ周り
-    Object3dCommon() = default;
     ~Object3dCommon() = default;
     Object3dCommon(const Object3dCommon&) = delete;
     const Object3dCommon& operator=(const Object3dCommon&) = delete;
+
+    friend std::default_delete<Object3dCommon>;
 };

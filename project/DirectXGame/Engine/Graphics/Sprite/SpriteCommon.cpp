@@ -12,14 +12,22 @@ using namespace BlendMode;
 
 HRESULT hr;
 
-SpriteCommon *SpriteCommon::instance_ = nullptr;
+std::unique_ptr<SpriteCommon> SpriteCommon::instance_ = nullptr;
 
 // シングルトンインスタンスの実装
 SpriteCommon *SpriteCommon::GetInstance() {
     if (instance_ == nullptr) {
-    instance_ = new SpriteCommon;
-  }
-    return instance_;
+        instance_ = std::make_unique<SpriteCommon>(Token{});
+    }
+    return instance_.get();
+}
+
+void SpriteCommon::Destroy() {
+    instance_.reset();
+}
+
+SpriteCommon::SpriteCommon(Token) {
+    // コンストラクタ
 }
 
 // 初期化
@@ -35,8 +43,7 @@ void SpriteCommon::Initialize() {
 }
 
 void SpriteCommon::Finalize() {
-    delete instance_;
-    instance_ = nullptr;
+    instance_.reset();
 }
 
 void SpriteCommon::SetCommonDrawSettings(BlendState currentBlendMode) {

@@ -9,14 +9,18 @@
 #pragma comment(lib, "mfreadwrite.lib")
 #pragma comment(lib, "mfuuid.lib")
 
-AudioManager* AudioManager::instance_ = nullptr;
+std::unique_ptr<AudioManager> AudioManager::instance_ = nullptr;
 
 // シングルトンインスタンスの取得実装
 AudioManager* AudioManager::GetInstance() {
     if (instance_ == nullptr) {
-        instance_ = new AudioManager;
+        instance_ = std::make_unique<AudioManager>(Token{});
     }
-    return instance_;
+    return instance_.get();
+}
+
+void AudioManager::Destroy() {
+    instance_.reset();
 }
 
 // PlayingVoice 構造体のデストラクタの実装
@@ -64,7 +68,7 @@ AudioManager::PlayingVoice::operator=(PlayingVoice &&other) noexcept {
 }
 
 // AudioManager のコンストラクタの実装
-AudioManager::AudioManager() : masterVoice(nullptr) {
+AudioManager::AudioManager(Token) : masterVoice(nullptr) {
   // ComPtr は自動的に nullptr で初期化される
 }
 
@@ -100,8 +104,7 @@ bool AudioManager::Initialize() {
 
 void AudioManager::Finalize() {
     // インスタンスの解放
-    delete instance_;
-    instance_ = nullptr;
+    instance_.reset();
 }
 
 // XAudio2 エンジンをシャットダウンする

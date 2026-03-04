@@ -20,14 +20,22 @@ using namespace MathGenerators;
 using namespace Logger;
 using namespace BlendMode;
 
-ParticleManager *ParticleManager::instance_ = nullptr;
+std::unique_ptr<ParticleManager> ParticleManager::instance_ = nullptr;
 
 // シングルトン実装
 ParticleManager *ParticleManager::GetInstance() {
   if (instance_ == nullptr) {
-    instance_ = new ParticleManager;
+    instance_ = std::make_unique<ParticleManager>(Token{});
   }
-  return instance_;
+  return instance_.get();
+}
+
+void ParticleManager::Destroy() {
+    instance_.reset();
+}
+
+ParticleManager::ParticleManager(Token) {
+    // コンストラクタ
 }
 
 void ParticleManager::SetEmitter(const std::string &name,
@@ -77,7 +85,7 @@ void ParticleManager::Finalize() {
   vertexResource_.Reset();
 
   // シングルトンインスタンスの解放
-  delete GetInstance(); // シングルトンインスタンス自身を解放
+  instance_.reset();
 }
 
 void ParticleManager::Initialize() {
