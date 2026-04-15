@@ -88,10 +88,11 @@ public: // メンバ関数
   /// </summary>
   /// <param name="srvIndex">デスクリプタヒープ上のインデックス</param>
   /// <param name="resource">StructuredBufferのID3D12Resource</param>
-  /// <param name="numElement">格納されている要素（インスタンス）の数</param>
-  /// <param name="structureByteStride">構造体（要素）のバイトサイズ</param>
+  /// <param name="Format">テクスチャのフォーマット</param>
+  /// <param name="MipLevels">ミップマップレベル数</param>
+  /// <param name="isCubeMap">CubeMapかどうか</param>
   void CreateSRVForTexture(uint32_t srvIndex, ComPtr<ID3D12Resource> resource,
-                           DXGI_FORMAT Format, UINT MipLevels);
+                           DXGI_FORMAT Format, UINT MipLevels, bool isCubeMap);
 
   /// <summary>
   /// StructuredBuffer用のSRVを作成

@@ -62,6 +62,7 @@ private:
     const std::string monsterBallPath_ = "monsterBall.png";
     const std::string grassPath_ = "grass.png";
     const std::string particleTexturePath_ = "circle.png";
+	// ※DDSファイルはSRVのインデックスを指定して読み込む必要があるため、パス定数は用意しない
     // パーティクルグループの作成
     const std::string particleGroupName_ = "TestGroup";
 };

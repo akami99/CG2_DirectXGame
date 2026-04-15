@@ -50,6 +50,9 @@ void GamePlayScene::Initialize() {
     TextureManager::GetInstance()->LoadTexture(monsterBallPath_);
     TextureManager::GetInstance()->LoadTexture(grassPath_);
 
+	// DDSテクスチャの読み込み (SrvManagerのインデックス指定で読み込む必要があるため、TextureManagerではなく直接SrvManagerを呼び出す)
+    TextureManager::GetInstance()->LoadTexture("rostock_laage_airport_4k.dds");
+
     // モデル読み込み
     ModelManager::GetInstance()->LoadModel("sphere", sphereModel_);
     ModelManager::GetInstance()->LoadModel("plane", planeGltfModel_);

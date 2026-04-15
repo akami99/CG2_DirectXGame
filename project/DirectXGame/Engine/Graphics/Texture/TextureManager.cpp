@@ -121,15 +121,24 @@ void TextureManager::LoadTexture(const std::string &filePath) {
   // テクスチャを読み込んでプログラムで扱えるようにする
   DirectX::ScratchImage image{};
   std::wstring filePathW = ConvertString(finalPath);
-  hr = DirectX::LoadFromWICFile(filePathW.c_str(),
-                                DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
+  if (filePathW.ends_with(L".dds")) { // DDSファイルはWICで読み込めないため、DirectXTexのDDSローダーを使用
+      hr = DirectX::LoadFromDDSFile(filePathW.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
+  }
+  else {
+      hr = DirectX::LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
+  }
   assert(SUCCEEDED(hr));
 
   // ミップマップの作成
   DirectX::ScratchImage mipImages{};
-  hr = DirectX::GenerateMipMaps(image.GetImages(), image.GetImageCount(),
-                                image.GetMetadata(), DirectX::TEX_FILTER_SRGB,
-                                0, mipImages);
+  if (DirectX::IsCompressed(image.GetMetadata().format)) {
+	  mipImages = std::move(image); // 圧縮テクスチャはミップマップを生成せず、そのまま使用
+  }
+  else {
+      hr = DirectX::GenerateMipMaps(image.GetImages(), image.GetImageCount(),
+          image.GetMetadata(), DirectX::TEX_FILTER_SRGB,
+          4, mipImages);
+  }
   assert(SUCCEEDED(hr));
 
   Log("INFO: Loaded texture at path: " + finalPath + "\n");
@@ -149,7 +158,7 @@ void TextureManager::LoadTexture(const std::string &filePath) {
 
   SrvManager::GetInstance()->CreateSRVForTexture(
       textureData.srvIndex, textureData.resource, textureData.metadata.format,
-      UINT(textureData.metadata.mipLevels));
+	  UINT(textureData.metadata.mipLevels), textureData.metadata.IsCubemap()); // CubeMapかどうかもSRV作成時に渡す
 
   // テクスチャリソースをアップロードし、コマンドリストに積む
   textureData.intermediateResource =
