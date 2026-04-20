@@ -14,6 +14,11 @@ struct VertexData {
   Vector3 normal;   // 法線ベクトル
 }; // 16+8+12=36バイト。float*4+float*2+float*3
 
+// Skybox用頂点（位置のみ。CubeMapのサンプリングベクトルとして使うのでUV/法線不要）
+struct SkyboxVertex {
+    Vector4 position; // float4
+};
+
 // 変換行列を構成するための構造体(s,r,t)
 struct Transform {
   Vector3 scale;     // スケーリング

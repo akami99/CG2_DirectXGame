@@ -83,7 +83,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(SolutionDir)externals\DirectXTex;$(SolutionDir)externals\imgui;$(SolutionDir)externals\assimp\include;$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Application\Scene;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\Base;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Graphics\Sprite;$(ProjectDir)DirectXGame\Engine\Graphics\BlendMode;$(ProjectDir)DirectXGame\Engine\Graphics\Texture;$(ProjectDir)DirectXGame\Engine\Graphics\Object3d;$(ProjectDir)DirectXGame\Engine\Graphics\Model;$(ProjectDir)DirectXGame\Engine\Graphics\Particle;$(ProjectDir)DirectXGame\Engine\Graphics\PSO;$(ProjectDir)DirectXGame\Engine\Graphics\ImGui;$(ProjectDir)DirectXGame\Engine\Graphics\Types;$(ProjectDir)DirectXGame\Engine\Graphics\Light;$(ProjectDir)DirectXGame\Engine\Input;$(ProjectDir)DirectXGame\Engine\Scene;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)externals\DirectXTex;$(SolutionDir)externals\imgui;$(SolutionDir)externals\assimp\include;$(ProjectDir);$(ProjectDir)DirectXGame;$(ProjectDir)DirectXGame\Application;$(ProjectDir)DirectXGame\Application\Core;$(ProjectDir)DirectXGame\Application\System;$(ProjectDir)DirectXGame\Application\Scene;$(ProjectDir)DirectXGame\Engine\Audio;$(ProjectDir)DirectXGame\Engine\Core;$(ProjectDir)DirectXGame\Engine\Core\Utility;$(ProjectDir)DirectXGame\Engine\Core\Utility\Logger;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Functions;$(ProjectDir)DirectXGame\Engine\Core\Utility\Math\Matrix;$(ProjectDir)DirectXGame\Engine\Core\Utility\String;$(ProjectDir)DirectXGame\Engine\Core\String;$(ProjectDir)DirectXGame\Engine\Graphics;$(ProjectDir)DirectXGame\Engine\Graphics\Base;$(ProjectDir)DirectXGame\Engine\Graphics\Camera;$(ProjectDir)DirectXGame\Engine\Graphics\Sprite;$(ProjectDir)DirectXGame\Engine\Graphics\BlendMode;$(ProjectDir)DirectXGame\Engine\Graphics\Texture;$(ProjectDir)DirectXGame\Engine\Graphics\Object3d;$(ProjectDir)DirectXGame\Engine\Graphics\SkyBox;$(ProjectDir)DirectXGame\Engine\Graphics\Model;$(ProjectDir)DirectXGame\Engine\Graphics\Particle;$(ProjectDir)DirectXGame\Engine\Graphics\PSO;$(ProjectDir)DirectXGame\Engine\Graphics\ImGui;$(ProjectDir)DirectXGame\Engine\Graphics\Types;$(ProjectDir)DirectXGame\Engine\Graphics\Light;$(ProjectDir)DirectXGame\Engine\Input;$(ProjectDir)DirectXGame\Engine\Scene;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -193,6 +193,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="DirectXGame\Application\Core\RAFramework.cpp" />
     <ClCompile Include="DirectXGame\Engine\Scene\SceneManager.cpp" />
     <ClCompile Include="DirectXGame\Engine\Scene\SceneFactory.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Graphics\SkyBox\SkyBox.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Particle.PS.hlsl">
@@ -226,6 +227,14 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Development|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Skybox.PS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Skybox.VS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="Resources\Shaders\Sprite.PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
@@ -287,6 +296,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="DirectXGame\Application\Core\RAFramework.h" />
     <ClInclude Include="DirectXGame\Engine\Scene\SceneManager.h" />
     <ClInclude Include="DirectXGame\Engine\Scene\SceneFactory.h" />
+    <ClInclude Include="DirectXGame\Engine\Graphics\SkyBox\SkyBox.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
@@ -295,6 +305,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\Common.hlsli" />
+    <None Include="Resources\Shaders\Skybox.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

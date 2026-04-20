@@ -50,9 +50,6 @@ void GamePlayScene::Initialize() {
     TextureManager::GetInstance()->LoadTexture(monsterBallPath_);
     TextureManager::GetInstance()->LoadTexture(grassPath_);
 
-	// DDSテクスチャの読み込み (SrvManagerのインデックス指定で読み込む必要があるため、TextureManagerではなく直接SrvManagerを呼び出す)
-    TextureManager::GetInstance()->LoadTexture("rostock_laage_airport_4k.dds");
-
     // モデル読み込み
     ModelManager::GetInstance()->LoadModel("sphere", sphereModel_);
     ModelManager::GetInstance()->LoadModel("plane", planeGltfModel_);
@@ -73,6 +70,12 @@ void GamePlayScene::Initialize() {
         // ロード失敗時の処理
         assert(false && "Failed to load sound: Alarm01.mp3");
     }
+
+	// Skyboxの設定
+	skybox_ = std::make_unique<Skybox>();
+	// DDSテクスチャの読み込み (SrvManagerのインデックス指定で読み込む必要があるため、TextureManagerではなく直接SrvManagerを呼び出す)
+	skybox_->Initialize("rostock_laage_airport_4k.dds"); // DDSテクスチャを指定
+	skybox_->SetCamera(camera_.get());
 
     // --- 3Dオブジェクト生成 ---
     // マテリアル
@@ -150,6 +153,11 @@ void GamePlayScene::Update() {
 
     // カメラの更新処理
     UpdateGameCamera();
+    
+    // Skyboxの更新
+    if (skybox_) {
+        skybox_->Update();
+    }
 
     // パーティクルの更新
     // ※ kDeltaTime は ApplicationConfig.h
@@ -238,6 +246,11 @@ void GamePlayScene::Draw() {
     if (isShowParticle_) {
         ParticleManager::GetInstance()->Draw(
             static_cast<BlendState>(particleBlendMode_));
+    }
+
+	// Skyboxの描画
+    if (skybox_) {
+        skybox_->Draw();
     }
 
     // 4. スプライトの描画

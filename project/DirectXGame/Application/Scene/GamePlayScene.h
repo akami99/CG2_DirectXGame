@@ -9,6 +9,7 @@
 #include "Camera.h"
 #include "Object3d.h"
 #include "Sprite.h"
+#include "Skybox.h"
 
 class GamePlayScene : public BaseScene {
 public:
@@ -36,6 +37,7 @@ private:
     Vector3 gameCameraTranslate_{};
 
     // ゲームオブジェクト
+	std::unique_ptr<Skybox> skybox_;
     std::vector < std::unique_ptr<Object3d>> object3ds_;
     std::vector<std::unique_ptr<Sprite>> sprites_;
 

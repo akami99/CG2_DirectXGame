@@ -34,9 +34,15 @@ private: // メンバ変数
   ComPtr<IDxcBlob> psBlob3D_;                   // Pixel Shader
   ComPtr<ID3D12RootSignature> rootSignature3D_; // ルートシグネチャ
 
+  // --- Particle描画用アセット ---
   ComPtr<IDxcBlob> vsBlobParticle_;                   // Vertex Shader
   ComPtr<IDxcBlob> psBlobParticle_;                   // Pixel Shader
   ComPtr<ID3D12RootSignature> rootSignatureParticle_; // ルートシグネチャ
+
+  // --- Skybox描画用アセット ---
+  ComPtr<IDxcBlob> vsBlobSkybox_;                   // Vertex Shader
+  ComPtr<IDxcBlob> psBlobSkybox_;                   // Pixel Shader
+  ComPtr<ID3D12RootSignature> rootSignatureSkybox_; // ルートシグネチャ
 
 private: // シングルトン管理用メンバ変数
     static std::unique_ptr<PipelineManager> instance_;
@@ -55,8 +61,12 @@ public: // メンバ関数
   ComPtr<ID3D12PipelineState>
   CreateSpritePSO(const D3D12_BLEND_DESC &blendDesc);
 
+  // Particle用のグラフィックスパイプラインを生成して返す関数
   ComPtr<ID3D12PipelineState>
       CreateParticlePSO(const D3D12_BLEND_DESC &blendDesc);
+
+  // Skybox用のグラフィックスパイプラインを生成して返す関数
+  ComPtr<ID3D12PipelineState> CreateSkyboxPSO();
 
   // 3D用のグラフィックスパイプラインを生成して返す関数
   ComPtr<ID3D12PipelineState> CreateObject3dPSO(
@@ -78,8 +88,14 @@ public: // メンバ関数
     return rootSignature3D_.Get();
   }
 
+  // ParticleCommon用
   ID3D12RootSignature *GetParticleRootSignature() const {
       return rootSignatureParticle_.Get();
+  }
+
+  // Skybox用
+  ID3D12RootSignature *GetSkyboxRootSignature() const {
+      return rootSignatureSkybox_.Get();
   }
 
 private: // メンバ関数
