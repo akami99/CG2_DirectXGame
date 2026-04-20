@@ -74,7 +74,7 @@ void GamePlayScene::Initialize() {
 	// Skyboxの設定
 	skybox_ = std::make_unique<Skybox>();
 	// DDSテクスチャの読み込み (SrvManagerのインデックス指定で読み込む必要があるため、TextureManagerではなく直接SrvManagerを呼び出す)
-	skybox_->Initialize("rostock_laage_airport_4k.dds"); // DDSテクスチャを指定
+	skybox_->Initialize("skybox.dds"); // DDSテクスチャを指定
 	skybox_->SetCamera(camera_.get());
 
     // --- 3Dオブジェクト生成 ---
