@@ -6,19 +6,29 @@ on:
 env:
   # リポジトリのルートディレクトリを基点としたソリューションファイルのパス
   SOLUTION_FILE_PATH: project/DirectXGame.sln
-  # Visual Studio の構成(Debug / Release )
+  # Visual Studio の構成(Debug / Development / Release )
   CONFIGURATION: Debug
+  # Node.js 24 を使用するように設定
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 jobs:
   build:
-    runs-on:  windows-2022
+    # 最新の VS2026 環境を使用
+    runs-on: windows-2026
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
-        with:
-          msbuild-architecture: x64
+
       - name: Build
         run: |
-          msbuild ${{env.SOLUTION_FILE_PATH}} /p:Platform="x64" /p:Configuration=${{env.CONFIGURATION}}
+          msbuild ${{env.SOLUTION_FILE_PATH}} `
+            /p:Platform="x64" `
+            /p:Configuration=${{env.CONFIGURATION}} `
+            /p:PlatformToolset=v145 `
+            /p:LinkIncremental=false `
+            /m
