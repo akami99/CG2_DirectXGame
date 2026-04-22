@@ -13,7 +13,7 @@ env:
 jobs:
   build:
     # 最新の VS2026 環境を使用
-    runs-on: windows-2026
+    runs-on: windows-latest
 
     steps:
       - name: Checkout
