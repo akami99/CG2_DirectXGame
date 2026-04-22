@@ -1,7 +1,5 @@
 #include "Skybox.hlsli"
 
-ConstantBuffer<Material> gMaterial : register(b0);
-
 TextureCube<float4> gTexture : register(t0);
 SamplerState gSampler : register(s0);
 

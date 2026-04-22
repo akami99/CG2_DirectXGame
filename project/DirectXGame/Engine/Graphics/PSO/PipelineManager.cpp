@@ -408,15 +408,24 @@ void PipelineManager::CreateRootSignature() {
 
 	// Texture用 SRV (Pixel Shader用)
 	D3D12_DESCRIPTOR_RANGE object3dTextureSrvRange[1] = {};
-	object3dTextureSrvRange[0].BaseShaderRegister = 0; // 0から始まる
+	object3dTextureSrvRange[0].BaseShaderRegister = 0; // t0
 	object3dTextureSrvRange[0].NumDescriptors = 1;     // 数は1つ
 	object3dTextureSrvRange[0].RangeType =
 		D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // SRVを使う
 	object3dTextureSrvRange[0].OffsetInDescriptorsFromTableStart =
 		D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // Offsetを自動計算
 
+	// EnvironmentMap用 SRV (Pixel Shader用)
+	D3D12_DESCRIPTOR_RANGE object3dEnvMapSrvRange[1] = {};
+	object3dEnvMapSrvRange[0].BaseShaderRegister = 1; // t1
+	object3dEnvMapSrvRange[0].NumDescriptors = 1;     // 数は1つ
+	object3dEnvMapSrvRange[0].RangeType =
+		D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	object3dEnvMapSrvRange[0].OffsetInDescriptorsFromTableStart =
+		D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
 	// RootParameter作成。PixelShaderのMaterialとVertexShaderのTransform
-	D3D12_ROOT_PARAMETER object3dRootParameters[7] = {};
+	D3D12_ROOT_PARAMETER object3dRootParameters[8] = {};
 
 	// Root Parameter 0: Pixel Shader用 Material CBV (b0)
 	object3dRootParameters[0].ParameterType =
@@ -474,6 +483,16 @@ void PipelineManager::CreateRootSignature() {
 		D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
 	object3dRootParameters[6].Descriptor.ShaderRegister =
 		4; // レジスタ番号4を使う (b4)
+
+	// Root Parameter 7: Pixel Shader用 EnvironmentMap SRV (t1)
+	object3dRootParameters[7].ParameterType =
+		D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	object3dRootParameters[7].ShaderVisibility =
+		D3D12_SHADER_VISIBILITY_PIXEL;
+	object3dRootParameters[7].DescriptorTable.pDescriptorRanges =
+		object3dEnvMapSrvRange;
+	object3dRootParameters[7].DescriptorTable.NumDescriptorRanges =
+		_countof(object3dEnvMapSrvRange);
 
 	// object用のRootSignatureDesc
 	D3D12_ROOT_SIGNATURE_DESC object3dRootSignatureDesc{};

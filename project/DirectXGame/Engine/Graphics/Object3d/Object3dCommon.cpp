@@ -6,6 +6,7 @@
 #include "Camera/Camera.h"
 #include "Light/LightManager.h"
 #include "PSO/PipelineManager.h"
+#include "Base/SrvManager.h"
 
 #include "externals/DirectXTex/d3dx12.h"
 
@@ -109,4 +110,7 @@ void Object3dCommon::SetCommonDrawSettings(BlendState currentBlendMode) {
         ->SetGraphicsRootConstantBufferView(
             4, defaultCamera_->GetConstantBufferGPUVirtualAddress());
   }
+
+  // 4. 環境マップの設定 (RootParameter Index 7)
+  SrvManager::GetInstance()->SetGraphicRootDescriptorTable(7, environmentMapSrvIndex_);
 }

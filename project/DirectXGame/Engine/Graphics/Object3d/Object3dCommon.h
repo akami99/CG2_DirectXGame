@@ -38,6 +38,9 @@ private: // メンバ変数
   ComPtr<ID3D12PipelineState>
       psoArray_[BlendMode::BlendState::kCountOfBlendMode];
 
+  // 環境マップ
+  uint32_t environmentMapSrvIndex_ = 0;
+
 public: // シングルトンインスタンス取得
     static Object3dCommon* GetInstance();
     static void Destroy();
@@ -62,6 +65,9 @@ public: // メンバ関数
 
   // デフォルトカメラの設定(最初に設定しておく用)
   void SetDefaultCamera(Camera *camera) { defaultCamera_ = camera; };
+
+  // 環境マップの設定
+  void SetEnvironmentMap(uint32_t srvIndex) { environmentMapSrvIndex_ = srvIndex; };
 
 private: // コンストラクタ周り
     ~Object3dCommon() = default;

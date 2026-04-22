@@ -24,7 +24,8 @@ struct Material {
     float4 color;
     int enableLighting;
     float shininess;
-    float2 _padding_dummy;
+    float environmentCoefficient;
+    float _padding_dummy;
     float4x4 uvTransform;
 };
 

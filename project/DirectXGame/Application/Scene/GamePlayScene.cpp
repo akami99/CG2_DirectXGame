@@ -77,6 +77,9 @@ void GamePlayScene::Initialize() {
 	skybox_->Initialize("skybox.dds"); // DDSテクスチャを指定
 	skybox_->SetCamera(camera_.get());
 
+	// 環境マップとしてセット
+	Object3dCommon::GetInstance()->SetEnvironmentMap(TextureManager::GetInstance()->GetSrvIndex("skybox.dds"));
+
     // --- 3Dオブジェクト生成 ---
     // マテリアル
 
@@ -242,16 +245,17 @@ void GamePlayScene::Draw() {
         }
     }
 
+	// Skyboxの描画(object3dの描画が終わった後に描画するのが基本)
+    if (skybox_) {
+        skybox_->Draw();
+    }
+
     // 3. パーティクルの描画
     if (isShowParticle_) {
         ParticleManager::GetInstance()->Draw(
             static_cast<BlendState>(particleBlendMode_));
     }
 
-	// Skyboxの描画
-    if (skybox_) {
-        skybox_->Draw();
-    }
 
     // 4. スプライトの描画
     // 描画設定
@@ -445,8 +449,11 @@ void GamePlayScene::UpdateImGui() {
                 ImGui::ColorEdit4("color",
                     &object3d->GetModelDebug().GetColorDebug().x);
                 ImGui::Checkbox("enableLighting", &enableLighting);
-
                 object3d->GetModelDebug().SetEnableLighting(enableLighting);
+
+                float environmentCoefficient = object3d->GetModelDebug().GetEnvironmentCoefficient();
+                ImGui::DragFloat("environmentCoefficient", &environmentCoefficient, 0.01f, 0.0f, 1.0f);
+                object3d->GetModelDebug().SetEnvironmentCoefficient(environmentCoefficient);
 
                 ImGui::TreePop();
             }

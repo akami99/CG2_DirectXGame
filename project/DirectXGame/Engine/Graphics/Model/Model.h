@@ -62,6 +62,11 @@ public: // メンバ関数
     return materialData_->enableLighting;
   }
 
+  // 環境マップ係数の取得
+  const float &GetEnvironmentCoefficient() const {
+    return materialData_->environmentCoefficient;
+  }
+
 #ifdef USE_IMGUI
   // 色の参照取得(ImGui用)
   Vector4 &GetColorDebug() { return materialData_->color; }
@@ -76,6 +81,11 @@ public: // メンバ関数
   // ライティングが有効かを設定
   void SetEnableLighting(const int32_t enableLighting) {
     materialData_->enableLighting = enableLighting;
+  }
+
+  // 環境マップ係数の設定
+  void SetEnvironmentCoefficient(const float coefficient) {
+    materialData_->environmentCoefficient = coefficient;
   }
 
 private: // メンバ関数

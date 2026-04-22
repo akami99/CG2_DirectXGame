@@ -31,7 +31,8 @@ struct Material {
   Vector4 color;          // マテリアルの色
   int32_t enableLighting; // ライティングの有効・無効フラグ
   float shininess;        // 光沢度
-  float padding[2];       // 8バイトのアライメントを確保するためのパディング
+  float environmentCoefficient; // 環境マップ係数
+  float padding[1];       // パディング
   Matrix4x4 uvTransform;  // UV変換行列
 };
 

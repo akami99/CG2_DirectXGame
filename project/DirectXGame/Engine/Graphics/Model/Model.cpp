@@ -249,6 +249,8 @@ void Model::CreateMaterialResource() {
   materialData_->uvTransform = MakeIdentity4x4();
   // 光沢度を設定
   materialData_->shininess = 10.0f;
+  // 環境マップ係数を設定
+  materialData_->environmentCoefficient = 0.0f;
 
 #pragma endregion ここまで
 }

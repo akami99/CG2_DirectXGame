@@ -7,6 +7,7 @@ ConstantBuffer<PointLight> gPointLight : register(b3);
 ConstantBuffer<SpotLight> gSpotLight : register(b4);
 
 Texture2D<float4> gTexture : register(t0);
+TextureCube<float4> gEnvironmentTexture : register(t1);
 SamplerState gSampler : register(s0);
 
 PixelShaderOutput main(VertexShaderOutput input) {
@@ -97,10 +98,21 @@ PixelShaderOutput main(VertexShaderOutput input) {
         float3 specularSpotLight = gSpotLight.color.rgb * gSpotLight.intensity * specularPow_Spot * float3(1.0f, 1.0f, 1.0f) * spotFactor;
         
         // ===============================================
+        //  環境マップ (Environment Map) の計算
+        // ===============================================
+        float3 cameraToPosition = normalize(input.worldPosition - gCamera.worldPosition);
+        float3 reflectedVector = reflect(cameraToPosition, normal);
+        float4 environmentColor = gEnvironmentTexture.Sample(gSampler, reflectedVector);
+        float3 environmentReflection = environmentColor.rgb * gMaterial.environmentCoefficient;
+
+        // ===============================================
         //  最終合成
         // ===============================================
         // すべての光を足し合わせる
-        output.color.rgb = diffuseDirectionalLight + specularDirectionalLight + diffusePointLight + specularPointLight + diffuseSpotLight + specularSpotLight;
+        output.color.rgb = diffuseDirectionalLight + specularDirectionalLight +
+                           diffusePointLight + specularPointLight +
+                           diffuseSpotLight + specularSpotLight +
+                           environmentReflection;
         output.color.a = gMaterial.color.a * textureColor.a;
         
     } else { // Lightingしない場合。前回までと同じ演算
