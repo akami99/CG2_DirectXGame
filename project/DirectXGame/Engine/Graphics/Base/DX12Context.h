@@ -193,6 +193,9 @@ public: // ヘルパー関数
   // コマンドリストの実行と待機
   void ExecuteInitialCommandAndSync();
 
+  // 現在のバックバッファをレンダーターゲットとしてセットし、ビューポート等もリセットする
+  void SetBackBufferAsRenderTarget();
+
   /// <summary>
   /// シェーダーをコンパイルする関数
   /// </summary>

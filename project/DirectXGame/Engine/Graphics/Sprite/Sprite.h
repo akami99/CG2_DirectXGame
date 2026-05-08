@@ -69,6 +69,10 @@ private: // メンバ変数
   // テクスチャ切り出しサイズ
   Vector2 textureSize_ = {100.0f, 100.0f};
 
+  // カスタムSRV使用フラグ
+  bool useCustomSrv_ = false;
+  uint32_t srvIndex_ = 0;
+
 public: // メンバ関数
   // 初期化
   void Initialize(const std::string &filePath);
@@ -128,6 +132,8 @@ public: // メンバ関数
   void SetUvScale(const Vector3 &uvScale) { uvTransform_.scale = uvScale; }
   // テクスチャを設定するためのセッター
   void SetTexture(const std::string &filePath);
+  // SRVインデックスを直接設定するためのセッター
+  void SetTexture(uint32_t srvIndex);
   // アンカーポイントの設定
   void SetAnchorPoint(const Vector2 &anchorPoint) {
     anchorPoint_ = anchorPoint;

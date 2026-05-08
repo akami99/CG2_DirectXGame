@@ -167,6 +167,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="DirectXGame\Engine\Graphics\Base\DX12Context.cpp" />
     <ClCompile Include="DirectXGame\Engine\Core\Utility\Math\Functions\MathUtils.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\Light\LightManager.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Graphics\Texture\RenderTexture.cpp" />
     <ClCompile Include="DirectXGame\Engine\Input\Input.cpp" />
     <ClCompile Include="DirectXGame\Engine\Core\Utility\Logger\Logger.cpp" />
     <ClCompile Include="DirectXGame\Application\System\main.cpp">
@@ -262,6 +263,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DirectXGame\Engine\Graphics\Texture\RenderTexture.h" />
     <ClInclude Include="DirectXGame\Engine\Scene\AbstractSceneFactory.h" />
     <ClInclude Include="DirectXGame\Engine\Scene\BaseScene.h" />
     <ClInclude Include="DirectXGame\Engine\Scene\IScene.h" />

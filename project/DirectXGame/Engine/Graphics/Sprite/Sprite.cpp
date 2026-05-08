@@ -4,6 +4,7 @@
 #include "Math/Matrix/MatrixGenerators.h"
 #include "SpriteCommon.h"
 #include "Texture/TextureManager.h"
+#include "Base/SrvManager.h"
 
 #include "Base/Win32Window.h"
 #include <cassert>
@@ -53,12 +54,26 @@ void Sprite::Update() {
   }
 
   // テクスチャ範囲指定
-  const DirectX::TexMetadata &metadata =
-      TextureManager::GetInstance()->GetMetaData(textureFilePath_);
-  float texLeft = textureLeftTop_.x / metadata.width;
-  float texRight = (textureLeftTop_.x + textureSize_.x) / metadata.width;
-  float texTop = textureLeftTop_.y / metadata.height;
-  float texBottom = (textureLeftTop_.y + textureSize_.y) / metadata.height;
+  float texLeft = 0.0f;
+  float texRight = 1.0f;
+  float texTop = 0.0f;
+  float texBottom = 1.0f;
+
+  if (!useCustomSrv_) {
+      const DirectX::TexMetadata& metadata =
+          TextureManager::GetInstance()->GetMetaData(textureFilePath_);
+      texLeft = textureLeftTop_.x / metadata.width;
+      texRight = (textureLeftTop_.x + textureSize_.x) / metadata.width;
+      texTop = textureLeftTop_.y / metadata.height;
+      texBottom = (textureLeftTop_.y + textureSize_.y) / metadata.height;
+  }
+  else {
+      // カスタムSRVの場合はとりあえず0-1で
+      texLeft = 0.0f;
+      texRight = 1.0f;
+      texTop = 0.0f;
+      texBottom = 1.0f;
+  }
 
 #pragma region 頂点データとインデックスデータの設定
   // 頂点データとインデックスデータの設定
@@ -149,21 +164,34 @@ void Sprite::Draw() {
           1, transformationMatrixResource_->GetGPUVirtualAddress());
 
   // SRVのDescriptorTableの先頭を設定。2はrootParameter[2]である。
+  D3D12_GPU_DESCRIPTOR_HANDLE srvHandle;
+  if (useCustomSrv_) {
+      srvHandle = SrvManager::GetInstance()->GetGPUDescriptorHandle(srvIndex_);
+  }
+  else {
+      srvHandle = TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_);
+  }
+
     DX12Context::GetInstance()
       ->GetCommandList()
       ->SetGraphicsRootDescriptorTable(
-          2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_));
+          2, srvHandle);
   // 描画コマンド
     DX12Context::GetInstance()->GetCommandList()->DrawIndexedInstanced(
       6, 1, 0, 0, 0);
 }
 
 void Sprite::SetTexture(const std::string &filePath) {
-
+  useCustomSrv_ = false;
   textureFilePath_ = filePath;
 
   // テクスチャが変わったので、切り出しサイズを新しいテクスチャに合わせる
   AdjustTextureSize();
+}
+
+void Sprite::SetTexture(uint32_t srvIndex) {
+    useCustomSrv_ = true;
+    srvIndex_ = srvIndex;
 }
 
 // 頂点バッファとインデックスバッファの作成

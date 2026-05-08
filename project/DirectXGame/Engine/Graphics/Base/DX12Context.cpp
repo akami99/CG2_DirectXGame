@@ -652,6 +652,16 @@ void DX12Context::ExecuteInitialCommandAndSync() {
   // intermediateResources_.clear();
 }
 
+void DX12Context::SetBackBufferAsRenderTarget() {
+    UINT backBufferIndex = swapChain_->GetCurrentBackBufferIndex();
+
+    // レンダーターゲットをバックバッファに設定
+    commandList_->OMSetRenderTargets(1, &rtvHandles_[backBufferIndex], false, &dsvHandle_);
+    // ビューポートとシザー矩形をデフォルト（画面全体）に戻す
+    commandList_->RSSetViewports(1, &viewport_);
+    commandList_->RSSetScissorRects(1, &scissorRect_);
+}
+
 // シェーダーのコンパイル
 ComPtr<IDxcBlob> DX12Context::CompileShader(const std::wstring &filePath,
                                             const wchar_t *profile) {

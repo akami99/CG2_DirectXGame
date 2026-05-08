@@ -27,13 +27,32 @@ void MyGame::Initialize() {
   // --- 基盤システムの初期化は親クラスに任せる ---
   RAFramework::Initialize();
 
+  // 閉じているコマンドリストを再度開く（テクスチャロード等のために必要）
+  DX12Context::GetInstance()->GetCommandList()->Reset(
+      DX12Context::GetInstance()->GetCommandAllocator(), nullptr);
+
+  // オフスクリーンレンダリング用のリソース初期化
+  renderTexture_ = std::make_unique<RenderTexture>();
+  renderTexture_->Initialize(1280, 720);
+
+  // 後の初期化でメタデータを参照するため、先にロードしておく
+  TextureManager::GetInstance()->LoadTexture("uvChecker.png");
+
+  // フルスクリーンスプライトの初期化
+  fullScreenSprite_ = std::make_unique<Sprite>();
+  fullScreenSprite_->Initialize("uvChecker.png"); 
+  fullScreenSprite_->SetTexture(renderTexture_->GetSrvIndex());
+  fullScreenSprite_->SetScale({ 1280.0f, 720.0f });
+
+  // 初期化コマンド（テクスチャ転送等）を実行し、GPUの完了を待つ
+  DX12Context::GetInstance()->ExecuteInitialCommandAndSync();
+
   // ファクトリーを作成し、SceneManagerにセット
   auto sceneFactory = std::make_unique<SceneFactory>();
   SceneManager::GetInstance()->SetSceneFactory(std::move(sceneFactory));
 
   // 文字列で指定
   SceneManager::GetInstance()->ChangeScene("GAMEPLAY");
-  //SceneManager::GetInstance()->ChangeScene("TITLE");
 }
 
 void MyGame::Finalize() {
@@ -58,12 +77,24 @@ void MyGame::Update() {
 }
 
 void MyGame::Draw() {
-    // 1. 描画前処理
+    ID3D12GraphicsCommandList* commandList = DX12Context::GetInstance()->GetCommandList();
+
+    // 1.描画前処理（コマンドリストのリセット、バックバッファをセット）
     DX12Context::GetInstance()->PreDraw();
     SrvManager::GetInstance()->PreDraw(); // SRV用のヒープをセット
-
-    // シーンマネージャに現在のシーンを描画させる
+    // --- A. オフスクリーンレンダリングパス ---
+    renderTexture_->PreDraw(commandList);
+    // シーンマネージャに現在のシーンを描画させる（オフスクリーンへ）
     SceneManager::GetInstance()->Draw();
+	// オフスクリーン描画の終了処理
+    renderTexture_->PostDraw(commandList);
+
+    // --- B. メインレンダリングパス（バックバッファへ） ---
+	// バックバッファをセット
+	DX12Context::GetInstance()->SetBackBufferAsRenderTarget();
+
+    // オフスクリーン描画結果を画面いっぱいに描画
+    fullScreenSprite_->Draw();
 
     // 5. ImGuiの描画 (Updateで作られたUIを描画コマンドに乗せる)
     imGuiManager_->Draw();
