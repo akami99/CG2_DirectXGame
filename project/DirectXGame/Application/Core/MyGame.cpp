@@ -7,6 +7,7 @@
 //#include "Input.h"
 // 管理系
 #include "SrvManager.h"
+#include "PipelineManager.h"
 #include "ImGuiManager.h"
 #include "ParticleManager.h"
 #include "TextureManager.h"
@@ -38,13 +39,17 @@ void MyGame::Initialize() {
   // 後の初期化でメタデータを参照するため、先にロードしておく
   TextureManager::GetInstance()->LoadTexture("uvChecker.png");
 
-  // フルスクリーンスプライトの初期化
-  fullScreenSprite_ = std::make_unique<Sprite>();
-  fullScreenSprite_->Initialize("uvChecker.png"); 
-  fullScreenSprite_->SetTexture(renderTexture_->GetSrvIndex());
-  fullScreenSprite_->SetScale({ 1280.0f, 720.0f });
 
-  // 初期化コマンド（テクスチャ転送等）を実行し、GPUの完了を待つ
+  
+  // ポストエフェクト用PSOの生成
+  postProcessPSO_ = PipelineManager::GetInstance()->CreatePostProcessPSO();
+  
+  // ポストエフェクト用定数バッファの生成
+  postProcessParamsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(PostProcessParams));
+  postProcessParamsResource_->Map(0, nullptr, reinterpret_cast<void**>(&postProcessParamsData_));
+  postProcessParamsData_->intensity = 0.5f; // デフォルト値
+
+  // 追加した初期化コマンド（テクスチャ転送等）を実行し、GPUの完了を待つ
   DX12Context::GetInstance()->ExecuteInitialCommandAndSync();
 
   // ファクトリーを作成し、SceneManagerにセット
@@ -89,12 +94,24 @@ void MyGame::Draw() {
 	// オフスクリーン描画の終了処理
     renderTexture_->PostDraw(commandList);
 
-    // --- B. メインレンダリングパス（バックバッファへ） ---
-	// バックバッファをセット
-	DX12Context::GetInstance()->SetBackBufferAsRenderTarget();
+    // --- 2. メインレンダリングパス（バックバッファへ戻る） ---
+    // レンダーターゲットをバックバッファにセットし直す
+    DX12Context::GetInstance()->SetBackBufferAsRenderTarget();
+    SrvManager::GetInstance()->PreDraw(); // SRV用のヒープをセット
 
-    // オフスクリーン描画結果を画面いっぱいに描画
-    fullScreenSprite_->Draw();
+    // ポストエフェクト用パイプラインをセット
+    commandList->SetGraphicsRootSignature(PipelineManager::GetInstance()->GetPostProcessRootSignature());
+    commandList->SetPipelineState(postProcessPSO_.Get());
+    
+    // 定数バッファをセット
+    commandList->SetGraphicsRootConstantBufferView(0, postProcessParamsResource_->GetGPUVirtualAddress());
+    
+    // テクスチャ（オフスクリーン描画結果）をセット
+    SrvManager::GetInstance()->SetGraphicsRootDescriptorTable(1, renderTexture_->GetSrvIndex());
+
+    // 全画面三角形の描画 (頂点バッファは使わず、Shader内のSV_VertexIDで生成)
+    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    commandList->DrawInstanced(3, 1, 0, 0);
 
     // 5. ImGuiの描画 (Updateで作られたUIを描画コマンドに乗せる)
     imGuiManager_->Draw();

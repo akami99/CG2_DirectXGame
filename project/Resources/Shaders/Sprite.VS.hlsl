@@ -1,4 +1,4 @@
-#include "Common.hlsli"
+#include "SpriteCommon.hlsli"
 
 // Root Parameter 1 (b1) に対応するTransformationMatrix CBV
 ConstantBuffer<TransformationMatrix> gTransformationMatrix : register(b1);

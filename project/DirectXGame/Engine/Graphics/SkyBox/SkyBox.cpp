@@ -44,9 +44,10 @@ void Skybox::Update() {
 	view.m[3][1] = 0.0f;
 	view.m[3][2] = 0.0f;
 
-	Matrix4x4 wvp = Multiply(MakeScaleMatrix({ 500.0f, 500.0f, 500.0f }), view) * camera_->GetProjectionMatrix();
+	Matrix4x4 worldMatrix = MakeAffineMatrix(scale_, rotate_, translate_);
+	Matrix4x4 wvp = Multiply(worldMatrix, view) * camera_->GetProjectionMatrix();
 	transformData_->WVP = wvp;
-	transformData_->World = MakeIdentity4x4();
+	transformData_->World = worldMatrix;
 }
 
 void Skybox::Draw() {
@@ -61,7 +62,7 @@ void Skybox::Draw() {
 	// Transform CBV (b0)
 	cmd->SetGraphicsRootConstantBufferView(0, transformResource_->GetGPUVirtualAddress());
 	// CubeMap SRV (t0)
-	SrvManager::GetInstance()->SetGraphicRootDescriptorTable(1, textureSrvIndex_);
+	SrvManager::GetInstance()->SetGraphicsRootDescriptorTable(1, textureSrvIndex_);
 	// 描画（Modelと同じDrawIndexedInstanced）
 	cmd->DrawIndexedInstanced(36, 1, 0, 0, 0);
 }

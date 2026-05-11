@@ -1,4 +1,4 @@
-#include "Common.hlsli"
+#include "Object3dCommon.hlsli"
 
 ConstantBuffer<Material> gMaterial : register(b0);
 ConstantBuffer<DirectionalLight> gDirectionalLight : register(b1);
@@ -9,6 +9,11 @@ ConstantBuffer<SpotLight> gSpotLight : register(b4);
 Texture2D<float4> gTexture : register(t0);
 TextureCube<float4> gEnvironmentTexture : register(t1);
 SamplerState gSampler : register(s0);
+
+struct PixelShaderOutput
+{
+    float4 color : SV_TARGET0;
+};
 
 PixelShaderOutput main(VertexShaderOutput input) {
     PixelShaderOutput output;

@@ -79,7 +79,7 @@ void RenderTexture::CreateResource(uint32_t width, uint32_t height) {
     D3D12_HEAP_PROPERTIES heapProps{};
     heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
 
-    // クリア値の設定
+    // クリア値の設定(一旦赤にしておく)
     D3D12_CLEAR_VALUE clearValue{};
     clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
     clearValue.Color[0] = clearColor_[0];

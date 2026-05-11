@@ -44,6 +44,11 @@ private: // メンバ変数
   ComPtr<IDxcBlob> psBlobSkybox_;                   // Pixel Shader
   ComPtr<ID3D12RootSignature> rootSignatureSkybox_; // ルートシグネチャ
 
+  // --- ポストエフェクト用アセット ---
+  ComPtr<IDxcBlob> vsBlobPostProcess_;                   // Vertex Shader
+  ComPtr<IDxcBlob> psBlobPostProcess_;                   // Pixel Shader
+  ComPtr<ID3D12RootSignature> rootSignaturePostProcess_; // ルートシグネチャ
+
 private: // シングルトン管理用メンバ変数
     static std::unique_ptr<PipelineManager> instance_;
 
@@ -76,6 +81,9 @@ public: // メンバ関数
       const D3D12_DEPTH_STENCIL_DESC &depthStencilDesc,
       const D3D12_BLEND_DESC &blendDesc);
 
+  // ポストエフェクト用のグラフィックスパイプラインを生成して返す関数
+  ComPtr<ID3D12PipelineState> CreatePostProcessPSO();
+
   // ゲッター
 
   // SpriteCommon用
@@ -96,6 +104,11 @@ public: // メンバ関数
   // Skybox用
   ID3D12RootSignature *GetSkyboxRootSignature() const {
       return rootSignatureSkybox_.Get();
+  }
+
+  // ポストエフェクト用
+  ID3D12RootSignature *GetPostProcessRootSignature() const {
+      return rootSignaturePostProcess_.Get();
   }
 
 private: // メンバ関数

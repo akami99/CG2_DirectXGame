@@ -1,4 +1,4 @@
-#include "Common.hlsli"
+#include "Particle.hlsli"
 
 StructuredBuffer<ParticleInstanceData> gParticleData : register(t0);
 

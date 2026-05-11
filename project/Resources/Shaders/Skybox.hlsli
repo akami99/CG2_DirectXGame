@@ -8,10 +8,6 @@ struct VertexShaderOutput {
     float3 texcoord : TEXCOORD0;
 };
 
-struct PixelShaderOutput {
-    float4 color : SV_TARGET;
-};
-
 struct TransformationMatrix {
     float4x4 WVP;
 };

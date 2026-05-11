@@ -251,6 +251,50 @@ ComPtr<ID3D12PipelineState> PipelineManager::CreateSkyboxPSO() {
 	return pso;
 }
 
+ComPtr<ID3D12PipelineState> PipelineManager::CreatePostProcessPSO() {
+	// 1. InputLayout (頂点レイアウト)
+	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+	};
+
+	// 2. RasterizerState (カリングなし)
+	D3D12_RASTERIZER_DESC rasterizerDesc{};
+	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+	rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
+
+	// 3. DepthStencilState (無効)
+	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
+	depthStencilDesc.DepthEnable = FALSE;
+
+	// 4. BlendState (不透明)
+	D3D12_BLEND_DESC blendDesc{};
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDesc.RenderTarget[0].BlendEnable = FALSE;
+
+	// 5. PSO構築
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
+	psoDesc.pRootSignature = rootSignaturePostProcess_.Get();
+	psoDesc.VS = { vsBlobPostProcess_->GetBufferPointer(), vsBlobPostProcess_->GetBufferSize() };
+	psoDesc.PS = { psBlobPostProcess_->GetBufferPointer(), psBlobPostProcess_->GetBufferSize() };
+	psoDesc.InputLayout = { nullptr, 0 };
+
+	psoDesc.RasterizerState = rasterizerDesc;
+	psoDesc.DepthStencilState = depthStencilDesc;
+	psoDesc.BlendState = blendDesc;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	psoDesc.SampleDesc.Count = 1;
+	psoDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+
+	ComPtr<ID3D12PipelineState> pso;
+	HRESULT hr = DX12Context::GetInstance()->GetDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso));
+	assert(SUCCEEDED(hr));
+
+	return pso;
+}
+
 ComPtr<ID3D12PipelineState> PipelineManager::CreateObject3dPSO(
 	const D3D12_INPUT_ELEMENT_DESC* inputLayout, // Object3dCommonが決定
 	uint32_t numElements,
@@ -317,6 +361,12 @@ void PipelineManager::LoadShader() {
 	assert(vsBlobSkybox_ != nullptr);
 	psBlobSkybox_ = DX12Context::GetInstance()->CompileShader(L"Skybox.PS.hlsl", L"ps_6_0");
 	assert(psBlobSkybox_ != nullptr);
+
+	// ポストエフェクト用
+	vsBlobPostProcess_ = DX12Context::GetInstance()->CompileShader(L"CopyImage.VS.hlsl", L"vs_6_0");
+	assert(vsBlobPostProcess_ != nullptr);
+	psBlobPostProcess_ = DX12Context::GetInstance()->CompileShader(L"CopyImage.PS.hlsl", L"ps_6_0");
+	assert(psBlobPostProcess_ != nullptr);
 
 }
 
@@ -665,4 +715,41 @@ void PipelineManager::CreateRootSignature() {
 	assert(SUCCEEDED(hr));
 
 #pragma endregion Skybox用のRootSignature作成ここまで
+
+#pragma region PostProcess用のRootSignature作成
+	// DescriptorRange (t0)
+	D3D12_DESCRIPTOR_RANGE postProcessTextureRange[1] = {};
+	postProcessTextureRange[0].BaseShaderRegister = 0; // t0
+	postProcessTextureRange[0].NumDescriptors = 1;
+	postProcessTextureRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	postProcessTextureRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	// RootParameter
+	D3D12_ROOT_PARAMETER postProcessRootParameters[2] = {};
+	// b0: Parameter
+	postProcessRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	postProcessRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	postProcessRootParameters[0].Descriptor.ShaderRegister = 0;
+	// t0: Texture
+	postProcessRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	postProcessRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	postProcessRootParameters[1].DescriptorTable.pDescriptorRanges = postProcessTextureRange;
+	postProcessRootParameters[1].DescriptorTable.NumDescriptorRanges = _countof(postProcessTextureRange);
+
+	// RootSignatureDesc
+	D3D12_ROOT_SIGNATURE_DESC postProcessRootSignatureDesc{};
+	postProcessRootSignatureDesc.pParameters = postProcessRootParameters;
+	postProcessRootSignatureDesc.NumParameters = _countof(postProcessRootParameters);
+	postProcessRootSignatureDesc.pStaticSamplers = staticSamplers;
+	postProcessRootSignatureDesc.NumStaticSamplers = _countof(staticSamplers);
+	postProcessRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+
+
+	ComPtr<ID3DBlob> postProcessSignatureBlob = nullptr;
+	ComPtr<ID3DBlob> postProcessErrorBlob = nullptr;
+	hr = D3D12SerializeRootSignature(&postProcessRootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &postProcessSignatureBlob, &postProcessErrorBlob);
+	assert(SUCCEEDED(hr));
+	hr = DX12Context::GetInstance()->GetDevice()->CreateRootSignature(0, postProcessSignatureBlob->GetBufferPointer(), postProcessSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignaturePostProcess_));
+	assert(SUCCEEDED(hr));
+#pragma endregion
 }

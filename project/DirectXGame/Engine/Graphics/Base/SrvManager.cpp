@@ -72,7 +72,7 @@ uint32_t SrvManager::Allocate() {
 }
 
 // SRVをセット
-void SrvManager::SetGraphicRootDescriptorTable(UINT RootParameterIndex,
+void SrvManager::SetGraphicsRootDescriptorTable(UINT RootParameterIndex,
 	uint32_t srvIndex) {
 	DX12Context::GetInstance()->GetCommandList()->SetGraphicsRootDescriptorTable(
 		RootParameterIndex, GetGPUDescriptorHandle(srvIndex));

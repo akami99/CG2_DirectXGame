@@ -246,7 +246,7 @@ void GamePlayScene::Draw() {
     }
 
 	// Skyboxの描画(object3dの描画が終わった後に描画するのが基本)
-    if (skybox_) {
+    if (skybox_ && isShowSkybox_) {
         skybox_->Draw();
     }
 
@@ -538,6 +538,17 @@ void GamePlayScene::UpdateImGui() {
         if (ImGui::Button("Play Sound")) {
             // サウンドの再生
             AudioManager::GetInstance()->PlaySound("alarm1");
+        }
+        ImGui::TreePop();
+    }
+
+    ImGui::Separator();
+    if (ImGui::TreeNode("Skybox")) {
+        ImGui::Checkbox("showSkybox", &isShowSkybox_);
+        if (skybox_) {
+            ImGui::DragFloat3("scale", &skybox_->GetScale().x, 0.1f);
+            ImGui::DragFloat3("rotate", &skybox_->GetRotate().x, 0.01f);
+            ImGui::DragFloat3("translate", &skybox_->GetTranslate().x, 0.1f);
         }
         ImGui::TreePop();
     }

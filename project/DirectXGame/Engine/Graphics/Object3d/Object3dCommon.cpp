@@ -112,5 +112,5 @@ void Object3dCommon::SetCommonDrawSettings(BlendState currentBlendMode) {
   }
 
   // 4. 環境マップの設定 (RootParameter Index 7)
-  SrvManager::GetInstance()->SetGraphicRootDescriptorTable(7, environmentMapSrvIndex_);
+  SrvManager::GetInstance()->SetGraphicsRootDescriptorTable(7, environmentMapSrvIndex_);
 }

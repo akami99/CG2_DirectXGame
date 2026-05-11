@@ -20,6 +20,13 @@ public: // メンバ関数
     void Draw() override;
 
 private:
+    struct PostProcessParams {
+        float intensity;
+    };
+
     std::unique_ptr<RenderTexture> renderTexture_;
-    std::unique_ptr<Sprite> fullScreenSprite_;
+    
+    Microsoft::WRL::ComPtr<ID3D12PipelineState> postProcessPSO_;
+    Microsoft::WRL::ComPtr<ID3D12Resource> postProcessParamsResource_;
+    PostProcessParams* postProcessParamsData_ = nullptr;
 };

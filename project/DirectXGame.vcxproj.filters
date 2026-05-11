@@ -425,6 +425,11 @@
       <Filter>シェーダー ファイル</Filter>
     </None>
     <None Include="Resources\Shaders\Skybox.hlsli" />
+    <None Include="Resources\Shaders\Lighting.hlsli" />
+    <None Include="Resources\Shaders\Object3dCommon.hlsli" />
+    <None Include="Resources\Shaders\Particle.hlsli" />
+    <None Include="Resources\Shaders\SpriteCommon.hlsli" />
+    <None Include="Resources\Shaders\CopyImage.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Object3d.PS.hlsl">
@@ -447,5 +452,9 @@
     </FxCompile>
     <FxCompile Include="Resources\Shaders\Skybox.PS.hlsl" />
     <FxCompile Include="Resources\Shaders\Skybox.VS.hlsl" />
+    <FxCompile Include="Resources\Shaders\CopyImage.PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\CopyImage.VS.hlsl" />
+    <FxCompile Include="Resources\Shaders\PostProcess.PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\PostProcess.VS.hlsl" />
   </ItemGroup>
 </Project>

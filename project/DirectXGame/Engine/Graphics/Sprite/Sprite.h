@@ -110,6 +110,10 @@ public: // メンバ関数
   // テクスチャ切り出しサイズの取得
   const Vector2 &GetTextureSize() const { return textureSize_; }
 
+  // バッファビューの取得
+  const D3D12_VERTEX_BUFFER_VIEW &GetVBV() const { return vertexBufferView_; }
+  const D3D12_INDEX_BUFFER_VIEW &GetIBV() const { return indexBufferView_; }
+
   // setter
 
   // 座標の設定

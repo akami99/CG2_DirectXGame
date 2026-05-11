@@ -60,7 +60,7 @@ public: // メンバ関数
   uint32_t Allocate();
 
   // SRVをセット
-  void SetGraphicRootDescriptorTable(UINT RootParameterIndex,
+  void SetGraphicsRootDescriptorTable(UINT RootParameterIndex,
                                      uint32_t srvIndex);
 
   /// <summary>

@@ -44,6 +44,7 @@ private:
     // パーティクル設定など
     Vector3 particleRotation_{};
     bool isShowParticle_ = false;
+    bool isShowSkybox_ = false;
     bool isUpdateParticle_ = true;
     bool useBillboard_ = true;
     int objectControlIndex_ = 0;

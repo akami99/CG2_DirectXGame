@@ -21,12 +21,23 @@ private:
     uint32_t textureSrvIndex_ = 0;
     // カメラ参照
     Camera* camera_ = nullptr;
+    // トランスフォーム (Debug/ImGui用)
+    Vector3 scale_ = { 500.0f, 500.0f, 500.0f };
+    Vector3 rotate_ = { 0.0f, 0.0f, 0.0f };
+    Vector3 translate_ = { 0.0f, 0.0f, 0.0f };
 public:
 	~Skybox();
     void Initialize(const std::string& cubeMapPath);
     void Update();
     void Draw();
     void SetCamera(Camera* camera) { camera_ = camera; }
+    // ゲッター・セッター
+    Vector3& GetScale() { return scale_; }
+    void SetScale(const Vector3& scale) { scale_ = scale; }
+    Vector3& GetRotate() { return rotate_; }
+    void SetRotate(const Vector3& rotate) { rotate_ = rotate; }
+    Vector3& GetTranslate() { return translate_; }
+    void SetTranslate(const Vector3& translate) { translate_ = translate; }
 private:
     void CreateVertexResource();   // 箱の頂点データ生成
     void CreateIndexResource();    // 箱のインデックスデータ生成
