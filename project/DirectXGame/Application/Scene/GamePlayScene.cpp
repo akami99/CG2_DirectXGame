@@ -12,7 +12,6 @@
 #include "Model.h"
 #include "LightManager.h"
 #include "SceneManager.h"
-#include "BlendMode.h"
 #include "ApplicationConfig.h" // kDeltaTimeなど
 // 計算用関数など
 #include "MathUtils.h"

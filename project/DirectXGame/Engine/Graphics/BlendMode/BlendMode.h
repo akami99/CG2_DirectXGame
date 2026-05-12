@@ -4,7 +4,7 @@
 
 namespace BlendMode {
 
-// BlendState
+	// BlendState< 0:None, 1:Normal, 2:Add, 3:Sub, 4:Multiply, 5:Screen >
 enum BlendState {
   kBlendModeNone,     // ブレンド無し
   kBlendModeNormal,   // 通常aブレンド
