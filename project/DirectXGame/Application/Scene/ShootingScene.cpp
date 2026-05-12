@@ -1,4 +1,5 @@
 #include "ShootingScene.h"
+#include "DX12Context.h"
 #include "ModelManager.h"
 #include "TextureManager.h"
 #include "Object3dCommon.h"
@@ -8,6 +9,7 @@
 #include "Win32Window.h"
 #include "MathUtils.h"
 #include <cmath>
+#include <numbers>
 
 using namespace MathUtils;
 using namespace BlendMode;
@@ -21,48 +23,97 @@ void ShootingScene::Initialize() {
 
 	Object3dCommon::GetInstance()->SetDefaultCamera(camera_.get());
 
+    // サイドカメラの初期化
+    leftCamera_ = std::make_unique<Camera>();
+    leftCamera_->Initialize();
+    rightCamera_ = std::make_unique<Camera>();
+    rightCamera_->Initialize();
+
 	// テクスチャの読み込み
-	TextureManager::GetInstance()->LoadTexture("monsterBall.png");
+	TextureManager::GetInstance()->LoadTexture(crosshairPath_);
 
 	// モデル読み込み
-	ModelManager::GetInstance()->LoadModel("sphere", "sphere.obj");
+	ModelManager::GetInstance()->LoadModel("sphere", sphereModel_);
 
 	// スカイボックスの初期化
 	skybox_ = std::make_unique<Skybox>();
 	skybox_->Initialize("skybox.dds");
 	skybox_->SetCamera(camera_.get());
 
+	leftSkybox_ = std::make_unique<Skybox>();
+	leftSkybox_->Initialize("skybox.dds");
+	leftSkybox_->SetCamera(leftCamera_.get());
+
+	rightSkybox_ = std::make_unique<Skybox>();
+	rightSkybox_->Initialize("skybox.dds");
+	rightSkybox_->SetCamera(rightCamera_.get());
+
 	Object3dCommon::GetInstance()->SetEnvironmentMap(TextureManager::GetInstance()->GetSrvIndex("skybox.dds"));
 
 	// --- 3Dオブジェクト生成 ---
-	// 的の設定
-	std::unique_ptr <Object3d> target = std::make_unique<Object3d>();
-	// 的の初期化
-	target->Initialize();
-	// 的モデルの設定
-	target->SetModel(sphereModel_);
-	// 的の位置を設定
-	target->SetTranslate(targetBasePos_);
-	target_ = std::move(target);
+	target_ = std::make_unique<Object3d>();
+	target_->Initialize();
+	target_->SetModel(sphereModel_);
+    target_->SetCamera(camera_.get());
 
+	leftTarget_ = std::make_unique<Object3d>();
+	leftTarget_->Initialize();
+	leftTarget_->SetModel(sphereModel_);
+    leftTarget_->SetCamera(leftCamera_.get());
+
+	rightTarget_ = std::make_unique<Object3d>();
+	rightTarget_->Initialize();
+	rightTarget_->SetModel(sphereModel_);
+    rightTarget_->SetCamera(rightCamera_.get());
 
 	// --- スプライト生成 ---
-	std::unique_ptr<Sprite> crosshair = std::make_unique<Sprite>();
-	crosshair->Initialize(monsterBallPath_);
-	crosshair->SetAnchorPoint({ 0.5f, 0.5f });
-	crosshair->SetScale({ 64.0f, 64.0f });
-	crosshair_ = std::move(crosshair);
+	crosshair_ = std::make_unique<Sprite>();
+	crosshair_->Initialize(crosshairPath_);
+	crosshair_->SetAnchorPoint({ 0.5f, 0.5f });
+	crosshair_->SetScale({ 64.0f, 64.0f });
 
+    // --- オフスクリーン用リソース ---
+    leftRT_ = std::make_unique<RenderTexture>();
+    leftRT_->Initialize(320, 180);
+    rightRT_ = std::make_unique<RenderTexture>();
+    rightRT_->Initialize(320, 180);
+
+    leftSideSprite_ = std::make_unique<Sprite>();
+    leftSideSprite_->Initialize(crosshairPath_);
+    leftSideSprite_->SetTexture(leftRT_->GetSrvIndex());
+    leftSideSprite_->SetTranslate({0.0f, 0.0f});
+    leftSideSprite_->SetScale({320.0f, 180.0f});
+
+    rightSideSprite_ = std::make_unique<Sprite>();
+    rightSideSprite_->Initialize(crosshairPath_);
+    rightSideSprite_->SetTexture(rightRT_->GetSrvIndex());
+    rightSideSprite_->SetTranslate({ Win32Window::kClientWidth - 320.0f, 0.0f});
+    rightSideSprite_->SetScale({320.0f, 180.0f});
 }
 
 void ShootingScene::Update() {
 	// 入力の更新
 	Input::GetInstance()->Update();
 
-	// ターゲットの移動（上下に振動）
+    // A/Dキーでカメラを90度ずつ回転
+    const float kHalfPI = std::numbers::pi_v<float> / 2.0f; // π/2 (90度)
+    if (Input::GetInstance()->IsKeyDown(DIK_A)) {
+        cameraYaw_ -= kHalfPI / 100.0f;
+    }
+    if (Input::GetInstance()->IsKeyDown(DIK_D)) {
+        cameraYaw_ += kHalfPI / 100.0f;
+    }
+    camera_->SetRotate({ 0.0f, cameraYaw_, 0.0f });
+
+	// ターゲットの移動（周回 ＋ 上下に振動）
+    orbitAngle_ += 0.005f;
 	targetTimer_ += 0.05f;
-	Vector3 pos = targetBasePos_;
-	pos.y += std::sin(targetTimer_) * 4.0f;
+    
+    Vector3 camPos = camera_->GetTranslate();
+	Vector3 pos;
+    pos.x = camPos.x + std::sin(orbitAngle_) * orbitRadius_;
+    pos.z = camPos.z + std::cos(orbitAngle_) * orbitRadius_;
+	pos.y = targetBasePos_.y + std::sin(targetTimer_) * 4.0f;
 	target_->SetTranslate(pos);
 
 	// ヒットフィードバックの更新
@@ -73,7 +124,17 @@ void ShootingScene::Update() {
 	else {
 		target_->SetScale({ 1.0f, 1.0f, 1.0f });
 	}
-	target_->Update();
+
+    // 他の視点用の的も同期
+    leftTarget_->SetTranslate(target_->GetTranslate());
+    leftTarget_->SetScale(target_->GetScale());
+    rightTarget_->SetTranslate(target_->GetTranslate());
+    rightTarget_->SetScale(target_->GetScale());
+
+    // 更新
+    target_->Update();
+    leftTarget_->Update();
+    rightTarget_->Update();
 
 	// マウス座標の取得と照準の更新
 	POINT mousePos;
@@ -81,6 +142,19 @@ void ShootingScene::Update() {
 	ScreenToClient(Win32Window::GetInstance()->GetHwnd(), &mousePos);
 	crosshair_->SetTranslate({ (float)mousePos.x, (float)mousePos.y });
 	crosshair_->Update();
+
+    // サイドビュースプライトの更新（頂点バッファを毎フレーム書き込む）
+    leftSideSprite_->Update();
+    rightSideSprite_->Update();
+
+    // サイドカメラの更新
+    leftCamera_->SetTranslate(camera_->GetTranslate());
+	leftCamera_->SetRotate({ camera_->GetRotate().x, camera_->GetRotate().y - kHalfPI, camera_->GetRotate().z });
+    leftCamera_->Update();
+
+    rightCamera_->SetTranslate(camera_->GetTranslate());
+    rightCamera_->SetRotate({camera_->GetRotate().x, camera_->GetRotate().y + kHalfPI, camera_->GetRotate().z});
+    rightCamera_->Update();
 
 	// 射撃処理
 	if (Input::GetInstance()->IsMouseButtonTriggered(0)) {
@@ -116,47 +190,52 @@ void ShootingScene::Update() {
 
 	camera_->Update();
 	skybox_->Update();
+    leftSkybox_->Update();
+    rightSkybox_->Update();
+}
+
+void ShootingScene::DrawOffscreen() {
+    auto* cmd = DX12Context::GetInstance()->GetCommandList();
+
+    // 左側カメラの描画
+    leftRT_->PreDraw(cmd);
+    // 3Dモデル用の設定をリセット（スカイボックス描画後に RS が変わるため）
+    Object3dCommon::GetInstance()->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode_));
+    if (isShowMaterial_) leftTarget_->Draw();
+    if (isShowSkybox_) leftSkybox_->Draw();
+    leftRT_->PostDraw(cmd);
+
+    // 右側カメラの描画
+    rightRT_->PreDraw(cmd);
+    // 3Dモデル用の設定をリセット
+    Object3dCommon::GetInstance()->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode_));
+    if (isShowMaterial_) rightTarget_->Draw();
+    if (isShowSkybox_) rightSkybox_->Draw();
+    rightRT_->PostDraw(cmd);
 }
 
 void ShootingScene::Draw() {
-	// 描画設定
-	Object3dCommon::GetInstance()->SetCommonDrawSettings(
-		static_cast<BlendState>(currentBlendMode_));
+    // 描画設定
+    Object3dCommon::GetInstance()->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode_));
 
-
-	// 2. 3Dオブジェクトの描画
-
-	if (isShowMaterial_) {
-		// 的を描画
-		if (target_) {
-			target_->Draw();
-		}
-	}
-
-	// Skyboxの描画(object3dの描画が終わった後に描画するのが基本)
-	if (skybox_ && isShowSkybox_) {
-		skybox_->Draw();
-	}
+    // メインカメラで描画
+    if (isShowMaterial_) target_->Draw();
+    if (isShowSkybox_) skybox_->Draw();
 
 	// 4. スプライトの描画
-	// 描画設定
-	SpriteCommon::GetInstance()->SetCommonDrawSettings(
-		static_cast<BlendState>(currentBlendMode_));
+	SpriteCommon::GetInstance()->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode_));
 
 	if (isShowSprite_) {
-		// 照準を描画
 		if (crosshair_) {
 			crosshair_->Draw();
 		}
+        // サイドビューを表示
+        leftSideSprite_->Draw();
+        rightSideSprite_->Draw();
 	}
 }
 
 void ShootingScene::Finalize() {
 	// Object3dCommonの参照をクリア
 	Object3dCommon::GetInstance()->SetDefaultCamera(nullptr);
-	// Object3dを削除
-	//object3ds_.clear();
-
-	// スプライトを削除
-	//sprites_.clear();
 }

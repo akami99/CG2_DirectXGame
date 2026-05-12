@@ -87,7 +87,11 @@ void MyGame::Draw() {
     // 1.描画前処理（コマンドリストのリセット、バックバッファをセット）
     DX12Context::GetInstance()->PreDraw();
     SrvManager::GetInstance()->PreDraw(); // SRV用のヒープをセット
+
     // --- A. オフスクリーンレンダリングパス ---
+    // シーン独自のオフスクリーン描画があれば実行
+    SceneManager::GetInstance()->DrawOffscreen();
+
     renderTexture_->PreDraw(commandList);
     // シーンマネージャに現在のシーンを描画させる（オフスクリーンへ）
     SceneManager::GetInstance()->Draw();

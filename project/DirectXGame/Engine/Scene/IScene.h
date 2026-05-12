@@ -8,6 +8,8 @@ public:
     virtual void Initialize() = 0;
     // 更新
     virtual void Update() = 0;
+    // オフスクリーン描画
+    virtual void DrawOffscreen() = 0;
     // 描画
     virtual void Draw() = 0;
     // 終了処理
