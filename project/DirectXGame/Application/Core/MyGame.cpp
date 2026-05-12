@@ -57,7 +57,7 @@ void MyGame::Initialize() {
   SceneManager::GetInstance()->SetSceneFactory(std::move(sceneFactory));
 
   // 文字列で指定
-  SceneManager::GetInstance()->ChangeScene("GAMEPLAY");
+  SceneManager::GetInstance()->ChangeScene("SHOOTING");
 }
 
 void MyGame::Finalize() {

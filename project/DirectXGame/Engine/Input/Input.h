@@ -50,7 +50,7 @@ public: // メンバ関数
     // 初期化
     void Initialize();
 
-    // キーボードの状態を更新するメソッド (毎フレーム呼び出す)
+    // 状態を更新するメソッド (毎フレーム呼び出す)
     void Update();
 
 #pragma region Keyboard
