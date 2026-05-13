@@ -429,7 +429,7 @@
     <None Include="Resources\Shaders\Object3dCommon.hlsli" />
     <None Include="Resources\Shaders\Particle.hlsli" />
     <None Include="Resources\Shaders\SpriteCommon.hlsli" />
-    <None Include="Resources\Shaders\CopyImage.hlsli" />
+    <None Include="Resources\Shaders\Fullscreen.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Object3d.PS.hlsl">
@@ -453,8 +453,9 @@
     <FxCompile Include="Resources\Shaders\Skybox.PS.hlsl" />
     <FxCompile Include="Resources\Shaders\Skybox.VS.hlsl" />
     <FxCompile Include="Resources\Shaders\CopyImage.PS.hlsl" />
-    <FxCompile Include="Resources\Shaders\CopyImage.VS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Fullscreen.VS.hlsl" />
     <FxCompile Include="Resources\Shaders\PostProcess.PS.hlsl" />
     <FxCompile Include="Resources\Shaders\PostProcess.VS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Grayscale.PS.hlsl" />
   </ItemGroup>
 </Project>

@@ -363,9 +363,9 @@ void PipelineManager::LoadShader() {
 	assert(psBlobSkybox_ != nullptr);
 
 	// ポストエフェクト用
-	vsBlobPostProcess_ = DX12Context::GetInstance()->CompileShader(L"CopyImage.VS.hlsl", L"vs_6_0");
+	vsBlobPostProcess_ = DX12Context::GetInstance()->CompileShader(L"Fullscreen.VS.hlsl", L"vs_6_0");
 	assert(vsBlobPostProcess_ != nullptr);
-	psBlobPostProcess_ = DX12Context::GetInstance()->CompileShader(L"CopyImage.PS.hlsl", L"ps_6_0");
+	psBlobPostProcess_ = DX12Context::GetInstance()->CompileShader(L"Grayscale.PS.hlsl", L"ps_6_0");
 	assert(psBlobPostProcess_ != nullptr);
 
 }
