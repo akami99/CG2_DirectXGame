@@ -24,6 +24,10 @@
 
 using namespace BlendMode;
 
+// 静的メンバ変数の実体化
+int MyGame::postEffectModeNext_ = 0;
+float MyGame::postEffectStrengthNext_ = 1.0f;
+
 void MyGame::Initialize() {
   // --- 基盤システムの初期化は親クラスに任せる ---
   RAFramework::Initialize();
@@ -52,6 +56,10 @@ void MyGame::Initialize() {
   postProcessParamsData_->colorScale[0] = 1.0f;
   postProcessParamsData_->colorScale[1] = 1.0f;
   postProcessParamsData_->colorScale[2] = 1.0f;
+  postProcessParamsData_->strength = 1.0f;
+  
+  postEffectModeNext_ = 0;
+  postEffectStrengthNext_ = 1.0f;
 
   // 追加した初期化コマンド（テクスチャ転送等）を実行し、GPUの完了を待つ
   DX12Context::GetInstance()->ExecuteInitialCommandAndSync();
@@ -123,6 +131,9 @@ void MyGame::Draw() {
     // テクスチャ（オフスクリーン描画結果）をSRVスロット(t0)にセット
     SrvManager::GetInstance()->SetGraphicsRootDescriptorTable(1, renderTexture_->GetSrvIndex());
 
+    // モードと強度を更新
+    postEffectMode_ = postEffectModeNext_;
+    
     // モードに応じてPSOと定数バッファの値を切り替える
     if (postEffectMode_ == 0) {
         // コピー (passthrough) — CopyImage.PS.hlsl は定数バッファ不要
@@ -144,6 +155,7 @@ void MyGame::Draw() {
             postProcessParamsData_->colorScale[1] = 74.0f / 112.0f;  // ~0.661
             postProcessParamsData_->colorScale[2] = 43.0f / 112.0f;  // ~0.384
         }
+        postProcessParamsData_->strength = postEffectStrengthNext_;
         commandList->SetGraphicsRootConstantBufferView(0, postProcessParamsResource_->GetGPUVirtualAddress());
     }
 

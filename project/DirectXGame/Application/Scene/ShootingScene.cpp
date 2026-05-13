@@ -10,6 +10,7 @@
 #include "MathUtils.h"
 #include <cmath>
 #include <numbers>
+#include "MyGame.h"
 
 using namespace MathUtils;
 using namespace BlendMode;
@@ -113,7 +114,7 @@ void ShootingScene::Update() {
 	Vector3 pos;
     pos.x = camPos.x + std::sin(orbitAngle_) * orbitRadius_;
     pos.z = camPos.z + std::cos(orbitAngle_) * orbitRadius_;
-	pos.y = targetBasePos_.y + std::sin(targetTimer_) * 4.0f;
+	pos.y = targetBasePos_.y + std::sin(targetTimer_) * 2.0f;
 	target_->SetTranslate(pos);
 
 	// ヒットフィードバックの更新
@@ -135,6 +136,53 @@ void ShootingScene::Update() {
     target_->Update();
     leftTarget_->Update();
     rightTarget_->Update();
+
+    // --- プロジェクタイルの更新 ---
+    projectileSpawnTimer_ += 1.0f;
+    if (projectileSpawnTimer_ >= kProjectileSpawnInterval) {
+        projectileSpawnTimer_ = 0.0f;
+        
+        // 的の現在位置からカメラに向かって飛ばす
+        Vector3 startPos = target_->GetTranslate();
+        Vector3 targetPos = camera_->GetTranslate();
+        Vector3 dir = Normalize(Subtract(targetPos, startPos));
+        float speed = 0.1f;
+        Vector3 velocity = Multiply(speed, dir);
+        
+        auto newProjectile = std::make_unique<EnemyProjectile>();
+        newProjectile->Initialize(startPos, velocity);
+        projectiles_.push_back(std::move(newProjectile));
+    }
+
+    for (auto& p : projectiles_) {
+        p->Update();
+    }
+
+    // カメラとの当たり判定（ダメージ）
+    for (auto& p : projectiles_) {
+        if (p->IsDead()) continue;
+        float dist = Length(Subtract(p->GetPosition(), camera_->GetTranslate()));
+        if (dist < 1.0f) { // カメラ付近に来たらダメージ
+            p->Kill();
+            damageEffectStrength_ = 1.0f; // ダメージエフェクト開始
+            MyGame::SetPostEffectMode(1); // グレースケールモード
+        }
+    }
+
+    // ダメージエフェクトの減衰
+    if (damageEffectStrength_ > 0.0f) {
+        damageEffectStrength_ -= 0.01f;
+        if (damageEffectStrength_ < 0.0f) {
+            damageEffectStrength_ = 0.0f;
+            MyGame::SetPostEffectMode(0); // 通常モードに戻す
+        }
+    }
+    MyGame::SetPostEffectStrength(damageEffectStrength_);
+
+    // 死んだプロジェクタイルを削除
+    projectiles_.erase(std::remove_if(projectiles_.begin(), projectiles_.end(),
+        [](const std::unique_ptr<EnemyProjectile>& p) { return p->IsDead(); }),
+        projectiles_.end());
 
 	// マウス座標の取得と照準の更新
 	POINT mousePos;
@@ -186,6 +234,20 @@ void ShootingScene::Update() {
 				hitFeedbackTimer_ = 0.2f; // ヒット時に一瞬大きくする
 			}
 		}
+
+        // プロジェクタイルとの当たり判定（撃ち落とし）
+        for (auto& p : projectiles_) {
+            Vector3 pPos = p->GetPosition();
+            Vector3 toProjectile = Subtract(pPos, nearPos);
+            float tp = Dot(toProjectile, rayDir);
+            if (tp > 0) {
+                Vector3 closestPoint = Add(nearPos, Multiply(tp, rayDir));
+                float distance = Length(Subtract(pPos, closestPoint));
+                if (distance < p->GetRadius() * 2.0f) { // 当たり判定は少し広めに
+                    p->Kill();
+                }
+            }
+        }
 	}
 
 	camera_->Update();
@@ -202,6 +264,7 @@ void ShootingScene::DrawOffscreen() {
     // 3Dモデル用の設定をリセット（スカイボックス描画後に RS が変わるため）
     Object3dCommon::GetInstance()->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode_));
     if (isShowMaterial_) leftTarget_->Draw();
+    for (auto& p : projectiles_) p->Draw();
     if (isShowSkybox_) leftSkybox_->Draw();
     leftRT_->PostDraw(cmd);
 
@@ -210,6 +273,7 @@ void ShootingScene::DrawOffscreen() {
     // 3Dモデル用の設定をリセット
     Object3dCommon::GetInstance()->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode_));
     if (isShowMaterial_) rightTarget_->Draw();
+    for (auto& p : projectiles_) p->Draw();
     if (isShowSkybox_) rightSkybox_->Draw();
     rightRT_->PostDraw(cmd);
 }
@@ -220,6 +284,7 @@ void ShootingScene::Draw() {
 
     // メインカメラで描画
     if (isShowMaterial_) target_->Draw();
+    for (auto& p : projectiles_) p->Draw();
     if (isShowSkybox_) skybox_->Draw();
 
 	// 4. スプライトの描画
