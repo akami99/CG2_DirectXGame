@@ -487,7 +487,7 @@ void PipelineManager::CreateRootSignature() {
 		&spriteSignatureBlob, &spriteErrorBlob);
 	// エラーチェックと生成処理...
 	if (FAILED(hr)) {
-		Logger::Log(reinterpret_cast<char*>(spriteErrorBlob->GetBufferPointer()));
+		Logger::Log("ERROR: " + std::string(reinterpret_cast<char*>(spriteErrorBlob->GetBufferPointer())));
 		assert(false);
 	}
 	hr = DX12Context::GetInstance()->GetDevice()->CreateRootSignature(
@@ -608,8 +608,7 @@ void PipelineManager::CreateRootSignature() {
 		D3D_ROOT_SIGNATURE_VERSION_1,
 		&object3dSignatureBlob, &object3dErrorBlob);
 	if (FAILED(hr)) {
-		Logger::Log(
-			reinterpret_cast<char*>(object3dErrorBlob->GetBufferPointer()));
+		Logger::Log("ERROR: " + std::string(reinterpret_cast<char*>(object3dErrorBlob->GetBufferPointer())));
 		assert(false);
 	}
 	// バイナリを元に生成
@@ -686,8 +685,7 @@ void PipelineManager::CreateRootSignature() {
 		D3D_ROOT_SIGNATURE_VERSION_1,
 		&particleSignatureBlob, &particleErrorBlob);
 	if (FAILED(hr)) {
-		Logger::Log(
-			reinterpret_cast<char*>(particleErrorBlob->GetBufferPointer()));
+		Logger::Log("ERROR: " + std::string(reinterpret_cast<char*>(particleErrorBlob->GetBufferPointer())));
 		assert(false);
 	}
 	// バイナリを元に生成
@@ -747,8 +745,7 @@ void PipelineManager::CreateRootSignature() {
 		D3D_ROOT_SIGNATURE_VERSION_1,
 		&skyboxSignatureBlob, &skyboxErrorBlob);
 	if (FAILED(hr)) {
-		Logger::Log(
-			reinterpret_cast<char*>(skyboxErrorBlob->GetBufferPointer()));
+		Logger::Log("ERROR: " + std::string(reinterpret_cast<char*>(skyboxErrorBlob->GetBufferPointer())));
 		assert(false);
 	}
 

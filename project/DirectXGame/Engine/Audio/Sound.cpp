@@ -93,7 +93,7 @@ bool Sound::Load(const std::string &filePath) {
 
       // --- ここからロガーによるログ出力 ---
       std::string logMsg = std::format(
-          "[Audio Load] File: {} | SampleRate: {} Hz | Channels: {} | Bits: {}\n",
+          "INFO: Audio Load | File: {} | SampleRate: {} Hz | Channels: {} | Bits: {}\n",
           filePath,                  // 読み込んだファイル名
           wfex.Format.nSamplesPerSec, // サンプリングレート (例: 44100, 48000)
           wfex.Format.nChannels,      // チャンネル数 (例: 1, 2)

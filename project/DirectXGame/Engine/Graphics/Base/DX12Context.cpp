@@ -82,7 +82,7 @@ void DX12Context::Initialize() {
   hr = commandList_->Close();
   assert(SUCCEEDED(hr));
 
-  Log("Complete Initialize DX12Context!!!\n"); // 初期化完了のログをだす
+  Log("INFO: Complete Initialize DX12Context!!!\n"); // 初期化完了のログをだす
 }
 
 // 終了
@@ -124,7 +124,7 @@ void DX12Context::Finalize() {
     // 7. 最後に親玉であるデバイスを放す
     device_.Reset();
 
-    Log("Complete Finalize DX12Context!!!\n");
+    Log("INFO: Complete Finalize DX12Context!!!\n");
 }
 
 #pragma region 描画処理
@@ -342,7 +342,7 @@ void DX12Context::InitializeDevice() {
   }
   // デバイスが生成が上手くいかなかったので起動できない
   assert(device_ != nullptr);
-  Log("Complete create D3D12Device!!!\n"); // 初期化完了のログをだす
+  Log("INFO: Complete create D3D12Device!!!\n"); // 初期化完了のログをだす
 
 #ifdef _DEBUG
   ComPtr<ID3D12InfoQueue> infoQueue = nullptr;
@@ -677,7 +677,7 @@ ComPtr<IDxcBlob> DX12Context::CompileShader(const std::wstring &filePath,
   }
 
   // これからシェーダーをコンパイルする旨をログに出す
-  Log(ConvertString(std::format(L"Begin CompileShader, path:{}, profile:{}\n",
+  Log(ConvertString(std::format(L"INFO: Begin CompileShader, path:{}, profile:{}\n",
                                 fullPath, profile)));
   // hlslファイルを読む
   ComPtr<IDxcBlobEncoding> shaderSource = nullptr;
@@ -689,11 +689,11 @@ ComPtr<IDxcBlob> DX12Context::CompileShader(const std::wstring &filePath,
 
     // 2. エラーメッセージのログ出力
     if (errorBlob) {
-      Logger::Log((char *)errorBlob->GetBufferPointer());
+      Logger::Log("ERROR: " + std::string((char *)errorBlob->GetBufferPointer()));
       errorBlob->Release();
     } else {
       // hrの値をログに出力する（DXCの場合など）
-      Logger::Log("Shader compilation failed with HRESULT: " +
+      Logger::Log("ERROR: Shader compilation failed with HRESULT: " +
                   std::to_string(hr));
     }
   }
@@ -732,7 +732,7 @@ ComPtr<IDxcBlob> DX12Context::CompileShader(const std::wstring &filePath,
   ComPtr<IDxcBlobUtf8> shaderError = nullptr;
   shaderResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&shaderError), nullptr);
   if (shaderError != nullptr && shaderError->GetStringLength() != 0) {
-    Log(shaderError->GetStringPointer());
+    Log("ERROR: " + std::string(shaderError->GetStringPointer()));
     // 警告・エラーダメゼッタイ
     assert(false);
   }
@@ -744,7 +744,7 @@ ComPtr<IDxcBlob> DX12Context::CompileShader(const std::wstring &filePath,
                                nullptr);
   assert(SUCCEEDED(hr));
   // 成功したログを出す(性能を重視する場合は少しオーバーヘッドがあるので注意)
-  Log(ConvertString(std::format(L"CompileSucceded, path:{}, profile:{}\n",
+  Log(ConvertString(std::format(L"INFO: CompileSucceded, path:{}, profile:{}\n",
                                 fullPath, profile)));
   // 実行用のバイナリを返却
   return shaderBlob;
