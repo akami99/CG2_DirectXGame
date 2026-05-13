@@ -21,6 +21,13 @@ public:
         Token() {}
     };
 
+private: // メンバ変数
+    // スマートポインタで管理
+    static std::unique_ptr<Input> instance_;
+
+    // unique_ptr が private なデストラクタを呼べるようにする
+    friend std::default_delete<Input>;
+
 public: // メンバ関数
     // コンストラクタ (Tokenがないと呼べない = 実質private)
     explicit Input(Token);
@@ -43,9 +50,17 @@ public: // メンバ関数
     // 初期化
     void Initialize();
 
-    // キーボードの状態を更新するメソッド (毎フレーム呼び出す)
+    // 状態を更新するメソッド (毎フレーム呼び出す)
     void Update();
 
+#pragma region Keyboard
+private: // キーボード関連のメンバ変数
+    ComPtr<IDirectInput8> directInput_;    // DirectInputオブジェクト
+    ComPtr<IDirectInputDevice8> keyboard_; // DirectInputキーボードデバイス
+    BYTE key_[256] = {};                   // 現在のキー状態
+    BYTE preKey_[256] = {};                // 前回のキー状態
+
+public: // キーボード関連のメンバ関数
     /// <summary>
     /// キーの押下をチェック
     /// </summary>
@@ -63,16 +78,34 @@ public: // メンバ関数
     /// <param name="keyNumber">キー番号</param>
     /// <returns>離された瞬間か</returns>
     bool IsKeyReleased(BYTE keyNumber);
+#pragma endregion Keyboardここまで
 
-private: // メンバ変数
-    // スマートポインタで管理
-    static std::unique_ptr<Input> instance_;
+#pragma region Mouse
+private: // マウス関連のメンバ変数
+    ComPtr<IDirectInputDevice8> mouse_;    // マウスデバイス
+    DIMOUSESTATE2 mouseState_;             // 現在のマウス状態
+    DIMOUSESTATE2 preMouseState_;          // 前回のマウス状態
 
-    // unique_ptr が private なデストラクタを呼べるようにする
-    friend std::default_delete<Input>;
+public: // マウス関連のメンバ関数
+    /// <summary>
+    /// 移動量を取得
+    /// </summary>
+    /// <param name="x">X方向の移動量</param>
+    /// <param name="y">Y方向の移動量</param>
+    void GetMouseMove(long& x, long& y);
 
-    ComPtr<IDirectInput8> directInput_;    // DirectInputオブジェクト
-    ComPtr<IDirectInputDevice8> keyboard_; // DirectInputキーボードデバイス
-    BYTE key_[256] = {};                   // 現在のキー状態
-    BYTE preKey_[256] = {};                // 前回のキー状態
+    /// <summary>
+	/// マウスボタンの押下をチェック
+    /// </summary>
+    /// <param name="button">ボタン番号 (0:左, 1:右, 2:中)</param>
+    /// <returns>押下されているか</returns>
+    bool IsMouseButtonDown(int button);
+
+	/// <summary>
+	/// マウスボタンのトリガーチェック
+	/// </summary>
+	/// <param name="button">ボタン番号 (0:左, 1:右, 2:中)</param>
+	/// <returns>押下された瞬間か</returns>
+    bool IsMouseButtonTriggered(int button);
+#pragma endregion Mouseここまで
 };
