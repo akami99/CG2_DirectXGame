@@ -23,537 +23,546 @@ using namespace BlendMode;
 std::unique_ptr<ParticleManager> ParticleManager::instance_ = nullptr;
 
 // シングルトン実装
-ParticleManager *ParticleManager::GetInstance() {
-  if (instance_ == nullptr) {
-    instance_ = std::make_unique<ParticleManager>(Token{});
-  }
-  return instance_.get();
+ParticleManager* ParticleManager::GetInstance() {
+	if (instance_ == nullptr) {
+		instance_ = std::make_unique<ParticleManager>(Token{});
+	}
+	return instance_.get();
 }
 
 void ParticleManager::Destroy() {
-    instance_.reset();
+	instance_.reset();
 }
 
 ParticleManager::ParticleManager(Token) {
-    // コンストラクタ
+	// コンストラクタ
 }
 
-void ParticleManager::SetEmitter(const std::string &name,
-                                 const ParticleEmitter &emitter) {
-  // 1. 該当するパーティクルグループを検索
-  auto it = particleGroups_.find(name);
+void ParticleManager::SetEmitter(const std::string& name,
+	const ParticleEmitter& emitter) {
+	// 1. 該当するパーティクルグループを検索
+	auto it = particleGroups_.find(name);
 
-  if (it == particleGroups_.end()) {
-    // グループが見つからない場合はエラーまたはログ出力
-    Logger::Log("Error: Particle group '" + name +
-                "' not found when setting emitter.");
-    return;
-  }
+	if (it == particleGroups_.end()) {
+		// グループが見つからない場合はエラーまたはログ出力
+		Logger::Log("Error: Particle group '" + name +
+			"' not found when setting emitter.");
+		return;
+	}
 
-  // 2. グループ内の emitter メンバに、渡された emitter インスタンスをコピー
-  ParticleGroup &group = it->second;
-  group.emitter = emitter;
+	// 2. グループ内の emitter メンバに、渡された emitter インスタンスをコピー
+	ParticleGroup& group = it->second;
+	group.emitter = emitter;
 
-  // 3. (Optional) 頻度時刻をリセット（すぐに発生を開始させたい場合）
-  group.emitter.frequencyTime = 0.0f;
+	// 3. (Optional) 頻度時刻をリセット（すぐに発生を開始させたい場合）
+	group.emitter.frequencyTime = 0.0f;
 }
 
 void ParticleManager::ReleaseIntermediateResources() {
-  // GPUがコマンド実行を完了した後、保持していたアップロードリソースをクリアする
-  intermediateResources_.clear();
+	// GPUがコマンド実行を完了した後、保持していたアップロードリソースをクリアする
+	intermediateResources_.clear();
 }
 
 // 終了
 void ParticleManager::Finalize() {
-  // リソースの解放
-  // (ComPtrが解放されるため、明示的な解放は不要だが、mappedDataのUnmapは必要)
-  for (auto &pair : particleGroups_) {
-    ParticleGroup &group = pair.second;
-    // MapしたリソースをUnmapする
-    if (group.mappedData) {
-      group.instanceResource->Unmap(0, nullptr);
-      group.mappedData = nullptr;
-    }
-    /*if (group.materialMappedData) {
-      group.materialResource->Unmap(0, nullptr);
-      group.materialMappedData = nullptr;
-    }*/
-  }
-  particleGroups_.clear(); // グループのクリア
+	// リソースの解放
+	// (ComPtrが解放されるため、明示的な解放は不要だが、mappedDataのUnmapは必要)
+	for (auto& pair : particleGroups_) {
+		ParticleGroup& group = pair.second;
+		// MapしたリソースをUnmapする
+		if (group.mappedData) {
+			group.instanceResource->Unmap(0, nullptr);
+			group.mappedData = nullptr;
+		}
+		/*if (group.materialMappedData) {
+		  group.materialResource->Unmap(0, nullptr);
+		  group.materialMappedData = nullptr;
+		}*/
+	}
+	particleGroups_.clear(); // グループのクリア
 
-  // 頂点リソースの解放
-  vertexResource_.Reset();
+	// 頂点リソースの解放
+	vertexResource_.Reset();
 
-  // シングルトンインスタンスの解放
-  instance_.reset();
+	// シングルトンインスタンスの解放
+	instance_.reset();
 }
 
 void ParticleManager::Initialize() {
-  // BlendModeごとの設定は汎用関数から取得
-  std::array<D3D12_BLEND_DESC, kCountOfBlendMode> blendDescs =
-      CreateBlendStateDescs();
+	// BlendModeごとの設定は汎用関数から取得
+	std::array<D3D12_BLEND_DESC, kCountOfBlendMode> blendDescs =
+		CreateBlendStateDescs();
 
-  // パイプラインマネージャを使って、ブレンドモードごとのPSOを生成
-  for (size_t i = 0; i < kCountOfBlendMode; ++i) {
-    particlePsoArray_[i] = PipelineManager::GetInstance()->CreateParticlePSO(blendDescs[i]);
-  }
+	// パイプラインマネージャを使って、ブレンドモードごとのPSOを生成
+	for (size_t i = 0; i < kCountOfBlendMode; ++i) {
+		particlePsoArray_[i] = PipelineManager::GetInstance()->CreateParticlePSO(blendDescs[i]);
+	}
 
-  // ランダムエンジンの初期化
-  std::random_device seedGenerator;
-  randomEngine_ = std::mt19937(seedGenerator());
+	// ランダムエンジンの初期化
+	std::random_device seedGenerator;
+	randomEngine_ = std::mt19937(seedGenerator());
 
-  // 頂点データの初期化 (四角形ポリゴン)
-  // 単位四角形の頂点データ
+	// 頂点データの初期化 (四角形ポリゴン)
+	// 単位四角形の頂点データ
 
-  VertexData vertices[4] = {
-      {{-0.5f, -0.5f, 0.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}}, // 左下
-      {{-0.5f, 0.5f, 0.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},  // 左上
-      {{0.5f, -0.5f, 0.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},  // 右下
-      {{0.5f, 0.5f, 0.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}}    // 右上
-  };
+	VertexData vertices[4] = {
+		{{-0.5f, -0.5f, 0.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}}, // 左下
+		{{-0.5f, 0.5f, 0.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},  // 左上
+		{{0.5f, -0.5f, 0.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},  // 右下
+		{{0.5f, 0.5f, 0.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}}    // 右上
+	};
 
-  // インデックスデータで2つの三角形を構成
-  const uint16_t indices[6] = {0, 1, 2, 1, 3, 2}; // 6つのインデックス
-  const uint32_t kIndexSize = sizeof(indices);
-  const UINT kVertexCount = _countof(vertices); // 4
-  const UINT sizeVB = sizeof(VertexData) * kVertexCount;
+	// インデックスデータで2つの三角形を構成
+	const uint16_t indices[6] = { 0, 1, 2, 1, 3, 2 }; // 6つのインデックス
+	const uint32_t kIndexSize = sizeof(indices);
+	const UINT kVertexCount = _countof(vertices); // 4
+	const UINT sizeVB = sizeof(VertexData) * kVertexCount;
 
-  // 頂点リソースの生成
+	// 頂点リソースの生成
 
-  // 1. Default Heap にリソースを生成 (テクスチャと同じ構造)
-  D3D12_RESOURCE_DESC vertexResourceDesc{};
-  vertexResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-  vertexResourceDesc.Width = sizeVB;
-  vertexResourceDesc.Height = 1;
-  vertexResourceDesc.DepthOrArraySize = 1;
-  vertexResourceDesc.MipLevels = 1;
-  // ... (その他、バッファに必要な設定)
-  vertexResourceDesc.SampleDesc.Count = 1;
-  vertexResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	// 1. Default Heap にリソースを生成 (テクスチャと同じ構造)
+	D3D12_RESOURCE_DESC vertexResourceDesc{};
+	vertexResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	vertexResourceDesc.Width = sizeVB;
+	vertexResourceDesc.Height = 1;
+	vertexResourceDesc.DepthOrArraySize = 1;
+	vertexResourceDesc.MipLevels = 1;
+	// ... (その他、バッファに必要な設定)
+	vertexResourceDesc.SampleDesc.Count = 1;
+	vertexResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
-  const D3D12_HEAP_PROPERTIES defaultHeapProps =
-      CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	const D3D12_HEAP_PROPERTIES defaultHeapProps =
+		CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
-  HRESULT hr = DX12Context::GetInstance()->GetDevice()->CreateCommittedResource(
-      &defaultHeapProps, // Default Heap!
-      D3D12_HEAP_FLAG_NONE, &vertexResourceDesc, D3D12_RESOURCE_STATE_COMMON,
-      nullptr, IID_PPV_ARGS(&vertexResource_));
-  assert(SUCCEEDED(hr));
+	HRESULT hr = DX12Context::GetInstance()->GetDevice()->CreateCommittedResource(
+		&defaultHeapProps, // Default Heap!
+		D3D12_HEAP_FLAG_NONE, &vertexResourceDesc, D3D12_RESOURCE_STATE_COMMON,
+		nullptr, IID_PPV_ARGS(&vertexResource_));
+	assert(SUCCEEDED(hr));
 
-  // 2. 中間アップロードリソースを生成
-  ComPtr<ID3D12Resource> vertexUploadResource =
-      DX12Context::GetInstance()->CreateBufferResource(
-          sizeVB); // UploadHeapリソース生成はここで利用
+	// 2. 中間アップロードリソースを生成
+	ComPtr<ID3D12Resource> vertexUploadResource =
+		DX12Context::GetInstance()->CreateBufferResource(
+			sizeVB); // UploadHeapリソース生成はここで利用
 
-  // 3. 中間リソースに頂点データを Map & Copy
-  VertexData *mappedVertexData = nullptr;
-  vertexUploadResource->Map(0, nullptr,
-                            reinterpret_cast<void **>(&mappedVertexData));
-  memcpy(mappedVertexData, vertices, sizeVB);
-  vertexUploadResource->Unmap(0, nullptr); // アンマップ
+	// 3. 中間リソースに頂点データを Map & Copy
+	VertexData* mappedVertexData = nullptr;
+	vertexUploadResource->Map(0, nullptr,
+		reinterpret_cast<void**>(&mappedVertexData));
+	memcpy(mappedVertexData, vertices, sizeVB);
+	vertexUploadResource->Unmap(0, nullptr); // アンマップ
 
-  // 4. コマンドリストにコピーを積む
-  DX12Context::GetInstance()->GetCommandList()->CopyResource(
-      vertexResource_.Get(), vertexUploadResource.Get());
+	// 4. コマンドリストにコピーを積む
+	DX12Context::GetInstance()->GetCommandList()->CopyResource(
+		vertexResource_.Get(), vertexUploadResource.Get());
 
-  // 5. 状態遷移コマンドを積む
-  D3D12_RESOURCE_BARRIER vertexBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-      vertexResource_.Get(), D3D12_RESOURCE_STATE_COPY_DEST,
-      D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+	// 5. 状態遷移コマンドを積む
+	D3D12_RESOURCE_BARRIER vertexBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+		vertexResource_.Get(), D3D12_RESOURCE_STATE_COPY_DEST,
+		D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
-  DX12Context::GetInstance()->GetCommandList()->ResourceBarrier(1,
-                                                                &vertexBarrier);
+	DX12Context::GetInstance()->GetCommandList()->ResourceBarrier(1,
+		&vertexBarrier);
 
-  // 最後に、このリソースをリストに移動して保持する
-  intermediateResources_.push_back(vertexUploadResource);
+	// 最後に、このリソースをリストに移動して保持する
+	intermediateResources_.push_back(vertexUploadResource);
 
-  // 頂点バッファビュー (VBV) 作成
-  vertexBufferView_.BufferLocation = vertexResource_->GetGPUVirtualAddress();
-  vertexBufferView_.StrideInBytes = sizeof(VertexData);
-  vertexBufferView_.SizeInBytes = sizeVB;
+	// 頂点バッファビュー (VBV) 作成
+	vertexBufferView_.BufferLocation = vertexResource_->GetGPUVirtualAddress();
+	vertexBufferView_.StrideInBytes = sizeof(VertexData);
+	vertexBufferView_.SizeInBytes = sizeVB;
 
-  // リソースの生成
+	// リソースの生成
 
-  // 1. Default Heap にリソースを生成 (テクスチャと同じ構造)
-  D3D12_RESOURCE_DESC indexResourceDesc{};
-  indexResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-  indexResourceDesc.Width = kIndexSize;
-  indexResourceDesc.Height = 1;
-  indexResourceDesc.DepthOrArraySize = 1;
-  indexResourceDesc.MipLevels = 1;
-  // ... (その他、バッファに必要な設定)
-  indexResourceDesc.SampleDesc.Count = 1;
-  indexResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	// 1. Default Heap にリソースを生成 (テクスチャと同じ構造)
+	D3D12_RESOURCE_DESC indexResourceDesc{};
+	indexResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	indexResourceDesc.Width = kIndexSize;
+	indexResourceDesc.Height = 1;
+	indexResourceDesc.DepthOrArraySize = 1;
+	indexResourceDesc.MipLevels = 1;
+	// ... (その他、バッファに必要な設定)
+	indexResourceDesc.SampleDesc.Count = 1;
+	indexResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
-  const D3D12_HEAP_PROPERTIES defaultIndexHeapProps =
-      CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	const D3D12_HEAP_PROPERTIES defaultIndexHeapProps =
+		CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
-  hr = DX12Context::GetInstance()->GetDevice()->CreateCommittedResource(
-      &defaultIndexHeapProps, // Default Heap!
-      D3D12_HEAP_FLAG_NONE, &indexResourceDesc, D3D12_RESOURCE_STATE_COMMON,
-      nullptr, IID_PPV_ARGS(&indexResource_));
-  assert(SUCCEEDED(hr));
+	hr = DX12Context::GetInstance()->GetDevice()->CreateCommittedResource(
+		&defaultIndexHeapProps, // Default Heap!
+		D3D12_HEAP_FLAG_NONE, &indexResourceDesc, D3D12_RESOURCE_STATE_COMMON,
+		nullptr, IID_PPV_ARGS(&indexResource_));
+	assert(SUCCEEDED(hr));
 
-  // 2. 中間アップロードリソースを生成
-  ComPtr<ID3D12Resource> indexUploadResource =
-      DX12Context::GetInstance()->CreateBufferResource(
-          kIndexSize); // UploadHeapリソース生成はここで利用
+	// 2. 中間アップロードリソースを生成
+	ComPtr<ID3D12Resource> indexUploadResource =
+		DX12Context::GetInstance()->CreateBufferResource(
+			kIndexSize); // UploadHeapリソース生成はここで利用
 
-  // 3. 中間リソースに頂点データを Map & Copy
-  uint16_t *mappedIndexData = nullptr;
-  HRESULT hrMap = indexUploadResource->Map(
-      0, nullptr, reinterpret_cast<void **>(&mappedIndexData));
-  assert(SUCCEEDED(hrMap));
+	// 3. 中間リソースに頂点データを Map & Copy
+	uint16_t* mappedIndexData = nullptr;
+	HRESULT hrMap = indexUploadResource->Map(
+		0, nullptr, reinterpret_cast<void**>(&mappedIndexData));
+	assert(SUCCEEDED(hrMap));
 
-  memcpy(mappedIndexData, indices, kIndexSize);
-  indexUploadResource->Unmap(0, nullptr); // アンマップ
+	memcpy(mappedIndexData, indices, kIndexSize);
+	indexUploadResource->Unmap(0, nullptr); // アンマップ
 
-  // 4. コマンドリストにコピーを積む
-  DX12Context::GetInstance()->GetCommandList()->CopyResource(
-      indexResource_.Get(), indexUploadResource.Get());
+	// 4. コマンドリストにコピーを積む
+	DX12Context::GetInstance()->GetCommandList()->CopyResource(
+		indexResource_.Get(), indexUploadResource.Get());
 
-  // 5. 状態遷移コマンドを積む (COPY_DEST → VERTEX_AND_CONSTANT_BUFFER)
-  D3D12_RESOURCE_BARRIER indexBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-      indexResource_.Get(), //
-      D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
+	// 5. 状態遷移コマンドを積む (COPY_DEST → VERTEX_AND_CONSTANT_BUFFER)
+	D3D12_RESOURCE_BARRIER indexBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+		indexResource_.Get(), //
+		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
 
-  DX12Context::GetInstance()->GetCommandList()->ResourceBarrier(1,
-                                                                &indexBarrier);
+	DX12Context::GetInstance()->GetCommandList()->ResourceBarrier(1,
+		&indexBarrier);
 
-  // 最後に、このリソースをリストに移動して保持する
-  intermediateResources_.push_back(indexUploadResource);
+	// 最後に、このリソースをリストに移動して保持する
+	intermediateResources_.push_back(indexUploadResource);
 
-  // --- IBV (Index Buffer View) の設定 ---
-  indexBufferView_.BufferLocation = indexResource_->GetGPUVirtualAddress();
-  indexBufferView_.SizeInBytes = kIndexSize;
-  indexBufferView_.Format =
-      DXGI_FORMAT_R16_UINT;        // uint16_t を使用するため R16_UINT
-  numIndices_ = _countof(indices); // 6を記録
+	// --- IBV (Index Buffer View) の設定 ---
+	indexBufferView_.BufferLocation = indexResource_->GetGPUVirtualAddress();
+	indexBufferView_.SizeInBytes = kIndexSize;
+	indexBufferView_.Format =
+		DXGI_FORMAT_R16_UINT;        // uint16_t を使用するため R16_UINT
+	numIndices_ = _countof(indices); // 6を記録
 
-  vertexBufferView_.SizeInBytes = sizeVB;
+	vertexBufferView_.SizeInBytes = sizeVB;
 }
 
-void ParticleManager::CreateParticleGroup(const std::string &name,
-                                          const std::string &textureFilePath) {
-  // 登録済みの名前かチェックしてassert
-  assert(particleGroups_.find(name) == particleGroups_.end());
+void ParticleManager::CreateParticleGroup(const std::string& name,
+	const std::string& textureFilePath) {
+	// 登録済みの名前かチェックしてassert
+	assert(particleGroups_.find(name) == particleGroups_.end());
 
-  // 新たな空のパーティクルグループを作成し、コンテナに登録
-  ParticleGroup newGroup;
-  newGroup.materialData.textureFilePath = textureFilePath;
+	// 新たな空のパーティクルグループを作成し、コンテナに登録
+	ParticleGroup newGroup;
+	newGroup.materialData.textureFilePath = textureFilePath;
 
-  // マテリアルデータにテクスチャのSRVインデックスを記録
-  newGroup.materialData.textureFilePath = textureFilePath;
-  TextureManager::GetInstance()->LoadTexture(
-      newGroup.materialData.textureFilePath);
+	// マテリアルデータにテクスチャのSRVインデックスを記録
+	newGroup.materialData.textureFilePath = textureFilePath;
+	TextureManager::GetInstance()->LoadTexture(
+		newGroup.materialData.textureFilePath);
 
-  // 新しいパーティクルグループのインスタンシング用リソースの生成とSRVの確保/生成
+	// 新しいパーティクルグループのインスタンシング用リソースの生成とSRVの確保/生成
 
-  // インスタンシング用にSRVを確保してSRVインデックスとGPUハンドルを記録
-  uint32_t instanceDataIndex = SrvManager::GetInstance()->Allocate();
+	// インスタンシング用にSRVを確保してSRVインデックスとGPUハンドルを記録
+	uint32_t instanceDataIndex = SrvManager::GetInstance()->Allocate();
 
-  // インスタンシング用リソース（StructuredBuffer）を生成
-  newGroup.instanceResource = DX12Context::GetInstance()->CreateBufferResource(
-      sizeof(ParticleInstanceData) * kNumMaxParticle);
+	// インスタンシング用リソース（StructuredBuffer）を生成
+	newGroup.instanceResource = DX12Context::GetInstance()->CreateBufferResource(
+		sizeof(ParticleInstanceData) * kNumMaxParticle);
 
-  // SRV生成 (StructuredBuffer用設定)
-  // StructuredBuffer用のSRVを作成します
-  SrvManager::GetInstance()->CreateSRVForStructuredBuffer(
-      instanceDataIndex, newGroup.instanceResource, kNumMaxParticle,
-      sizeof(ParticleInstanceData));
+	// SRV生成 (StructuredBuffer用設定)
+	// StructuredBuffer用のSRVを作成します
+	SrvManager::GetInstance()->CreateSRVForStructuredBuffer(
+		instanceDataIndex, newGroup.instanceResource, kNumMaxParticle,
+		sizeof(ParticleInstanceData));
 
-  // 描画時に使用するStructuredBufferのGPUハンドルをメンバに記録
-  newGroup.instanceSrvHandleGPU =
-      SrvManager::GetInstance()->GetGPUDescriptorHandle(instanceDataIndex);
+	// 描画時に使用するStructuredBufferのGPUハンドルをメンバに記録
+	newGroup.instanceSrvHandleGPU =
+		SrvManager::GetInstance()->GetGPUDescriptorHandle(instanceDataIndex);
 
-  // 書き込み用ポインタを取得し、単位行列で初期化
-  newGroup.instanceResource->Map(
-      0, nullptr, reinterpret_cast<void **>(&newGroup.mappedData));
+	// 書き込み用ポインタを取得し、単位行列で初期化
+	newGroup.instanceResource->Map(
+		0, nullptr, reinterpret_cast<void**>(&newGroup.mappedData));
 
-  // 初期値を書き込んでおく
-  ParticleInstanceData *particleData =
-      (ParticleInstanceData *)newGroup.mappedData;
-  for (uint32_t index = 0; index < kNumMaxParticle; ++index) {
-    particleData[index].WVP = MakeIdentity4x4();
-    particleData[index].World = MakeIdentity4x4();
-    particleData[index].color = {1.0f, 1.0f, 1.0f, 1.0f};
-  }
+	// 初期値を書き込んでおく
+	ParticleInstanceData* particleData =
+		(ParticleInstanceData*)newGroup.mappedData;
+	for (uint32_t index = 0; index < kNumMaxParticle; ++index) {
+		particleData[index].WVP = MakeIdentity4x4();
+		particleData[index].World = MakeIdentity4x4();
+		particleData[index].color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	}
 
-  // 1. マテリアルデータ用のCBVリソースを生成
-  const UINT kCbvAlignedSize = 256;
-  newGroup.materialResource = DX12Context::GetInstance()->CreateBufferResource(
-      (sizeof(MaterialData) + kCbvAlignedSize - 1) & ~(kCbvAlignedSize - 1));
+	// 1. マテリアルデータ用のCBVリソースを生成
+	const UINT kCbvAlignedSize = 256;
+	newGroup.materialResource = DX12Context::GetInstance()->CreateBufferResource(
+		(sizeof(MaterialData) + kCbvAlignedSize - 1) & ~(kCbvAlignedSize - 1));
 
-  // 2. リソースをMapし、ポインタを取得
-  HRESULT hr = newGroup.materialResource->Map(
-      0, nullptr, reinterpret_cast<void **>(&newGroup.materialMappedData));
-  assert(SUCCEEDED(hr));
+	// 2. リソースをMapし、ポインタを取得
+	HRESULT hr = newGroup.materialResource->Map(
+		0, nullptr, reinterpret_cast<void**>(&newGroup.materialMappedData));
+	assert(SUCCEEDED(hr));
 
-  // 3. マテリアルにデータを書き込む
-  newGroup.materialMappedData->color = {1.0f, 1.0f, 1.0f, 1.0f};
-  newGroup.materialMappedData->enableLighting =
-      0; // パーティクルではライティングを無効化 (0)
-  newGroup.materialMappedData->uvTransform = MakeIdentity4x4();
+	// 3. マテリアルにデータを書き込む
+	newGroup.materialMappedData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	newGroup.materialMappedData->enableLighting =
+		0; // パーティクルではライティングを無効化 (0)
+	newGroup.materialMappedData->uvTransform = MakeIdentity4x4();
 
-  // グループをマップに追加
-  particleGroups_.emplace(name, std::move(newGroup));
+	// グループをマップに追加
+	particleGroups_.emplace(name, std::move(newGroup));
 }
 
-void ParticleManager::Emit(const std::string &name, const Vector3 &translate,
-                           uint32_t count) {
-  // 該当するパーティクルグループを検索
-  auto it = particleGroups_.find(name);
-  if (it == particleGroups_.end()) {
-    // グループが見つからない場合は処理を中止 (またはエラー処理)
-    return;
-  }
+void ParticleManager::Emit(const std::string& name, const Vector3& translate,
+	uint32_t count) {
+	// 該当するパーティクルグループを検索
+	auto it = particleGroups_.find(name);
+	if (it == particleGroups_.end()) {
+		// グループが見つからない場合は処理を中止 (またはエラー処理)
+		return;
+	}
 
-  ParticleGroup &group = it->second;
+	ParticleGroup& group = it->second;
 
-  // 指定された個数だけパーティクルを生成
-  for (uint32_t i = 0; i < count; ++i) {
-    // MakeNewParticle でランダムな初期値を持つパーティクルを生成
-    Particle newParticle = MakeNewParticle(translate);
+	// 指定された個数だけパーティクルを生成
+	for (uint32_t i = 0; i < count; ++i) {
+		// MakeNewParticle でランダムな初期値を持つパーティクルを生成
+		Particle newParticle = MakeNewParticle(translate);
 
-    // グループ内のパーティクルリストに追加
-    group.particles.push_back(std::move(newParticle));
-  }
+		// グループ内のパーティクルリストに追加
+		group.particles.push_back(std::move(newParticle));
+	}
 }
 
 // パーティクル生成関数
-Particle ParticleManager::MakeNewParticle(const Vector3 &translate) {
+Particle ParticleManager::MakeNewParticle(const Vector3& translate) {
 
-  // 乱数分布の定義 (エンジンは引数の randomEngine を使用)
-  std::uniform_real_distribution<float> posDist(-1.0f, 1.0f);
-  std::uniform_real_distribution<float> timeDist(1.0f, 3.0f);
-  std::uniform_real_distribution<float> colorDist(0.0f,
-                                                  1.0f); // 0.0f to 1.0f に変更
+	// 乱数分布の定義 (エンジンは引数の randomEngine を使用)
+	std::uniform_real_distribution<float> distScale(0.4f, 1.5f);
+	std::uniform_real_distribution<float> distRotate(-std::numbers::pi_v<float>, std::numbers::pi_v<float>);
+	//std::uniform_real_distribution<float> distTranslate(-1.0f, 1.0f);
+	//std::uniform_real_distribution<float> distTime(1.0f, 3.0f);
+	std::uniform_real_distribution<float> distColor(0.0f, 1.0f); // 0.0f to 1.0f に変更
 
-  // パーティクルの初期化
-  Particle particle;
+	// パーティクルの初期化
+	Particle particle;
 
-  // -------------------
-  // トランスフォーム
-  // -------------------
-  particle.transform.scale = {1.0f, 1.0f, 1.0f};
-  particle.transform.rotate = {0.0f, 0.0f, 0.0f};
+	// -------------------
+	// トランスフォーム
+	// -------------------
+	particle.transform.scale = { 0.05f, distScale(randomEngine_), 1.0f };
+	particle.transform.rotate = { 0.0f, 0.0f, distRotate(randomEngine_) };
 
-  // 基準位置からのランダムなオフセットを加える
-  Vector3 randomTranslate{posDist(randomEngine_), posDist(randomEngine_),
-                          posDist(randomEngine_)};
-  particle.transform.translate = translate + randomTranslate;
+	//// 基準位置からのランダムなオフセットを加える
+	//Vector3 randomTranslate{distTranslate(randomEngine_), distTranslate(randomEngine_),
+	//                        distTranslate(randomEngine_)};
+	//particle.transform.translate = translate + randomTranslate;
+	particle.transform.translate = translate; // オフセットなしで基準位置に発生させる
 
-  // -------------------
-  // 寿命と時間
-  // -------------------
-  particle.lifeTime = timeDist(randomEngine_); // 1.0秒から 3.0秒
-  particle.currentTime = 0.0f;
+	// -------------------
+	// 速度
+	// -------------------
+	// 速度をランダムに設定 (例: -1.0から1.0の範囲)
+	/*particle.velocity = {distPos(randomEngine_), distPos(randomEngine_),
+						 distPos(randomEngine_)};*/
+	particle.velocity = { 0.0f, 0.0f, 0.0f }; // 静止させる
 
-  // -------------------
-  // 速度
-  // -------------------
-  // 速度をランダムに設定 (例: -1.0から1.0の範囲)
-  particle.velocity = {posDist(randomEngine_), posDist(randomEngine_),
-                       posDist(randomEngine_)};
+	// -------------------
+	// 寿命と時間
+	// -------------------
+	//particle.lifeTime = distTime(randomEngine_); // 1.0秒から 3.0秒
+	particle.lifeTime = 1.0f; // 固定で1秒の寿命
+	particle.currentTime = 0.0f;
 
-  // -------------------
-  // 色
-  // -------------------
-  // 色をランダムに設定 (0.0から1.0の範囲)
-  particle.color = {colorDist(randomEngine_), colorDist(randomEngine_),
-                    colorDist(randomEngine_), 1.0f}; // アルファは不透明
+	// -------------------
+	// 色
+	// -------------------
+	// 色をランダムに設定 (0.0から1.0の範囲)
+	particle.color = { distColor(randomEngine_), distColor(randomEngine_),
+					  distColor(randomEngine_), 1.0f }; // アルファは不透明
 
-  return particle;
+	return particle;
 }
 
-void ParticleManager::Update(const Camera &camera, bool &isUpdate,
-                             bool &useBillboard, float deltaTime) {
-  // 1. ビルボード行列の計算
-  // カメラの回転情報からビルボード行列を計算します
-  Matrix4x4 billboardMatrix = camera.GetWorldMatrix();
-  billboardMatrix.m[3][0] = 0.0f; // 平行移動成分を削除
-  billboardMatrix.m[3][1] = 0.0f;
-  billboardMatrix.m[3][2] = 0.0f;
-  // ※カリングがoffになっていないのなら表裏を反転 (必要に応じてコメント解除)
-  // billboardMatrix = Multiply(billboardMatrix,
-  // MakeRotateYMatrix(std::numbers::pi_v<float>));
+void ParticleManager::Update(const Camera& camera, bool& isUpdate,
+	bool& useBillboard, float deltaTime) {
+	// 1. ビルボード行列の計算
+	// カメラの回転情報からビルボード行列を計算します
+	Matrix4x4 billboardMatrix = camera.GetWorldMatrix();
+	billboardMatrix.m[3][0] = 0.0f; // 平行移動成分を削除
+	billboardMatrix.m[3][1] = 0.0f;
+	billboardMatrix.m[3][2] = 0.0f;
+	// ※カリングがoffになっていないのなら表裏を反転 (必要に応じてコメント解除)
+	// billboardMatrix = Multiply(billboardMatrix,
+	// MakeRotateYMatrix(std::numbers::pi_v<float>));
 
-  // 2. ビュー行列とプロジェクション行列をカメラから取得
-  const Matrix4x4 viewProjectionMatrix =
-      Multiply(camera.GetViewMatrix(), camera.GetProjectionMatrix());
+	// 2. ビュー行列とプロジェクション行列をカメラから取得
+	const Matrix4x4 viewProjectionMatrix =
+		Multiply(camera.GetViewMatrix(), camera.GetProjectionMatrix());
 
-  // 全てのパーティクルグループについて処理
-  for (auto &pair : particleGroups_) {
-    ParticleGroup &group = pair.second;
+	// 全てのパーティクルグループについて処理
+	for (auto& pair : particleGroups_) {
+		ParticleGroup& group = pair.second;
 
-    // ------------------------------------------
-    // I. エミッターの更新とパーティクルの生成 (資料: 更新)
-    // ------------------------------------------
+		// ------------------------------------------
+		// I. エミッターの更新とパーティクルの生成
+		// ------------------------------------------
 
-    // 1. 時刻を進める
-    group.emitter.frequencyTime += deltaTime;
+		// 1. 時刻を進める
+		group.emitter.frequencyTime += deltaTime;
 
-    // 2. 発生頻度より大きいなら発生
-    if (group.emitter.frequency > 0.0f &&
-        group.emitter.frequency <= group.emitter.frequencyTime) {
+		// 2. 発生頻度より大きいなら発生
+		if (group.emitter.frequency > 0.0f &&
+			group.emitter.frequency <= group.emitter.frequencyTime) {
 
-      // ParticleEmitter::Emit を呼び出し、ParticleManager::Emit へ処理を委譲
-      // Emitter自身の設定値 (translate, count) を使って生成を依頼する
-      group.emitter.Emit(pair.first); // pair.first はグループ名
+			// ParticleEmitter::Emit を呼び出し、ParticleManager::Emit へ処理を委譲
+			// Emitter自身の設定値 (translate, count) を使って生成を依頼する
+			group.emitter.Emit(pair.first); // pair.first はグループ名
 
-      // 余計に過ぎた時間も加味して頻度計算する (資料の指示)
-      group.emitter.frequencyTime -= group.emitter.frequency;
-    }
+			// 余計に過ぎた時間も加味して頻度計算する
+			group.emitter.frequencyTime -= group.emitter.frequency;
+		}
 
-    // ------------------------------------------
-    // II. 既存パーティクルの更新とインスタンスデータの書き込み
-    // ------------------------------------------
+		// ------------------------------------------
+		// II. 既存パーティクルの更新とインスタンスデータの書き込み
+		// ------------------------------------------
 
-    // インスタンスデータへの書き込み用ポインタ
-    ParticleInstanceData *instanceData =
-        (ParticleInstanceData *)group.mappedData;
-    uint32_t instanceIndex = 0; // 現在書き込んでいるインスタンスのインデックス
+		// インスタンスデータへの書き込み用ポインタ
+		ParticleInstanceData* instanceData =
+			(ParticleInstanceData*)group.mappedData;
+		uint32_t instanceIndex = 0; // 現在書き込んでいるインスタンスのインデックス
 
-    // グループ内の全てのパーティクルについて処理
-    auto it = group.particles.begin();
-    while (it != group.particles.end()) {
-      Particle &particle = *it;
+		// グループ内の全てのパーティクルについて処理
+		auto it = group.particles.begin();
+		while (it != group.particles.end()) {
+			Particle& particle = *it;
 
-      // 1. フィールドの影響計算 (場の影響)
-      if (isUpdate) {
-        AccelerationField accelerationField;
-        accelerationField.acceleration = {15.0f, 0.0f, 0.0f};
-        accelerationField.area.min = {-1.0f, -1.0f, -1.0f};
-        accelerationField.area.max = {1.0f, 1.0f, 1.0f};
+			// 1. フィールドの影響計算 (場の影響)
+			if (isUpdate) {
+				AccelerationField accelerationField;
+				accelerationField.acceleration = { 15.0f, 0.0f, 0.0f };
+				accelerationField.area.min = { -1.0f, -1.0f, -1.0f };
+				accelerationField.area.max = { 1.0f, 1.0f, 1.0f };
 
-        if (IsCollision(accelerationField.area, particle.transform.translate)) {
-          particle.velocity += accelerationField.acceleration * deltaTime;
-        }
-      }
+				if (IsCollision(accelerationField.area, particle.transform.translate)) {
+					particle.velocity += accelerationField.acceleration * deltaTime;
+				}
+			}
 
-      // 2. 移動処理
-      particle.transform.translate =
-          particle.transform.translate + (particle.velocity * deltaTime);
+			// 2. 移動処理
+			/*particle.transform.translate =
+				particle.transform.translate + (particle.velocity * deltaTime);*/
 
-      // 3. 経過時間とアルファ値の計算
-      particle.currentTime += deltaTime;
-      float alpha = 1.0f - (particle.currentTime / particle.lifeTime);
+				// 3. 経過時間とアルファ値の計算
+			particle.currentTime += deltaTime;
+			float alpha = 1.0f - (particle.currentTime / particle.lifeTime);
 
-      // 4. 寿命チェックと削除
-      if (particle.currentTime >= particle.lifeTime) {
-        it = group.particles.erase(it);
-        continue;
-      }
+			// 4. 寿命チェックと削除
+			if (particle.currentTime >= particle.lifeTime) {
+				it = group.particles.erase(it);
+				continue;
+			}
 
-      // 5. インスタンシングデータの書き込み (行列計算とGPU転送)
-      if (instanceIndex < kNumMaxParticle) {
+			// 5. インスタンシングデータの書き込み (行列計算とGPU転送)
+			if (instanceIndex < kNumMaxParticle) {
 
-        // ... (行列計算のロジックは前回の修正案を適用) ...
-        Matrix4x4 finalWorldMatrix;
-        // --- 修正案 B (行列乗算) を再掲 ---
-        Matrix4x4 scaleMatrix = MakeScaleMatrix(particle.transform.scale);
-        Matrix4x4 billboardMatrix{};
+				Matrix4x4 finalWorldMatrix;
+				// --- パーティクルの変換行列計算 ---
+				Matrix4x4 scaleMatrix = MakeScaleMatrix(particle.transform.scale);
+				Matrix4x4 rotateMatrix = MakeRotateXYZMatrix(particle.transform.rotate); // パーティクル自身の回転を追加
+				Matrix4x4 billboardMatrix{};
 
-        // useBillboard が true の場合のみビルボード行列を適用
-        if (useBillboard) {
-          billboardMatrix = camera.GetWorldMatrix();
-          billboardMatrix.m[3][0] = 0.0f;
-          billboardMatrix.m[3][1] = 0.0f;
-          billboardMatrix.m[3][2] = 0.0f;
-        } else {
-          billboardMatrix = MakeIdentity4x4();
-        }
+				// useBillboard が true の場合のみビルボード行列を適用
+				if (useBillboard) {
+					billboardMatrix = camera.GetWorldMatrix();
+					billboardMatrix.m[3][0] = 0.0f;
+					billboardMatrix.m[3][1] = 0.0f;
+					billboardMatrix.m[3][2] = 0.0f;
+				}
+				else {
+					billboardMatrix = MakeIdentity4x4();
+				}
 
-        Matrix4x4 scaleRotateMatrix = Multiply(scaleMatrix, billboardMatrix);
-        finalWorldMatrix = scaleRotateMatrix;
-        finalWorldMatrix.m[3][0] = particle.transform.translate.x;
-        finalWorldMatrix.m[3][1] = particle.transform.translate.y;
-        finalWorldMatrix.m[3][2] = particle.transform.translate.z;
-        // --- 修正案 B ここまで ---
+				// 回転を合成 (スケール -> パーティクル回転 -> ビルボード回転)
+				Matrix4x4 rotateBillboardMatrix = Multiply(rotateMatrix, billboardMatrix);
+				finalWorldMatrix = Multiply(scaleMatrix, rotateBillboardMatrix);
 
-        Matrix4x4 wvpMatrix = Multiply(finalWorldMatrix, viewProjectionMatrix);
+				// 平行移動を適用
+				finalWorldMatrix.m[3][0] = particle.transform.translate.x;
+				finalWorldMatrix.m[3][1] = particle.transform.translate.y;
+				finalWorldMatrix.m[3][2] = particle.transform.translate.z;
+				// ---------------------------------
 
-        // GPU転送
-        instanceData[instanceIndex].WVP = wvpMatrix;
-        instanceData[instanceIndex].World = finalWorldMatrix;
-        instanceData[instanceIndex].color = particle.color;
-        instanceData[instanceIndex].color.w = alpha; // 透明度適用
+				Matrix4x4 wvpMatrix = Multiply(finalWorldMatrix, viewProjectionMatrix);
 
-        instanceIndex++;
-      }
+				// GPU転送
+				instanceData[instanceIndex].WVP = wvpMatrix;
+				instanceData[instanceIndex].World = finalWorldMatrix;
+				instanceData[instanceIndex].color = particle.color;
+				instanceData[instanceIndex].color.w = alpha; // 透明度適用
 
-      ++it;
-    }
+				instanceIndex++;
+			}
 
-    // グループの描画インスタンス数を更新
-    group.instanceCount = instanceIndex;
-  }
+			++it;
+		}
+
+		// グループの描画インスタンス数を更新
+		group.instanceCount = instanceIndex;
+	}
 }
 
 void ParticleManager::Draw(BlendMode::BlendState blendMode) {
-  // 1. コマンド: ルートシグネチャを設定
-  DX12Context::GetInstance()->GetCommandList()->SetGraphicsRootSignature(
-      PipelineManager::GetInstance()->GetParticleRootSignature());
+	// 1. コマンド: ルートシグネチャを設定
+	DX12Context::GetInstance()->GetCommandList()->SetGraphicsRootSignature(
+		PipelineManager::GetInstance()->GetParticleRootSignature());
 
-  // 2. コマンド: PSO(Pipeline State Object)を設定
-  DX12Context::GetInstance()->GetCommandList()->SetPipelineState(
-      particlePsoArray_[blendMode].Get());
-  // PSOのインデックスは、ParticleManager::Initializeで生成したブレンドモードの配列順に合わせる
+	// 2. コマンド: PSO(Pipeline State Object)を設定
+	DX12Context::GetInstance()->GetCommandList()->SetPipelineState(
+		particlePsoArray_[blendMode].Get());
+	// PSOのインデックスは、ParticleManager::Initializeで生成したブレンドモードの配列順に合わせる
 
-  // 3. コマンド: プリミティブトポロジー (描画形状)を設定
-  DX12Context::GetInstance()->GetCommandList()->IASetPrimitiveTopology(
-      D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	// 3. コマンド: プリミティブトポロジー (描画形状)を設定
+	DX12Context::GetInstance()->GetCommandList()->IASetPrimitiveTopology(
+		D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-  // 4. コマンド: VBV(Vertex Buffer View)を設定
-  DX12Context::GetInstance()->GetCommandList()->IASetVertexBuffers(
-      0, 1, &vertexBufferView_);
-  // インデックスバッファビューを設定
-  DX12Context::GetInstance()->GetCommandList()->IASetIndexBuffer(
-      &indexBufferView_);
+	// 4. コマンド: VBV(Vertex Buffer View)を設定
+	DX12Context::GetInstance()->GetCommandList()->IASetVertexBuffers(
+		0, 1, &vertexBufferView_);
+	// インデックスバッファビューを設定
+	DX12Context::GetInstance()->GetCommandList()->IASetIndexBuffer(
+		&indexBufferView_);
 
-  // 5. 全てのパーティクルグループについて処理
-  // 1グループ分で1DrawCallなので、こちらは二重for文にはならない。
-  for (auto &pair : particleGroups_) {
-    ParticleGroup &group = pair.second;
+	// 5. 全てのパーティクルグループについて処理
+	// 1グループ分で1DrawCallなので、こちらは二重for文にはならない。
+	for (auto& pair : particleGroups_) {
+		ParticleGroup& group = pair.second;
 
-    // 描画インスタンス数が0の場合はスキップ
-    if (group.instanceCount == 0) {
-      continue;
-    }
+		// 描画インスタンス数が0の場合はスキップ
+		if (group.instanceCount == 0) {
+			continue;
+		}
 
-    // コマンド：マテリアルデータのCBVを設定 (RootParameter[0])
-    if (group.materialResource) {
-      DX12Context::GetInstance()
-          ->GetCommandList()
-          ->SetGraphicsRootConstantBufferView(
-              0, group.materialResource->GetGPUVirtualAddress());
+		// コマンド：マテリアルデータのCBVを設定 (RootParameter[0])
+		if (group.materialResource) {
+			DX12Context::GetInstance()
+				->GetCommandList()
+				->SetGraphicsRootConstantBufferView(
+					0, group.materialResource->GetGPUVirtualAddress());
 
-    } else {
-      // 警告またはアサート: マテリアルリソースがNULLです
-      assert(false && "Material Resource is NULL in Draw");
-    }
+		}
+		else {
+			// 警告またはアサート: マテリアルリソースがNULLです
+			assert(false && "Material Resource is NULL in Draw");
+		}
 
-    // コマンド：インスタンシングデータのSRVのDescriptorTableを設定(RootParameter[1])
-    DX12Context::GetInstance()
-        ->GetCommandList()
-        ->SetGraphicsRootDescriptorTable(1, group.instanceSrvHandleGPU);
+		// コマンド：インスタンシングデータのSRVのDescriptorTableを設定(RootParameter[1])
+		DX12Context::GetInstance()
+			->GetCommandList()
+			->SetGraphicsRootDescriptorTable(1, group.instanceSrvHandleGPU);
 
-    // コマンド：テクスチャのSRVのDescriptorTableを設定(RootParameter[2])
-    DX12Context::GetInstance()
-        ->GetCommandList()
-        ->SetGraphicsRootDescriptorTable(
-            2, TextureManager::GetInstance()->GetSrvHandleGPU(
-                   group.materialData.textureFilePath));
+		// コマンド：テクスチャのSRVのDescriptorTableを設定(RootParameter[2])
+		DX12Context::GetInstance()
+			->GetCommandList()
+			->SetGraphicsRootDescriptorTable(
+				2, TextureManager::GetInstance()->GetSrvHandleGPU(
+					group.materialData.textureFilePath));
 
-    // コマンド：DrawCall (インスタンシング描画)
-    // インスタンス数: group.instanceCount
-    if (group.instanceCount > 0) {
-      DX12Context::GetInstance()->GetCommandList()->DrawIndexedInstanced(
-          numIndices_, // ParticleManager::numIndices_
-          group.instanceCount, 0, 0, 0);
-    }
+		// コマンド：DrawCall (インスタンシング描画)
+		// インスタンス数: group.instanceCount
+		if (group.instanceCount > 0) {
+			DX12Context::GetInstance()->GetCommandList()->DrawIndexedInstanced(
+				numIndices_, // ParticleManager::numIndices_
+				group.instanceCount, 0, 0, 0);
+		}
 
-    // DX12Context::GetInstance()->GetCommandList()->DrawInstanced(6,
-    // group.instanceCount, 0, 0);
-  }
+		// DX12Context::GetInstance()->GetCommandList()->DrawInstanced(6,
+		// group.instanceCount, 0, 0);
+	}
 }
