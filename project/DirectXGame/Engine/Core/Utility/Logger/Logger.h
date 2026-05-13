@@ -5,11 +5,13 @@
 
 // ログ出力
 namespace Logger {
-void InitializeFileLogging();
+	void RotateLogFiles();
 
-void Log(const std::string &message);
+	void InitializeFileLogging();
 
-void Log(std::ostream &os, const std::string &message);
+	void Log(const std::string& message);
 
-void SetFileStream(std::ofstream *stream);
+	void Log(std::ostream& os, const std::string& message);
+
+	void SetFileStream(std::ofstream* stream);
 }; // namespace Logger

@@ -6,11 +6,11 @@ on:
 env:
   # リポジトリのルートディレクトリを基点としたソリューションファイルのパス
   SOLUTION_FILE_PATH: project/DirectXGame.sln
-  # Visual Studio の構成(Debug / Release )
+  # Visual Studio の構成(Debug / Development / Release)
   CONFIGURATION: Release
 jobs:
   build:
-    runs-on:  windows-2022
+    runs-on:  windows-2025-vs2026
 
     steps:
       - name: Checkout

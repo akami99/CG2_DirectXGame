@@ -1,3 +1,5 @@
+#include "../Logger/Logger.h"
+
 #include <chrono>
 #include <dxgidebug.h>
 #include <filesystem>
@@ -5,61 +7,89 @@
 #include <iostream>
 #include <string>
 
-#include "../Logger/Logger.h"
+namespace fs = std::filesystem;
 
 namespace Logger {
-// 【ファイル書き込みに使うポインタ】Log関数で使用
-static std::ofstream *fileStream = nullptr;
+	// 内部管理用の静的変数
+	// 【ファイルストリームの実体】初期化関数内でオープンし、Log関数へアドレスを渡す
+	static std::ofstream logStream;
+    // 【ファイル書き込みに使うポインタ】Log関数で使用
+	static std::ofstream* fileStream = nullptr;
 
-// 【ファイルストリームの実体】初期化関数内でオープンし、Log関数へアドレスを渡す
-static std::ofstream logStream;
+	// 設定定数
+	const std::string LOG_DIR = "logs";
+	const std::string CURRENT_FILE = "current.log";
+	const int MAX_BACKUPS = 2; // backup_1 と backup_2 の計2つ
 
-void SetFileStream(std::ofstream *stream) { fileStream = stream; }
+	void SetFileStream(std::ofstream* stream) { fileStream = stream; }
 
-void InitializeFileLogging() {
-  // ログのディレクトリを用意
-  const std::string logDir = "logs";
+	/// <summary>
+	/// 古いログファイルをリネームして整理する
+	/// </summary>
+	void RotateLogFiles() {
+		// 古いバックアップから順に後ろへずらす
+		// backup_1.log -> backup_2.log
+		for (int i = MAX_BACKUPS; i > 1; --i) {
+			std::string oldPath = LOG_DIR + "/backup_" + std::to_string(i - 1) + ".log";
+			std::string newPath = LOG_DIR + "/backup_" + std::to_string(i) + ".log";
 
-  // ディレクトリ作成を試みる
-  if (std::filesystem::create_directories(logDir) ||
-      std::filesystem::exists(logDir)) {
-    // 現在時刻を取得からファイル名生成はそのまま...
-    std::chrono::system_clock::time_point now =
-        std::chrono::system_clock::now();
-    std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>
-        nowSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
-    std::chrono::zoned_time localTime{std::chrono::current_zone(), nowSeconds};
-    std::string dateString = std::format("{:%Y%m%d_%H%M%S}", localTime);
+			if (fs::exists(oldPath)) {
+				// 既存の backup_2 があれば削除して置換
+				if (fs::exists(newPath)) fs::remove(newPath);
+				fs::rename(oldPath, newPath);
+			}
+		}
 
-    // 時刻を使ってファイル名を決定
-    std::string logFilePath = logDir + "/" + dateString + ".log";
+		// 現在のメインログをバックアップへ移動
+		// current.log -> backup_1.log
+		std::string currentPath = LOG_DIR + "/" + CURRENT_FILE;
+		std::string firstBackupPath = LOG_DIR + "/backup_1.log";
 
-    // ファイルを作って書き込み準備
-    logStream.open(logFilePath);
+		if (fs::exists(currentPath)) {
+			if (fs::exists(firstBackupPath)) fs::remove(firstBackupPath);
+			fs::rename(currentPath, firstBackupPath);
+		}
+	}
 
-    // ファイルオープンに成功した場合のみ、ロガーを有効化する
-    if (logStream.is_open()) {
-      // Logger.cpp内部の静的ストリームポインタ（fileStream）を設定
-      Logger::SetFileStream(&logStream);
+	void InitializeFileLogging() {
+		// ディレクトリの作成
+		if (!fs::exists(LOG_DIR)) {
+			fs::create_directories(LOG_DIR);
+		}
 
-      Logger::Log("--- Program Initialized Logging Successfully ---\n");
-    }
-  }
-}
+		// ファイルの世代交代を実行
+		RotateLogFiles();
 
-void Log(const std::string &message) {
-  // VS出力に出力
-  OutputDebugStringA(message.c_str());
+		// 新しいログファイルをオープン
+		std::string logPath = LOG_DIR + "/" + CURRENT_FILE;
+		logStream.open(logPath, std::ios::out);
 
-  // ファイルストリームが有効ならファイルにも書き込む
-  if (fileStream && fileStream->is_open()) {
-    (*fileStream) << message << std::endl;
-    fileStream->flush(); // 即時書き込みを保証
-  }
-}
+		if (logStream.is_open()) {
+			SetFileStream(&logStream);
 
-void Log(std::ostream &os, const std::string &message) {
-  os << message << std::endl;
-  OutputDebugStringA(message.c_str());
-}
+			// ログのヘッダーに開始時刻を記録しておく
+			auto now = std::chrono::system_clock::now();
+			std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>
+				nowSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
+			std::chrono::zoned_time localTime{ std::chrono::current_zone(), nowSeconds };
+			std::string dateStr = std::format("{:%Y-%m-%d %H:%M:%S}", localTime);
+			Log("\n--- Logging Started: " + dateStr + " ---\n");
+		}
+	}
+
+	void Log(const std::string& message) {
+		// VS出力に出力
+		OutputDebugStringA((message + "\n").c_str());
+
+		// ファイルストリームが有効ならファイルにも書き込む
+		if (fileStream && fileStream->is_open()) {
+			(*fileStream) << message << std::endl;
+			fileStream->flush(); // 即時書き込みを保証
+		}
+	}
+
+	void Log(std::ostream& os, const std::string& message) {
+		os << message << std::endl;
+		OutputDebugStringA(message.c_str());
+	}
 } // namespace Logger
