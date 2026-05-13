@@ -42,12 +42,16 @@ void MyGame::Initialize() {
 
   
   // ポストエフェクト用PSOの生成
-  postProcessPSO_ = PipelineManager::GetInstance()->CreatePostProcessPSO();
+  postProcessPSO_  = PipelineManager::GetInstance()->CreatePostProcessPSO();  // CopyImage (passthrough)
+  colorFilterPSO_  = PipelineManager::GetInstance()->CreateColorFilterPSO();  // グレースケール/セピア
   
   // ポストエフェクト用定数バッファの生成
   postProcessParamsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(PostProcessParams));
   postProcessParamsResource_->Map(0, nullptr, reinterpret_cast<void**>(&postProcessParamsData_));
-  postProcessParamsData_->intensity = 0.5f; // デフォルト値
+  // デフォルト: コピー(無効果) → white (1,1,1)
+  postProcessParamsData_->colorScale[0] = 1.0f;
+  postProcessParamsData_->colorScale[1] = 1.0f;
+  postProcessParamsData_->colorScale[2] = 1.0f;
 
   // 追加した初期化コマンド（テクスチャ転送等）を実行し、GPUの完了を待つ
   DX12Context::GetInstance()->ExecuteInitialCommandAndSync();
@@ -74,11 +78,21 @@ void MyGame::Update() {
     // シーンマネージャに現在のシーンを更新させる
     SceneManager::GetInstance()->Update();
 
-    // ImGuiの受付終了 (内部的な終了処理)
-    imGuiManager_->End();
-
     // ライト更新
     LightManager::GetInstance()->Update();
+
+#ifdef USE_IMGUI
+    // ポストエフェクトモード選択ImGui
+    ImGui::SetNextWindowPos(ImVec2(10.0f, 210.0f), ImGuiCond_Once);
+    ImGui::SetNextWindowSize(ImVec2(280.0f, 100.0f), ImGuiCond_Once);
+    ImGui::Begin("PostEffect");
+    ImGui::Combo("Mode", &postEffectMode_,
+        "Copy (None)\0GrayScale\0Sepia\0");
+    ImGui::End();
+#endif
+
+    // ImGuiの受付終了 (内部的な終了処理)
+    imGuiManager_->End();
 }
 
 void MyGame::Draw() {
@@ -99,15 +113,35 @@ void MyGame::Draw() {
     DX12Context::GetInstance()->SetBackBufferAsRenderTarget();
     SrvManager::GetInstance()->PreDraw(); // SRV用のヒープをセット
 
-    // ポストエフェクト用パイプラインをセット
+    // 共通のルートシグネチャをセット (CopyImage / ColorFilter 両方同じものを使用)
     commandList->SetGraphicsRootSignature(PipelineManager::GetInstance()->GetPostProcessRootSignature());
-    commandList->SetPipelineState(postProcessPSO_.Get());
-    
-    // 定数バッファをセット
-    commandList->SetGraphicsRootConstantBufferView(0, postProcessParamsResource_->GetGPUVirtualAddress());
-    
-    // テクスチャ（オフスクリーン描画結果）をセット
+
+    // テクスチャ（オフスクリーン描画結果）をSRVスロット(t0)にセット
     SrvManager::GetInstance()->SetGraphicsRootDescriptorTable(1, renderTexture_->GetSrvIndex());
+
+    // モードに応じてPSOと定数バッファの値を切り替える
+    if (postEffectMode_ == 0) {
+        // コピー (passthrough) — CopyImage.PS.hlsl は定数バッファ不要
+        commandList->SetPipelineState(postProcessPSO_.Get());
+        // b0 はシェーダーが参照しないが、バリデーション用に一応セット
+        commandList->SetGraphicsRootConstantBufferView(0, postProcessParamsResource_->GetGPUVirtualAddress());
+    } else {
+        // グレースケール or セピア — Grayscale.PS.hlsl (b0 = ColorFilter CBV 必須)
+        commandList->SetPipelineState(colorFilterPSO_.Get());
+
+        if (postEffectMode_ == 1) {
+            // グレースケール: colorScale = (1, 1, 1)
+            postProcessParamsData_->colorScale[0] = 1.0f;
+            postProcessParamsData_->colorScale[1] = 1.0f;
+            postProcessParamsData_->colorScale[2] = 1.0f;
+        } else { // mode == 2
+            // セピア: RGB(112, 74, 43) を最大値112で正規化
+            postProcessParamsData_->colorScale[0] = 1.0f;
+            postProcessParamsData_->colorScale[1] = 74.0f / 112.0f;  // ~0.661
+            postProcessParamsData_->colorScale[2] = 43.0f / 112.0f;  // ~0.384
+        }
+        commandList->SetGraphicsRootConstantBufferView(0, postProcessParamsResource_->GetGPUVirtualAddress());
+    }
 
     // 全画面三角形の描画 (頂点バッファは使わず、Shader内のSV_VertexIDで生成)
     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
