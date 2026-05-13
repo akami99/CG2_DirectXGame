@@ -10,6 +10,7 @@
 #include "Object3d.h"
 #include "Sprite.h"
 #include "Skybox.h"
+#include "BlendMode.h"
 
 class GamePlayScene : public BaseScene {
 public:
@@ -26,8 +27,6 @@ private:
     void UpdateImGui();
 
 private:
-    // --- ここから下は MyGame.h から移動してきたゲーム固有変数 ---
-
     // カメラ
     std::unique_ptr<Camera> camera_;
 
@@ -41,17 +40,21 @@ private:
     std::vector < std::unique_ptr<Object3d>> object3ds_;
     std::vector<std::unique_ptr<Sprite>> sprites_;
 
-    // パーティクル設定など
-    Vector3 particleRotation_{};
-    bool isShowParticle_ = false;
-    bool isShowSkybox_ = false;
-    bool isUpdateParticle_ = true;
-    bool useBillboard_ = true;
-    int objectControlIndex_ = 0;
-    int currentBlendMode_ = 1;  // NormalBlend
-    int particleBlendMode_ = 2; // AddBlend
-    bool isShowMaterial_ = true;
-    bool isShowSprite_ = false;
+    // 設定
+	Vector3 particleRotation_{};    // パーティクルの回転（ImGuiで操作する用）
+	bool isShowParticle_ = true;    // パーティクルの表示フラグ
+	bool isShowSkybox_ = true;      // スカイボックスの表示フラグ
+	bool isShowMaterial_ = true;    // マテリアルを持つオブジェクトの表示フラグ
+	bool isShowSprite_ = false;     // スプライトの表示フラグ
+	bool isUpdateParticle_ = false; // パーティクルの更新フラグ
+	bool useBillboard_ = true;      // パーティクルのビルボード使用フラグ
+	int objectControlIndex_ = 0;    // ImGuiで操作するオブジェクトのインデックス
+
+	// ブレンドモード
+    // 描画に使用するブレンドモードのインデックス（ImGuiで操作する用）
+	int currentBlendMode_ = BlendMode::BlendState::kBlendModeNormal;
+	// パーティクルのブレンドモードのインデックス（ImGuiで操作する用）
+    int particleBlendMode_ = BlendMode::BlendState::kBlendModeAdd;
 
     // パス定数
     // 3Dモデルのファイルパス
@@ -64,7 +67,7 @@ private:
     const std::string uvCheckerPath_ = "uvChecker.png";
     const std::string monsterBallPath_ = "monsterBall.png";
     const std::string grassPath_ = "grass.png";
-    const std::string particleTexturePath_ = "circle.png";
+    const std::string particleTexturePath_ = "circle2.png";
 	// ※DDSファイルはSRVのインデックスを指定して読み込む必要があるため、パス定数は用意しない
     // パーティクルグループの作成
     const std::string particleGroupName_ = "TestGroup";
