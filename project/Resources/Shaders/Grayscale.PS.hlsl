@@ -7,7 +7,7 @@ SamplerState gSampler : register(s0);
 cbuffer ColorFilter : register(b0)
 {
     float3 gColorScale; // (1,1,1) でグレースケール、セピア値でセピア調
-    float  gPadding;    // 16バイトアライメント用パディング
+    float  gStrength;   // 0.0f: 元の色, 1.0f: フィルター色
 };
 
 struct PixelShaderOutput
@@ -24,9 +24,10 @@ PixelShaderOutput main(VertexShaderOutput input)
     float luminance = dot(textureColor.rgb, float3(0.2125f, 0.7154f, 0.0721f));
 
     // 輝度にカラースケールを掛ける
-    // gColorScale = (1, 1, 1)           -> グレースケール
-    // gColorScale = (1, 0.69, 0.40) 等 -> セピア調
-    output.color.rgb = luminance * gColorScale;
+    float3 filterColor = luminance * gColorScale;
+
+    // strength に基づいて lerp
+    output.color.rgb = lerp(textureColor.rgb, filterColor, gStrength);
     output.color.a   = textureColor.a;
 
     return output;

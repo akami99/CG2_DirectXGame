@@ -10,116 +10,167 @@ std::unique_ptr<Input> Input::instance_ = nullptr;
 
 // シングルトンインスタンスの取得
 Input* Input::GetInstance() {
-    if (instance_ == nullptr) {
-        // Token{} を渡せるのは Input クラス内だけ！
-        instance_ = std::make_unique<Input>(Token{});
-    }
-    return instance_.get();
+	if (instance_ == nullptr) {
+		// Token{} を渡せるのは Input クラス内だけ！
+		instance_ = std::make_unique<Input>(Token{});
+	}
+	return instance_.get();
 }
 
 // 終了処理(明示的に破棄したい場合)
 void Input::Destroy() {
-    instance_.reset(); // これでデストラクタが呼ばれる
+	instance_.reset(); // これでデストラクタが呼ばれる
 }
 
 // コンストラクタ
 Input::Input(Token) {
-    // コンストラクタでの特別な処理があれば記述
-    // 現在はメンバ初期化子で初期化済み
+	// コンストラクタでの特別な処理があれば記述
+	// 現在はメンバ初期化子で初期化済み
 }
 
 // デストラクタ
 // DirectInputオブジェクトとキーボードデバイスを解放する
 Input::~Input() {
-  if (keyboard_) {
-    keyboard_->Unacquire(); // デバイスの取得を解除
-  }
+	if (keyboard_) {
+		keyboard_->Unacquire(); // デバイスの取得を解除
+	}
 }
 
 // 初期化
 // ウィンドウハンドルとHINSTANCEを引数として受け取る
 void Input::Initialize() {
-  ZeroMemory(key_, sizeof(key_));
-  ZeroMemory(preKey_, sizeof(preKey_));
+	ZeroMemory(key_, sizeof(key_));
+	ZeroMemory(preKey_, sizeof(preKey_));
 
-  // DirectInputの初期化
-  HRESULT result;
+	// DirectInputの初期化
+	HRESULT result;
 
-  result =
-      DirectInput8Create(Win32Window::GetInstance()->GetHinstance(), DIRECTINPUT_VERSION,
-                         IID_IDirectInput8, (void **)&directInput_, nullptr);
-  assert(SUCCEEDED(result));
+	result =
+		DirectInput8Create(Win32Window::GetInstance()->GetHinstance(), DIRECTINPUT_VERSION,
+			IID_IDirectInput8, (void**)&directInput_, nullptr);
+	assert(SUCCEEDED(result));
 
-  // キーボードデバイスの生成
-  result = directInput_->CreateDevice(GUID_SysKeyboard, &keyboard_, NULL);
-  assert(SUCCEEDED(result));
+#pragma region Keyboard Initialization
+	// キーボードデバイスの生成
+	result = directInput_->CreateDevice(GUID_SysKeyboard, &keyboard_, NULL);
+	assert(SUCCEEDED(result));
 
-  // 入力データ形式のセット
-  result = keyboard_->SetDataFormat(
-      &c_dfDIKeyboard); // c_dfDIKeyboardはDirectInputで定義済み
-  assert(SUCCEEDED(result));
+	// 入力データ形式のセット
+	result = keyboard_->SetDataFormat(
+		&c_dfDIKeyboard); // c_dfDIKeyboardはDirectInputで定義済み
+	assert(SUCCEEDED(result));
 
-  // 排他制御のレベルのセット
-  result = keyboard_->SetCooperativeLevel(
-      Win32Window::GetInstance()->GetHwnd(),
-      DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
-  assert(SUCCEEDED(result));
+	// 排他制御のレベルのセット
+	result = keyboard_->SetCooperativeLevel(
+		Win32Window::GetInstance()->GetHwnd(),
+		DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
+	assert(SUCCEEDED(result));
 
-  // デバイスの取得開始 (Acquire)
-  // 初期化時に一度Acquireしておくと、初回UpdateでGetDeviceStateを呼ぶ際にエラーになりにくい
-  keyboard_->Acquire();
+	// デバイスの取得開始 (Acquire)
+	// 初期化時に一度Acquireしておくと、初回UpdateでGetDeviceStateを呼ぶ際にエラーになりにくい
+	keyboard_->Acquire();
+#pragma endregion Keyboard Initializationここまで
+
+#pragma region Mouse Initialization
+	// マウスデバイスの生成
+	result = directInput_->CreateDevice(GUID_SysMouse, &mouse_, NULL);
+	assert(SUCCEEDED(result));
+
+	// データ形式のセット (マウス用)
+	result = mouse_->SetDataFormat(&c_dfDIMouse2); // 8ボタンマウスまで対応
+	assert(SUCCEEDED(result));
+
+	// 排他制御のレベルセット
+	// マウスをウィンドウ内に閉じ込めるなら DISCL_EXCLUSIVE 
+	result = mouse_->SetCooperativeLevel(
+		Win32Window::GetInstance()->GetHwnd(),
+		DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+	assert(SUCCEEDED(result));
+
+	mouse_->Acquire();
+#pragma endregion Mouse Initializationここまで
 }
 
 // キーボードの状態を更新する関数 (毎フレーム呼び出す)
 void Input::Update() {
-  HRESULT result;
+	HRESULT result;
 
-  // 前回の状態を現在の状態として保存
-  memcpy(preKey_, key_, sizeof(key_));
+#pragma region Mouse State Update
+	// 前回の状態を現在の状態として保存
+	memcpy(preKey_, key_, sizeof(key_));
 
-  // 現在のキー状態を取得
-  result = keyboard_->GetDeviceState(sizeof(key_), key_);
+	// 現在のキー状態を取得
+	result = keyboard_->GetDeviceState(sizeof(key_), key_);
 
-  // デバイスがロストした場合の処理 (フォアグラウンドから切り替わった場合など)
-  if (FAILED(result)) {
-    // 再びAcquireを試みる
-    result = keyboard_->Acquire();
-    if (SUCCEEDED(result)) {
-      // 再Acquireに成功したら再度状態を取得
-      keyboard_->GetDeviceState(sizeof(key_), key_);
-    } else {
-      // 再Acquireにも失敗した場合は、キー状態を全てクリアする
-      ZeroMemory(key_, sizeof(key_));
-    }
-  }
+	// デバイスがロストした場合の処理 (フォアグラウンドから切り替わった場合など)
+	if (FAILED(result)) {
+		// 再びAcquireを試みる
+		result = keyboard_->Acquire();
+		if (SUCCEEDED(result)) {
+			// 再Acquireに成功したら再度状態を取得
+			keyboard_->GetDeviceState(sizeof(key_), key_);
+		}
+		else {
+			// 再Acquireにも失敗した場合は、キー状態を全てクリアする
+			ZeroMemory(key_, sizeof(key_));
+		}
+	}
+#pragma endregion Mouse State Updateここまで
+
+#pragma region Mouse State Update
+	preMouseState_ = mouseState_; // 前回の状態を保存
+	result = mouse_->GetDeviceState(sizeof(DIMOUSESTATE2), &mouseState_);
+
+	if (FAILED(result)) {
+		mouse_->Acquire();
+		mouse_->GetDeviceState(sizeof(DIMOUSESTATE2), &mouseState_);
+	}
+#pragma endregion Mouse State Updateここまで
 }
 
 // 指定されたキーが押されているか (押しっぱなしも含む)
 bool Input::IsKeyDown(BYTE keyNumber) {
-  // キーが押されているかをチェック
-  if (key_[keyNumber]) {
-    return true;
-  }
-  // 押されていない
-  return false;
+	// キーが押されているかをチェック
+	if (key_[keyNumber]) {
+		return true;
+	}
+	// 押されていない
+	return false;
 }
 
 // 指定されたキーが押された瞬間か (トリガー)
 bool Input::IsKeyTriggered(BYTE keyNumber) {
-  // 押された瞬間かをチェック
-  if (!(preKey_[keyNumber]) && (key_[keyNumber] & 0x80)) {
-    return true;
-  }
-  // 押された瞬間ではない
-  return false;
+	// 押された瞬間かをチェック
+	if (!(preKey_[keyNumber]) && (key_[keyNumber] & 0x80)) {
+		return true;
+	}
+	// 押された瞬間ではない
+	return false;
 }
 
 // 指定されたキーが離された瞬間か
 bool Input::IsKeyReleased(BYTE keyNumber) {
-  // 離された瞬間かをチェック
-  if ((preKey_[keyNumber] & 0x80) && !(key_[keyNumber] & 0x80)) {
-    return true;
-  }
-  // 離された瞬間ではない
-  return false;
+	// 離された瞬間かをチェック
+	if ((preKey_[keyNumber] & 0x80) && !(key_[keyNumber] & 0x80)) {
+		return true;
+	}
+	// 離された瞬間ではない
+	return false;
+}
+
+void Input::GetMouseMove(long& x, long& y)
+{
+	x = mouseState_.lX;
+	y = mouseState_.lY;
+}
+
+bool Input::IsMouseButtonDown(int button)
+{
+	return (mouseState_.rgbButtons[button] & 0x80);
+}
+
+bool Input::IsMouseButtonTriggered(int button)
+{
+	return (mouseState_.rgbButtons[button] & 0x80) &&
+		!(preMouseState_.rgbButtons[button] & 0x80);
 }

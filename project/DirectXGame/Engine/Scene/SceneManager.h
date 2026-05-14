@@ -28,6 +28,9 @@ public:
     // 更新処理（シーンの切り替えチェックもここで行う）
     void Update();
 
+    // オフスクリーン描画処理
+    void DrawOffscreen();
+
     // 描画処理
     void Draw();
 

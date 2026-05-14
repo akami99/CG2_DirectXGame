@@ -26,6 +26,7 @@ public:
     // ゲッター
     uint32_t GetSrvIndex() const { return srvIndex_; }
     ID3D12Resource* GetResource() const { return resource_.Get(); }
+    D3D12_CPU_DESCRIPTOR_HANDLE GetRtvHandle() const { return rtvHandle_; }
 
 private:
     void CreateResource(uint32_t width, uint32_t height);

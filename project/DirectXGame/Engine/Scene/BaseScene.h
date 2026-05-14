@@ -7,4 +7,5 @@ class SceneManager;
 class BaseScene : public IScene {
 public:
     virtual ~BaseScene() = default;
+    void DrawOffscreen() override {}
 };
