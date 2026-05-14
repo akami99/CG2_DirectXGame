@@ -11,6 +11,7 @@
 #include "Sprite.h"
 #include "Skybox.h"
 #include "BlendMode.h"
+#include "LevelLoader.h"
 
 class GamePlayScene : public BaseScene {
 public:
@@ -26,6 +27,9 @@ private:
     // ImGui操作の更新
     void UpdateImGui();
 
+    // レベルデータからオブジェクトを再帰的に生成
+    void CreateObjects(const std::vector<LevelData::ObjectData>& data);
+
 private:
     // カメラ
     std::unique_ptr<Camera> camera_;
@@ -39,6 +43,9 @@ private:
 	std::unique_ptr<Skybox> skybox_;
     std::vector < std::unique_ptr<Object3d>> object3ds_;
     std::vector<std::unique_ptr<Sprite>> sprites_;
+
+    // レベルデータ
+    std::unique_ptr<LevelData> levelData_;
 
     // 設定
 	Vector3 particleRotation_{};    // パーティクルの回転（ImGuiで操作する用）

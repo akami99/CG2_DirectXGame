@@ -130,6 +130,13 @@ void GamePlayScene::Initialize() {
             { float(i * spriteScale / 3), float(i * spriteScale / 3) });
         sprites_.push_back(std::move(newSprite));
     }
+
+    // --- レベルデータ読み込み ---
+    // ※ 実際のJSONファイルがある場合は、ファイル名を指定して読み込み
+    // levelData_ = LevelLoader::LoadFile("testScene");
+    if (levelData_) {
+        CreateObjects(levelData_->objects);
+    }
 }
 
 void GamePlayScene::Finalize() {
@@ -269,6 +276,32 @@ void GamePlayScene::Draw() {
                 sprites_[i]->SetTexture(monsterBallPath_);
             }
             sprites_[i]->Draw();
+        }
+    }
+}
+
+void GamePlayScene::CreateObjects(const std::vector<LevelData::ObjectData>& data) {
+    for (const auto& objData : data) {
+        // MESHタイプの場合のみ、エンジンの3Dオブジェクトをインスタンス化
+        if (objData.type == "MESH") {
+            std::unique_ptr<Object3d> newObj = std::make_unique<Object3d>();
+            newObj->Initialize();
+
+            // モデルの設定 (ModelManager等で事前にロードされている必要がある、または内部でロードされる)
+            newObj->SetModel(objData.fileName);
+
+            // ローダーで変換済みのトランスフォームを適用
+            newObj->SetTranslate(objData.translation);
+            newObj->SetRotation(objData.rotation);
+            newObj->SetScale(objData.scaling);
+
+            // リストに追加
+            object3ds_.push_back(std::move(newObj));
+        }
+
+        // 子要素が存在する場合は再帰的に処理
+        if (!objData.children.empty()) {
+            CreateObjects(objData.children);
         }
     }
 }
