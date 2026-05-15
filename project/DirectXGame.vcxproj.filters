@@ -175,6 +175,12 @@
     <Filter Include="ヘッダー ファイル\Engine\Graphics\Types">
       <UniqueIdentifier>{81bf3d72-75f0-4f8a-8bee-f883b7e2f2fc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\Application\Scene">
+      <UniqueIdentifier>{e3ed1423-285e-4094-83ac-d85eb388ead8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Application\Scene">
+      <UniqueIdentifier>{83fac5ca-8a08-407d-b68c-b7a3461e6193}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DirectXGame\Engine\Audio\AudioManager.cpp">
@@ -258,19 +264,7 @@
     <ClCompile Include="DirectXGame\Engine\Graphics\Base\Win32Window.cpp">
       <Filter>ソース ファイル\Engine\Graphics\Base</Filter>
     </ClCompile>
-    <ClCompile Include="DirectXGame\Application\Core\MyGame.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectXGame\Application\Core\RAFramework.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="DirectXGame\Engine\Graphics\Light\LightManager.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectXGame\Application\Scene\GamePlayScene.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectXGame\Application\Scene\TitleScene.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="DirectXGame\Engine\Scene\SceneManager.cpp">
@@ -288,11 +282,23 @@
     <ClCompile Include="DirectXGame\Engine\Level\LevelLoader.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="DirectXGame\Application\Scene\ShootingScene.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="DirectXGame\Application\Scene\EnemyProjectile.cpp">
       <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Application\Scene\GamePlayScene.cpp">
+      <Filter>ソース ファイル\Application\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Application\Scene\TitleScene.cpp">
+      <Filter>ソース ファイル\Application\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Application\Scene\ShootingScene.cpp">
+      <Filter>ソース ファイル\Application\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Application\Core\RAFramework.cpp">
+      <Filter>ソース ファイル\Application\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXGame\Application\Core\MyGame.cpp">
+      <Filter>ソース ファイル\Application\Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -392,22 +398,10 @@
     <ClInclude Include="DirectXGame\Engine\Graphics\Base\Win32Window.h">
       <Filter>ヘッダー ファイル\Engine\Graphics\Base</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXGame\Application\Core\MyGame.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="DirectXGame\Application\Core\RAFramework.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Graphics\Light\LightManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Scene\IScene.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="DirectXGame\Application\Scene\GamePlayScene.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="DirectXGame\Application\Scene\TitleScene.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="DirectXGame\Engine\Scene\SceneManager.h">
@@ -431,23 +425,47 @@
     <ClInclude Include="DirectXGame\Engine\Level\LevelLoader.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="DirectXGame\Application\Scene\ShootingScene.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="DirectXGame\Application\Scene\EnemyProjectile.h">
       <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Application\Scene\TitleScene.h">
+      <Filter>ヘッダー ファイル\Application\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Application\Scene\ShootingScene.h">
+      <Filter>ヘッダー ファイル\Application\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Application\Scene\GamePlayScene.h">
+      <Filter>ヘッダー ファイル\Application\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Application\Core\MyGame.h">
+      <Filter>ヘッダー ファイル\Application\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXGame\Application\Core\RAFramework.h">
+      <Filter>ヘッダー ファイル\Application\Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\Common.hlsli">
       <Filter>シェーダー ファイル</Filter>
     </None>
-    <None Include="Resources\Shaders\Skybox.hlsli" />
-    <None Include="Resources\Shaders\Lighting.hlsli" />
-    <None Include="Resources\Shaders\Object3dCommon.hlsli" />
-    <None Include="Resources\Shaders\Particle.hlsli" />
-    <None Include="Resources\Shaders\SpriteCommon.hlsli" />
-    <None Include="Resources\Shaders\Fullscreen.hlsli" />
+    <None Include="Resources\Shaders\Fullscreen.hlsli">
+      <Filter>シェーダー ファイル</Filter>
+    </None>
+    <None Include="Resources\Shaders\Lighting.hlsli">
+      <Filter>シェーダー ファイル</Filter>
+    </None>
+    <None Include="Resources\Shaders\Particle.hlsli">
+      <Filter>シェーダー ファイル</Filter>
+    </None>
+    <None Include="Resources\Shaders\SpriteCommon.hlsli">
+      <Filter>シェーダー ファイル</Filter>
+    </None>
+    <None Include="Resources\Shaders\Object3dCommon.hlsli">
+      <Filter>シェーダー ファイル\Object3d</Filter>
+    </None>
+    <None Include="Resources\Shaders\Skybox.hlsli">
+      <Filter>シェーダー ファイル\Object3d</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Object3d.PS.hlsl">
@@ -468,12 +486,26 @@
     <FxCompile Include="Resources\Shaders\Sprite.VS.hlsl">
       <Filter>シェーダー ファイル\Sprite</Filter>
     </FxCompile>
-    <FxCompile Include="Resources\Shaders\Skybox.PS.hlsl" />
-    <FxCompile Include="Resources\Shaders\Skybox.VS.hlsl" />
-    <FxCompile Include="Resources\Shaders\CopyImage.PS.hlsl" />
-    <FxCompile Include="Resources\Shaders\Fullscreen.VS.hlsl" />
-    <FxCompile Include="Resources\Shaders\PostProcess.PS.hlsl" />
-    <FxCompile Include="Resources\Shaders\PostProcess.VS.hlsl" />
-    <FxCompile Include="Resources\Shaders\Grayscale.PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\CopyImage.PS.hlsl">
+      <Filter>シェーダー ファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Fullscreen.VS.hlsl">
+      <Filter>シェーダー ファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Grayscale.PS.hlsl">
+      <Filter>シェーダー ファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostProcess.PS.hlsl">
+      <Filter>シェーダー ファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostProcess.VS.hlsl">
+      <Filter>シェーダー ファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Skybox.PS.hlsl">
+      <Filter>シェーダー ファイル\Object3d</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Skybox.VS.hlsl">
+      <Filter>シェーダー ファイル\Object3d</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

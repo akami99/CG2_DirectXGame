@@ -21,6 +21,12 @@ public:
     void Finalize() override;
 
 private:
+    // 定数
+    static inline const float kMoveSpeed = 0.1f;
+    static inline const float kRotateSpeed = 0.02f;
+    static inline const Vector3 kDefaultCameraRotate = { 0.3f, 0.0f, 0.0f };
+    static inline const Vector3 kDefaultCameraTranslate = { 0.0f, 4.0f, -10.0f };
+
     // ゲームカメラの更新
     void UpdateGameCamera();
 

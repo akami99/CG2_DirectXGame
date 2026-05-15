@@ -19,7 +19,7 @@ namespace Logger {
 	// 設定定数
 	const std::string LOG_DIR = "logs";
 	const std::string CURRENT_FILE = "current.log";
-	const int MAX_BACKUPS = 2; // backup_1 と backup_2 の計2つ
+	const int MAX_BACKUPS = 5;
 
 	void SetFileStream(std::ofstream* stream) { fileStream = stream; }
 

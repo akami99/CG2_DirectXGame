@@ -102,6 +102,10 @@ void ParticleManager::Initialize() {
 	std::random_device seedGenerator;
 	randomEngine_ = std::mt19937(seedGenerator());
 
+	// デフォルト状態の設定
+	isUpdate_ = true;
+	useBillboard_ = true;
+
 	// 頂点データの初期化 (四角形ポリゴン)
 	// 単位四角形の頂点データ
 
@@ -370,8 +374,7 @@ Particle ParticleManager::MakeNewParticle(const Vector3& translate) {
 	return particle;
 }
 
-void ParticleManager::Update(const Camera& camera, bool& isUpdate,
-	bool& useBillboard, float deltaTime) {
+void ParticleManager::Update(const Camera& camera, float deltaTime) {
 	// 1. ビルボード行列の計算
 	// カメラの回転情報からビルボード行列を計算します
 	Matrix4x4 billboardMatrix = camera.GetWorldMatrix();
@@ -424,7 +427,7 @@ void ParticleManager::Update(const Camera& camera, bool& isUpdate,
 			Particle& particle = *it;
 
 			// 1. フィールドの影響計算 (場の影響)
-			if (isUpdate) {
+			if (isUpdate_) {
 				AccelerationField accelerationField;
 				accelerationField.acceleration = { 15.0f, 0.0f, 0.0f };
 				accelerationField.area.min = { -1.0f, -1.0f, -1.0f };
@@ -458,8 +461,8 @@ void ParticleManager::Update(const Camera& camera, bool& isUpdate,
 				Matrix4x4 rotateMatrix = MakeRotateXYZMatrix(particle.transform.rotate); // パーティクル自身の回転を追加
 				Matrix4x4 billboardMatrix{};
 
-				// useBillboard が true の場合のみビルボード行列を適用
-				if (useBillboard) {
+				// useBillboard_ が true の場合のみビルボード行列を適用
+				if (useBillboard_) {
 					billboardMatrix = camera.GetWorldMatrix();
 					billboardMatrix.m[3][0] = 0.0f;
 					billboardMatrix.m[3][1] = 0.0f;

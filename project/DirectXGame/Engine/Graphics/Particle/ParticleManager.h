@@ -65,6 +65,10 @@ private: // メンバ変数
   // ランダムエンジン
   std::mt19937 randomEngine_;
 
+  // 状態管理
+  bool isUpdate_ = true;
+  bool useBillboard_ = true;
+
   // Particleの最大数
   static const uint32_t kNumMaxParticle = 100;
 
@@ -92,7 +96,12 @@ public: // メンバ関数
   Particle MakeNewParticle(const Vector3 &translate);
 
   // 更新処理
-  void Update(const Camera &camera, bool &isUpdate, bool &useBillboard, float deltaTime);
+  void Update(const Camera &camera, float deltaTime);
+
+  // 状態設定
+  void SetIsUpdate(bool isUpdate) { isUpdate_ = isUpdate; }
+  void SetUseBillboard(bool useBillboard) { useBillboard_ = useBillboard; }
+  void SetSeed(uint32_t seed) { randomEngine_.seed(seed); }
 
   // 描画処理
   void Draw(BlendMode::BlendState blendMode);

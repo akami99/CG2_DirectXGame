@@ -29,8 +29,8 @@ void GamePlayScene::Initialize() {
     // カメラ生成
     camera_ = std::make_unique<Camera>();
     camera_->Initialize();
-    camera_->SetRotate({ 0.3f, 0.0f, 0.0f });
-    camera_->SetTranslate({ 0.0f, 4.0f, -10.0f });
+    camera_->SetRotate(kDefaultCameraRotate);
+    camera_->SetTranslate(kDefaultCameraTranslate);
     gameCameraRotate_ = camera_->GetRotate();
 
     gameCameraTranslate_ = camera_->GetTranslate();
@@ -169,10 +169,13 @@ void GamePlayScene::Update() {
     }
 
     // パーティクルの更新
+    // 状態を反映
+    ParticleManager::GetInstance()->SetIsUpdate(isUpdateParticle_);
+    ParticleManager::GetInstance()->SetUseBillboard(useBillboard_);
+
     // ※ kDeltaTime は ApplicationConfig.h
     // から読み込むか、メンバ変数として管理する
-    ParticleManager::GetInstance()->Update(*camera_, isUpdateParticle_,
-        useBillboard_, kDeltaTime);
+    ParticleManager::GetInstance()->Update(*camera_, kDeltaTime);
 
     // スペースキーでのパーティクル生成テスト
     if (Input::GetInstance()->IsKeyTriggered(DIK_SPACE)) {
@@ -185,8 +188,8 @@ void GamePlayScene::Update() {
         if (!useDebugCamera_ && isShowMaterial_) {
             Vector3 pos = object3ds_[objectControlIndex_]->GetTranslate();
             Vector3 rot = object3ds_[objectControlIndex_]->GetRotation();
-            float moveSpeed = 0.1f;
-            float rotSpeed = 0.02f;
+            float moveSpeed = kMoveSpeed;
+            float rotSpeed = kRotateSpeed;
 
             if (Input::GetInstance()->IsKeyDown(DIK_A)) {
                 pos.x -= moveSpeed;
@@ -311,28 +314,28 @@ void GamePlayScene::UpdateGameCamera() {
     if (Input::GetInstance()->IsKeyTriggered(DIK_F1)) {
         useDebugCamera_ = !useDebugCamera_;
         if (!useDebugCamera_) {
-            camera_->SetRotate({ 0.3f, 0.0f, 0.0f });
+            camera_->SetRotate(kDefaultCameraRotate);
         }
     }
 
     if (!useDebugCamera_) {
         // キー入力によるカメラ操作
         if (Input::GetInstance()->IsKeyDown(DIK_LEFT)) {
-            gameCameraTranslate_.x -= 0.1f;
+            gameCameraTranslate_.x -= kMoveSpeed;
         }
         if (Input::GetInstance()->IsKeyDown(DIK_RIGHT)) {
-            gameCameraTranslate_.x += 0.1f;
+            gameCameraTranslate_.x += kMoveSpeed;
         }
         if (Input::GetInstance()->IsKeyDown(DIK_UP)) {
-            gameCameraTranslate_.y += 0.1f;
+            gameCameraTranslate_.y += kMoveSpeed;
         }
         if (Input::GetInstance()->IsKeyDown(DIK_DOWN)) {
-            gameCameraTranslate_.y -= 0.1f;
+            gameCameraTranslate_.y -= kMoveSpeed;
         }
         // 共通のリセットキー
         if (Input::GetInstance()->IsKeyDown(DIK_R)) {
-            camera_->SetRotate({ 0.3f, 0.0f, 0.0f });
-            gameCameraTranslate_ = { 0.0f, 4.0f, -10.0f };
+            camera_->SetRotate(kDefaultCameraRotate);
+            gameCameraTranslate_ = kDefaultCameraTranslate;
         }
 
         camera_->SetTranslate(gameCameraTranslate_);
@@ -497,7 +500,9 @@ void GamePlayScene::UpdateImGui() {
     ImGui::Separator();
     if (ImGui::TreeNode("Particle")) {
         ImGui::Checkbox("update", &isUpdateParticle_);
+		ParticleManager::GetInstance()->SetIsUpdate(isUpdateParticle_);
         ImGui::Checkbox("useBillboard", &useBillboard_);
+		ParticleManager::GetInstance()->SetUseBillboard(useBillboard_);
         // ImGui::Checkbox("changeTexture", &changeTexture);
         ImGui::SliderFloat3("rotateParticleZ", &particleRotation_.x, -6.28f, 6.28f);
         if (ImGui::Button("Generate Particle(SPACE)")) {
