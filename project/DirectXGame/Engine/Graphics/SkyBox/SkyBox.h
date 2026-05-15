@@ -3,9 +3,14 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 #include <string>
+
 class Camera;
+
 class Skybox {
     template <class T> using ComPtr = Microsoft::WRL::ComPtr<T>;
+public:
+    static const uint32_t kMaxViews = 3; // 0: Main, 1: Left, 2: Right
+
 private:
     // 頂点・インデックスバッファ
     ComPtr<ID3D12Resource> vertexResource_;
@@ -13,8 +18,8 @@ private:
     ComPtr<ID3D12Resource> indexResource_;
     D3D12_INDEX_BUFFER_VIEW indexBufferView_{};
     // 定数バッファ (WVP行列)
-    ComPtr<ID3D12Resource> transformResource_;
-    TransformationMatrix* transformData_ = nullptr;
+    ComPtr<ID3D12Resource> transformResources_[kMaxViews];
+    TransformationMatrix* transformData_[kMaxViews] = {nullptr};
     // PSOとRS
     ComPtr<ID3D12PipelineState> pso_;
     // CubeMapのSRVインデックス
@@ -28,8 +33,11 @@ private:
 public:
 	~Skybox();
     void Initialize(const std::string& cubeMapPath);
+	// 全ビュー更新
     void Update();
-    void Draw();
+	// 指定したビュー用の更新
+    void Update(uint32_t viewIndex, Camera* camera);
+    void Draw(uint32_t viewIndex = 0);
     void SetCamera(Camera* camera) { camera_ = camera; }
     // ゲッター・セッター
     Vector3& GetScale() { return scale_; }
@@ -41,5 +49,5 @@ public:
 private:
     void CreateVertexResource();   // 箱の頂点データ生成
     void CreateIndexResource();    // 箱のインデックスデータ生成
-    void CreateTransformResource();
+	void CreateTransformResource();// 定数バッファ生成
 };

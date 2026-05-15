@@ -8,17 +8,20 @@
 #include "PSO/PipelineManager.h"
 #include "Base/SrvManager.h"
 #include "Camera/Camera.h"
-using namespace MathUtils;
 
+#include <assert.h>
+
+using namespace MathUtils;
 using namespace MathGenerators;
 
 Skybox::~Skybox() {
 	// Map済みリソースをUnmap
-	if (transformResource_ && transformData_) {
-		transformResource_->Unmap(0, nullptr);
-		transformData_ = nullptr;
-	}
-	// ComPtrは自動的にReleaseされる
+    for (uint32_t i = 0; i < kMaxViews; ++i) {
+        if (transformResources_[i] && transformData_[i]) {
+            transformResources_[i]->Unmap(0, nullptr);
+            transformData_[i] = nullptr;
+        }
+    }
 }
 
 void Skybox::Initialize(const std::string& cubeMapPath) {
@@ -36,39 +39,53 @@ void Skybox::Initialize(const std::string& cubeMapPath) {
 }
 
 void Skybox::Update() {
-	if (!camera_) {
-		return; // カメラがセットされていない場合は更新しない
+    for (uint32_t i = 0; i < kMaxViews; ++i) {
+        Update(i, camera_);
+    }
+}
+
+void Skybox::Update(uint32_t viewIndex, Camera* camera) {
+	if (!camera) {
+		return;
 	}
-	Matrix4x4 view = camera_->GetViewMatrix();
+    assert(viewIndex < kMaxViews);
+
+	Matrix4x4 view = camera->GetViewMatrix();
 	view.m[3][0] = 0.0f; // カメラの位置を反映させない
 	view.m[3][1] = 0.0f;
 	view.m[3][2] = 0.0f;
 
 	Matrix4x4 worldMatrix = MakeAffineMatrix(scale_, rotate_, translate_);
-	Matrix4x4 wvp = Multiply(worldMatrix, view) * camera_->GetProjectionMatrix();
-	transformData_->WVP = wvp;
-	transformData_->World = worldMatrix;
+	Matrix4x4 wvp = Multiply(worldMatrix, view) * camera->GetProjectionMatrix();
+    
+	transformData_[viewIndex]->WVP = wvp;
+	transformData_[viewIndex]->World = worldMatrix;
 }
 
-void Skybox::Draw() {
+void Skybox::Draw(uint32_t viewIndex) {
+    assert(viewIndex < kMaxViews);
 	auto* cmd = DX12Context::GetInstance()->GetCommandList();
+
 	// PSO / ルートシグネチャのセット
 	cmd->SetPipelineState(pso_.Get());
 	cmd->SetGraphicsRootSignature(PipelineManager::GetInstance()->GetSkyboxRootSignature());
 	cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	// VBV / IBV（Modelと同じ）
+    
+	// VBV / IBV
 	cmd->IASetVertexBuffers(0, 1, &vertexBufferView_);
 	cmd->IASetIndexBuffer(&indexBufferView_);
+    
 	// Transform CBV (b0)
-	cmd->SetGraphicsRootConstantBufferView(0, transformResource_->GetGPUVirtualAddress());
+	cmd->SetGraphicsRootConstantBufferView(0, transformResources_[viewIndex]->GetGPUVirtualAddress());
+    
 	// CubeMap SRV (t0)
 	SrvManager::GetInstance()->SetGraphicsRootDescriptorTable(1, textureSrvIndex_);
-	// 描画（Modelと同じDrawIndexedInstanced）
+    
+	// 描画
 	cmd->DrawIndexedInstanced(36, 1, 0, 0, 0);
 }
 
 void Skybox::CreateVertexResource() {
-	// 8頂点の箱を作る
 	SkyboxVertex vertices[24] = {};
 	// 右面 [0,1,2][2,1,3] ← 内側を向く
 	vertices[0].position = { 1.0f,  1.0f,  1.0f, 1.0f }; // 右上奥
@@ -125,9 +142,7 @@ void Skybox::CreateVertexResource() {
 
 	// 書き込むためのアドレスを取得
 	SkyboxVertex* vertexData = nullptr;
-	vertexResource_->Map(
-		0, nullptr,
-		reinterpret_cast<void**>(&vertexData)); // 書き込むためのアドレスを取得
+	vertexResource_->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
 	std::memcpy(vertexData, vertices, sizeof(vertices)); // 頂点データをリソースにコピー
 	vertexResource_->Unmap(0, nullptr); // 毎フレーム書き換えないためUnmap
 
@@ -135,7 +150,6 @@ void Skybox::CreateVertexResource() {
 }
 
 void Skybox::CreateIndexResource() {
-	// 36個のインデックスを作る（12三角形）
 	uint32_t indices[36] = {
 	 0,  1,  2,  2,  1,  3,  // 右面
 	 4,  5,  6,  6,  5,  7,  // 左面
@@ -147,15 +161,13 @@ void Skybox::CreateIndexResource() {
 
 	// リソースのサイズ（インデックス数 * uint32_tのサイズ）
 	size_t sizeInBytes = sizeof(indices);
-
 	// リソース作成
-	indexResource_ =
-		DX12Context::GetInstance()->CreateBufferResource(sizeInBytes);
+	indexResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeInBytes);
 
 	// インデックスバッファビューの作成
 	indexBufferView_.BufferLocation = indexResource_->GetGPUVirtualAddress();
 	indexBufferView_.SizeInBytes = UINT(sizeInBytes);
-	indexBufferView_.Format = DXGI_FORMAT_R32_UINT; // uint32_tを使用
+	indexBufferView_.Format = DXGI_FORMAT_R32_UINT;
 
 	// データの書き込み
 	uint32_t* mappedIndex = nullptr;
@@ -166,14 +178,14 @@ void Skybox::CreateIndexResource() {
 
 void Skybox::CreateTransformResource() {
 	// 変換行列リソースの作成
-	transformResource_ =
-		DX12Context::GetInstance()->CreateBufferResource(sizeof(TransformationMatrix));
-	// TransformationMatrixDataの設定
-	// TransformationMatrixResourceにデータを書き込むためのアドレスを取得してTransformationMatrixDataに割り当てる
-	// 書き込むためのアドレスを取得
-	transformResource_->Map(
-		0, nullptr,
-		reinterpret_cast<void**>(&transformData_)); // 書き込むためのアドレスを取得
-	transformData_->WVP = MakeIdentity4x4(); // ワールドビュー射影行列を初期化
-	transformData_->World = MakeIdentity4x4(); // ワールド行列を初期化
+    for (uint32_t i = 0; i < kMaxViews; ++i) {
+        transformResources_[i] =
+            DX12Context::GetInstance()->CreateBufferResource(sizeof(TransformationMatrix));
+		// 書き込むためのアドレスを取得
+		transformResources_[i]->Map(
+            0, nullptr, reinterpret_cast<void**>(&transformData_[i]));
+	    // TransformationMatrixDataの設定
+        transformData_[i]->WVP = MakeIdentity4x4();
+        transformData_[i]->World = MakeIdentity4x4();
+    }
 }

@@ -5,8 +5,11 @@
 class EnemyProjectile {
 public:
     void Initialize(const Vector3& position, const Vector3& velocity);
+	// メインビュー用の更新
     void Update();
-    void Draw();
+	// 指定したビュー用の更新
+    void Update(uint32_t viewIndex, Camera* camera);
+    void Draw(uint32_t viewIndex = 0);
 
     const Vector3& GetPosition() const { return position_; }
     bool IsDead() const { return isDead_; }

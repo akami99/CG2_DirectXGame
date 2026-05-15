@@ -18,9 +18,15 @@ void EnemyProjectile::Update() {
     position_.z += velocity_.z;
     
     object_->SetTranslate(position_);
+    // デフォルトのUpdate(全ビューをcamera_で更新)
     object_->Update();
 }
 
-void EnemyProjectile::Draw() {
-    object_->Draw();
+void EnemyProjectile::Update(uint32_t viewIndex, Camera* camera) {
+    // 位置などはUpdate()で更新済みなので、行列だけ再計算
+    object_->Update(viewIndex, camera);
+}
+
+void EnemyProjectile::Draw(uint32_t viewIndex) {
+    object_->Draw(viewIndex);
 }

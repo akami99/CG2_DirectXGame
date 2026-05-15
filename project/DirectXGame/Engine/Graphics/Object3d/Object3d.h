@@ -21,6 +21,9 @@ private: // namespace省略のためのusing宣言
 
 #pragma endregion
 
+public: // 定数
+    static const uint32_t kMaxViews = 3; // 0: Main, 1: Left, 2: Right
+
 private: // メンバ変数
   // モデルのポインタ
   Model *model_ = nullptr;
@@ -29,9 +32,9 @@ private: // メンバ変数
 
   // 変換行列データ
   // バッファリソース
-  ComPtr<ID3D12Resource> transformationMatrixResource_ = nullptr;
+  ComPtr<ID3D12Resource> transformationMatrixResources_[kMaxViews];
   // バッファリソース内のデータを指すポインタ
-  TransformationMatrix *transformationMatrixData_ = nullptr;
+  TransformationMatrix *transformationMatrixData_[kMaxViews] = {nullptr};
 
   // Transform変数を作る
   Transform transform_ = {
@@ -44,9 +47,11 @@ public: // メンバ関数
 
   // 更新
   void Update();
+  // 指定したビュー用の更新
+  void Update(uint32_t viewIndex, Camera* camera);
 
-  // 描画処理
-  void Draw();
+  // 描画処理 (デフォルトはビュー0)
+  void Draw(uint32_t viewIndex = 0);
 
 private: // 作成関数
   // 変換行列バッファの作成

@@ -18,11 +18,12 @@ using namespace MathGenerators;
 
 Object3d::~Object3d() {
     // Map済みリソースをUnmap
-    if (transformationMatrixResource_ && transformationMatrixData_) {
-        transformationMatrixResource_->Unmap(0, nullptr);
-        transformationMatrixData_ = nullptr;
+    for (uint32_t i = 0; i < kMaxViews; ++i) {
+        if (transformationMatrixResources_[i] && transformationMatrixData_[i]) {
+            transformationMatrixResources_[i]->Unmap(0, nullptr);
+            transformationMatrixData_[i] = nullptr;
+        }
     }
-    // ComPtrは自動的にReleaseされる
 }
 
 void Object3d::Initialize() {
@@ -32,58 +33,54 @@ void Object3d::Initialize() {
   CreateTransformationMatrixResource();
 }
 
-// 更新処理
+// 更新処理 (全ビュー更新)
 void Object3d::Update() {
+    for (uint32_t i = 0; i < kMaxViews; ++i) {
+        Update(i, camera_);
+    }
+}
 
-#pragma region 変換行列データの設定
-  // Transform情報を作る
+// 指定したビュー用の更新
+void Object3d::Update(uint32_t viewIndex, Camera* camera) {
+    assert(viewIndex < kMaxViews);
 
-  // Transform情報から変換行列を作る
-  Matrix4x4 worldMatrix = MakeAffineMatrix(transform_.scale, transform_.rotate,
-                                           transform_.translate);
+    // Transform情報からワールド行列を作る (全ビュー共通)
+    Matrix4x4 worldMatrix = MakeAffineMatrix(transform_.scale, transform_.rotate,
+                                             transform_.translate);
 
-  // 2. Model側のRootNodeのTransformを反映する
-    // これがないと、glTF等で作ったモデルの原点ズレや初期回転が反映されません
-  if (model_) {
-      // ModelからRootNodeのローカル行列を取得
-      Matrix4x4 rootMatrix = model_->GetRootNode().localMatrix;
+    // Model側のRootNodeのTransformを反映する
+    if (model_) {
+        Matrix4x4 rootMatrix = model_->GetRootNode().localMatrix;
+        worldMatrix = rootMatrix * worldMatrix;
+    }
 
-      // ★行列の掛け合わせ
-      // 先に「モデル内の変形(RootMatrix)」を行い、その後に「ワールドへの配置(WorldMatrix)」を行う
-      worldMatrix = rootMatrix * worldMatrix;
-  }
+    // ワールドビュー射影行列の計算
+    Matrix4x4 wvpMatrix;
+    if (camera) {
+        const Matrix4x4 &viewProjectionMatrix = camera->GetViewProjectionMatrix();
+        wvpMatrix = worldMatrix * viewProjectionMatrix;
+    } else {
+        wvpMatrix = worldMatrix;
+    }
 
-  // ワールドビュー射影行列の計算
-  Matrix4x4 wvpMatrix;
-  if (camera_) {
-    const Matrix4x4 &viewProjectionMatrix = camera_->GetViewProjectionMatrix();
-    wvpMatrix = worldMatrix * viewProjectionMatrix;
-  } else {
-    wvpMatrix = worldMatrix;
-  }
+    // 非均一スケール対応：逆転置行列の計算
+    Matrix4x4 worldInverseTranspose = Transpose(Inverse(worldMatrix));
 
-  // 非均一スケール対応：逆転置行列の計算
-  // 法線の変形には「ワールド行列の逆行列の転置行列」が必要
-  Matrix4x4 worldInverseTranspose = Transpose(Inverse(worldMatrix));
-
-  // 変換行列データを更新する
-  transformationMatrixData_->WVP =
-      wvpMatrix; // World-View-Projection行列をWVPメンバーに入れる
-  transformationMatrixData_->World =
-      worldMatrix; // 純粋なワールド行列をWorldメンバーに入れる
-  transformationMatrixData_->WorldInverseTranspose =
-      worldInverseTranspose; // ワールド行列の逆行列の転置行列をWorldInverseTransposeメンバーに入れる
-
-#pragma endregion ここまで
+    // 指定されたビューのデータを更新
+    transformationMatrixData_[viewIndex]->WVP = wvpMatrix;
+    transformationMatrixData_[viewIndex]->World = worldMatrix;
+    transformationMatrixData_[viewIndex]->WorldInverseTranspose = worldInverseTranspose;
 }
 
 // 描画処理
-void Object3d::Draw() {
-  // 変換行列CBVの設定
+void Object3d::Draw(uint32_t viewIndex) {
+    assert(viewIndex < kMaxViews);
+    
+    // 変換行列CBVの設定
     DX12Context::GetInstance()
       ->GetCommandList()
       ->SetGraphicsRootConstantBufferView(
-          1, transformationMatrixResource_->GetGPUVirtualAddress());
+          1, transformationMatrixResources_[viewIndex]->GetGPUVirtualAddress());
 
   // 描画コマンド
   if (model_) {
@@ -98,17 +95,19 @@ void Object3d::SetModel(const std::string &filepath) {
 
 // 変換行列バッファの作成
 void Object3d::CreateTransformationMatrixResource() {
-  // 変換行列リソースの作成
-  transformationMatrixResource_ =
-      DX12Context::GetInstance()->CreateBufferResource(
-          sizeof(TransformationMatrix));
+    for (uint32_t i = 0; i < kMaxViews; ++i) {
+        // 変換行列リソースの作成
+        transformationMatrixResources_[i] =
+            DX12Context::GetInstance()->CreateBufferResource(
+                sizeof(TransformationMatrix));
 
-  // TransformationMatrixDataの設定
-  // TransformationMatrixResourceにデータを書き込むためのアドレスを取得してTransformationMatrixDataに割り当てる
-  // 書き込むためのアドレスを取得
-  transformationMatrixResource_->Map(
-      0, nullptr, reinterpret_cast<void **>(&transformationMatrixData_));
-  // 単位行列を書き込んでおく
-  transformationMatrixData_->WVP = MakeIdentity4x4();
-  transformationMatrixData_->World = MakeIdentity4x4();
+        // TransformationMatrixDataの設定
+        transformationMatrixResources_[i]->Map(
+            0, nullptr, reinterpret_cast<void **>(&transformationMatrixData_[i]));
+        
+        // 単位行列で初期化
+        transformationMatrixData_[i]->WVP = MakeIdentity4x4();
+        transformationMatrixData_[i]->World = MakeIdentity4x4();
+        transformationMatrixData_[i]->WorldInverseTranspose = MakeIdentity4x4();
+    }
 }

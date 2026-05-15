@@ -28,15 +28,11 @@ private:
     std::unique_ptr<Camera> leftCamera_;
     std::unique_ptr<Camera> rightCamera_;
     
-    // ゲームオブジェクト
+    // スカイボックス
     std::unique_ptr<Skybox> skybox_;
-    std::unique_ptr<Skybox> leftSkybox_;
-    std::unique_ptr<Skybox> rightSkybox_;
-    
-    // ターゲット（敵）
+
+    // 的（Object3d）
     std::unique_ptr<Object3d> target_;
-    std::unique_ptr<Object3d> leftTarget_;
-    std::unique_ptr<Object3d> rightTarget_;
     
     // 照準（スプライト）
     std::unique_ptr<Sprite> crosshair_;
