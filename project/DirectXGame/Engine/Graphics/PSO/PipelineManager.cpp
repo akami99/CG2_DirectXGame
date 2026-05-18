@@ -421,7 +421,9 @@ void PipelineManager::CreateRootSignature() {
 
 #pragma region 共通のSampler設定
 	// 共通のSamplerの設定
-	D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {};
+	D3D12_STATIC_SAMPLER_DESC staticSamplers[2] = {};
+	
+	// s0: WRAPサンプラー
 	staticSamplers[0].Filter =
 		D3D12_FILTER_MIN_MAG_MIP_LINEAR; // バイリニアフィルタ
 	staticSamplers[0].AddressU =
@@ -433,6 +435,16 @@ void PipelineManager::CreateRootSignature() {
 	staticSamplers[0].ShaderVisibility =
 		D3D12_SHADER_VISIBILITY_PIXEL;    // PixelShaderで使う
 	staticSamplers[0].ShaderRegister = 0; // レジスタ番号0を使う
+
+	// s1: CLAMPサンプラー
+	staticSamplers[1].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+	staticSamplers[1].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP; // 0~1の範囲外をクランプ
+	staticSamplers[1].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	staticSamplers[1].AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	staticSamplers[1].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+	staticSamplers[1].MaxLOD = D3D12_FLOAT32_MAX;
+	staticSamplers[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	staticSamplers[1].ShaderRegister = 1; // レジスタ番号1を使う
 
 #pragma endregion 共通のSampler設定ここまで
 

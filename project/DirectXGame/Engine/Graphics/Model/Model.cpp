@@ -10,6 +10,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <numbers>
 
 using namespace Microsoft::WRL;
 using namespace MathUtils;
@@ -37,6 +38,64 @@ void Model::Initialize(const std::string &directoryPath,
       modelData_.material.textureFilePath);
 }
 
+void Model::CreateRing(const std::string& textureFilePath, float innerRadius, float outerRadius, uint32_t division) {
+    // データをクリアしておく
+    modelData_.vertices.clear();
+    modelData_.indices.clear();
+
+    const float radianPerDivide = 2.0f * std::numbers::pi_v<float> / float(division);
+
+    // 頂点データの生成
+    for (uint32_t i = 0; i <= division; ++i) {
+        float angle = i * radianPerDivide;
+        float s = std::sin(angle);
+        float c = std::cos(angle);
+        float u = float(i) / float(division);
+
+        // 外側の頂点
+        VertexData outerVertex;
+        outerVertex.position = { -s * outerRadius, c * outerRadius, 0.0f, 1.0f };
+        outerVertex.normal = { 0.0f, 0.0f, -1.0f };
+        outerVertex.texcoord = { u, 0.0f };
+        modelData_.vertices.push_back(outerVertex);
+
+        // 内側の頂点
+        VertexData innerVertex;
+        innerVertex.position = { -s * innerRadius, c * innerRadius, 0.0f, 1.0f };
+        innerVertex.normal = { 0.0f, 0.0f, -1.0f };
+        innerVertex.texcoord = { u, 1.0f };
+        modelData_.vertices.push_back(innerVertex);
+    }
+
+    // インデックスデータの生成
+    for (uint32_t i = 0; i < division; ++i) {
+        uint32_t base = i * 2;
+        // 頂点レイアウト: [Outer0, Inner0, Outer1, Inner1, ...]
+        // 三角形1
+        modelData_.indices.push_back(base);     // Outer i
+        modelData_.indices.push_back(base + 2); // Outer i+1
+        modelData_.indices.push_back(base + 1); // Inner i
+        // 三角形2
+        modelData_.indices.push_back(base + 1); // Inner i
+        modelData_.indices.push_back(base + 2); // Outer i+1
+        modelData_.indices.push_back(base + 3); // Inner i+1
+    }
+
+    // マテリアル設定
+    modelData_.material.textureFilePath = textureFilePath;
+    modelData_.rootNode.localMatrix = MakeIdentity4x4();
+    modelData_.rootNode.name = "Ring";
+
+    // リソースの作成
+    CreateVertexResource();
+    CreateIndexResource();
+    CreateMaterialResource();
+
+    // テクスチャ読み込み
+    TextureManager::GetInstance()->LoadTexture(modelData_.material.textureFilePath);
+    modelData_.material.textureIndex = TextureManager::GetInstance()->GetSrvIndex(modelData_.material.textureFilePath);
+}
+
 // 描画処理
 void Model::Draw() {
   // VertexBufferの設定
@@ -55,9 +114,6 @@ void Model::Draw() {
       2, TextureManager::GetInstance()->GetSrvHandleGPU(
              modelData_.material.textureFilePath));
   // 描画コマンド
-  /*DX12Context::GetInstance()->GetCommandList()->DrawInstanced(
-      UINT(modelData_.vertices.size()), 1, 0, 0);*/
-  // ★変更: インデックスを使用した描画コマンド
   // 引数: (インデックス数, インスタンス数, インデックス開始位置, 頂点オフセット, インスタンスオフセット)
   DX12Context::GetInstance()->GetCommandList()->DrawIndexedInstanced(
       UINT(modelData_.indices.size()), 1, 0, 0, 0);
@@ -95,11 +151,11 @@ void Model::LoadModelFile(const std::string &directoryPath,
         assert(mesh->HasTextureCoords(0));
         assert(mesh->HasFaces());
 
-        // ★重要：現在の頂点数を保持しておく（これがインデックスのオフセットになる）
-        // 1つ目のメッシュなら0、2つ目なら1つ目の頂点数がここに入ります
+        // 重要：現在の頂点数を保持しておく（これがインデックスのオフセットになる）
+        // 1つ目のメッシュなら0、2つ目なら1つ目の頂点数がここに入る
         uint32_t indexOffset = static_cast<uint32_t>(modelData_.vertices.size());
 
-        // --- 1. 頂点データの追加 ---
+        // --- 頂点データの追加 ---
         for (uint32_t i = 0; i < mesh->mNumVertices; ++i) {
             aiVector3D& position = mesh->mVertices[i];
             aiVector3D& normal = mesh->mNormals[i];
@@ -116,7 +172,7 @@ void Model::LoadModelFile(const std::string &directoryPath,
             modelData_.vertices.push_back(vertex);
         }
 
-        // --- 2. インデックスデータの追加 ---
+        // --- インデックスデータの追加 ---
         for (uint32_t faceIndex = 0; faceIndex < mesh->mNumFaces; ++faceIndex) {
             aiFace& face = mesh->mFaces[faceIndex];
             assert(face.mNumIndices == 3);
@@ -128,9 +184,9 @@ void Model::LoadModelFile(const std::string &directoryPath,
         }
     }
 
-    // --- 3. マテリアルの解析 ---
-    // ※現在の構造（Modelクラスにテクスチャが1つ）だと、複数のテクスチャを持つモデルは正しく表現できません。
-    // そのため、とりあえず「最初にテクスチャを持っているメッシュのマテリアル」を採用する形にします。
+    // --- マテリアルの解析 ---
+    // ※現在の構造（Modelクラスにテクスチャが1つ）だと、複数のテクスチャを持つモデルは正しく表現できない
+    // そのため、とりあえず「最初にテクスチャを持っているメッシュのマテリアル」を採用する
     for (uint32_t i = 0; i < scene->mNumMaterials; ++i) {
         aiMaterial* material = scene->mMaterials[i];
         if (material->GetTextureCount(aiTextureType_DIFFUSE) != 0) {
@@ -142,7 +198,7 @@ void Model::LoadModelFile(const std::string &directoryPath,
         }
     }
 
-    // --- 3. ノードの解析 ---
+    // --- ノードの解析 ---
     modelData_.rootNode = ReadNode(scene->mRootNode);
 
     // データが空でないか最終チェック

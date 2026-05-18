@@ -50,6 +50,16 @@ public: // メンバ関数
   /// <param name="filePath">モデルファイルのパス</param>
   void LoadModel(const std::string &directoryPath, const std::string &filePath);
 
+  /// <summary>
+  /// Ringプリミティブの生成
+  /// </summary>
+  /// <param name="name">リングの名前</param>
+  /// <param name="textureFilePath">テクスチャファイルのパス</param>
+  /// <param name="innerRadius">内半径</param>
+  /// <param name="outerRadius">外半径</param>
+  /// <param name="division">分割数</param>
+  void CreateRing(const std::string& name, const std::string& textureFilePath, float innerRadius = 0.5f, float outerRadius = 1.0f, uint32_t division = 32);
+
 private: // メンバ関数
   // デストラクタ(隠蔽)
   ~ModelManager() = default;

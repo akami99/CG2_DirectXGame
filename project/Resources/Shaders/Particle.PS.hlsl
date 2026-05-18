@@ -3,7 +3,7 @@
 ConstantBuffer<Material> gMaterial : register(b0);
 
 Texture2D<float4> gTexture : register(t0);
-SamplerState gSampler : register(s0);
+SamplerState gSampler : register(s1); // CLAMP用のサンプラーを使用
 
 struct PixelShaderOutput
 {

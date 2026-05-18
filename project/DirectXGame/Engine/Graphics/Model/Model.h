@@ -46,6 +46,9 @@ public: // メンバ関数
   void Initialize(const std::string &directoryPath,
                   const std::string &filename);
 
+  // リングプリミティブの生成
+  void CreateRing(const std::string &textureFilePath, float innerRadius, float outerRadius, uint32_t division);
+
   // 描画処理
   void Draw();
 
@@ -66,6 +69,12 @@ public: // メンバ関数
   const float &GetEnvironmentCoefficient() const {
     return materialData_->environmentCoefficient;
   }
+
+  // バッファビューの取得
+  const D3D12_VERTEX_BUFFER_VIEW &GetVertexBufferView() const { return vertexBufferView_; }
+  const D3D12_INDEX_BUFFER_VIEW &GetIndexBufferView() const { return indexBufferView_; }
+  uint32_t GetIndexCount() const { return static_cast<uint32_t>(modelData_.indices.size()); }
+  const std::string& GetTextureFilePath() const { return modelData_.material.textureFilePath; }
 
 #ifdef USE_IMGUI
   // 色の参照取得(ImGui用)

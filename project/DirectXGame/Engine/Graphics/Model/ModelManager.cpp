@@ -82,3 +82,18 @@ void ModelManager::LoadModel(const std::string &directoryPath,
   // std::unique_ptr はコピー禁止なので、std::move() によって所有権を移譲する
   models_.insert(std::make_pair(filePath, std::move(model)));
 }
+
+void ModelManager::CreateRing(const std::string& name, const std::string& textureFilePath, float innerRadius, float outerRadius, uint32_t division) {
+    // すでに存在すれば早期リターン
+    if (models_.contains(name)) {
+        return;
+    }
+
+    // モデルの生成
+    std::unique_ptr<Model> model = std::make_unique<Model>();
+    model->CreateRing(textureFilePath, innerRadius, outerRadius, division);
+
+    // マップに格納
+    models_.insert(std::make_pair(name, std::move(model)));
+    Log(std::format("INFO: Created ring primitive: {}\n", name));
+}

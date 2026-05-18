@@ -52,9 +52,15 @@ void GamePlayScene::Initialize() {
     // モデル読み込み
     ModelManager::GetInstance()->LoadModel("sphere", sphereModel_);
     ModelManager::GetInstance()->LoadModel("plane", planeGltfModel_);
+    // リングプリミティブの生成
+    ModelManager::GetInstance()->CreateRing("ring", ringTexturePath_, 0.5f, 1.0f, 32);
 
     // パーティクル設定
     ParticleManager::GetInstance()->CreateParticleGroup(particleGroupName_, particleTexturePath_);
+    // リングパーティクルの設定
+    Model* ringModel = ModelManager::GetInstance()->FindModel("ring");
+    ParticleManager::GetInstance()->CreateParticleGroup(ringParticleGroupName_, ringTexturePath_, ringModel);
+
     // エミッターの設定と登録
     ParticleEmitter defaultEmitter = ParticleEmitter(
         Transform{ {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {-1.0f, 1.0f, 0.0f} },
@@ -63,6 +69,14 @@ void GamePlayScene::Initialize() {
     );
     ParticleManager::GetInstance()->SetEmitter(particleGroupName_,
         defaultEmitter);
+
+    // リングエミッターの設定 (デバッグ用なので頻度は0)
+    ParticleEmitter ringEmitter = ParticleEmitter(
+        Transform{ {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} },
+        1,
+        0.0f
+    );
+    ParticleManager::GetInstance()->SetEmitter(ringParticleGroupName_, ringEmitter);
 
     // 音声ファイルをロード
     if (!AudioManager::GetInstance()->LoadSound("alarm1", "Alarm01.mp3")) {
@@ -101,7 +115,7 @@ void GamePlayScene::Initialize() {
      object3d_2->SetTranslate({2.0f, 0.0f, 0.0f});
 
     // Object3dを格納する
-     object3ds_.push_back(std::move(object3d_1));
+    object3ds_.push_back(std::move(object3d_1));
     object3ds_.push_back(std::move(object3d_2));
 
     // --- スプライト生成 ---
@@ -177,11 +191,6 @@ void GamePlayScene::Update() {
     // から読み込むか、メンバ変数として管理する
     ParticleManager::GetInstance()->Update(*camera_, kDeltaTime);
 
-    // スペースキーでのパーティクル生成テスト
-    if (Input::GetInstance()->IsKeyTriggered(DIK_SPACE)) {
-        Vector3 playerPos = { 0.0f, 0.0f, 0.0f };
-        ParticleManager::GetInstance()->Emit(particleGroupName_, playerPos, 10);
-    }
 
     if (!object3ds_.empty()) {
         // オブジェクトの操作
@@ -500,24 +509,48 @@ void GamePlayScene::UpdateImGui() {
     ImGui::Separator();
     if (ImGui::TreeNode("Particle")) {
         ImGui::Checkbox("update", &isUpdateParticle_);
-		ParticleManager::GetInstance()->SetIsUpdate(isUpdateParticle_);
         ImGui::Checkbox("useBillboard", &useBillboard_);
-		ParticleManager::GetInstance()->SetUseBillboard(useBillboard_);
-        // ImGui::Checkbox("changeTexture", &changeTexture);
-        ImGui::SliderFloat3("rotateParticleZ", &particleRotation_.x, -6.28f, 6.28f);
-        if (ImGui::Button("Generate Particle(SPACE)")) {
-            // エミッターの Transform, count を直接指定して、一度だけEmitを呼び出す
-
-            // 例: プレイヤー位置 {10.0f, 0.0f, 0.0f}
-            // から、10個のパーティクルを一度に生成
-            Vector3 playerPos = { 0.0f, 0.0f, 0.0f };
-            uint32_t burstCount = 10;
-
-            ParticleManager::GetInstance()->Emit(particleGroupName_, playerPos,
-                burstCount);
-        }
         ImGui::Combo("ParticleBlendMode", &particleBlendMode_,
             "None\0Normal\0Add\0Subtractive\0Multiply\0Screen\0");
+
+        ImGui::Separator();
+
+        // 登録されている全パーティクルグループを取得して個別に設定
+        std::vector<std::string> groupNames = ParticleManager::GetInstance()->GetParticleGroupNames();
+        for (const auto& groupName : groupNames) {
+            if (ImGui::TreeNode(groupName.c_str())) {
+                ParticleEmitter* emitter = ParticleManager::GetInstance()->GetEmitter(groupName);
+                if (emitter) {
+                    ImGui::DragFloat3("Translate", &emitter->transform.translate.x, 0.01f);
+                    ImGui::DragFloat3("Rotate", &emitter->transform.rotate.x, 0.01f);
+                    ImGui::DragFloat3("Scale", &emitter->transform.scale.x, 0.01f);
+
+                    int count = static_cast<int>(emitter->count);
+                    if (ImGui::DragInt("Count", &count, 1, 1, 100)) {
+                        emitter->count = static_cast<uint32_t>(count);
+                    }
+                    
+                    ImGui::DragFloat("Frequency", &emitter->frequency, 0.01f, 0.0f, 10.0f);
+
+                    // 手動でEmitさせるボタン
+                    std::string emitLabel = "Emit " + groupName;
+                    if (ImGui::Button(emitLabel.c_str())) {
+                        Vector3 pos = emitter->transform.translate; // エミッタの位置から発生
+                        ParticleManager::GetInstance()->Emit(groupName, pos, emitter->count);
+                    }
+
+                    // 選択したオブジェクトの位置からEmitするボタン
+                    std::string emitSelectedLabel = "Emit " + groupName + " from Selected Object";
+                    if (ImGui::Button(emitSelectedLabel.c_str())) {
+                        if (!object3ds_.empty()) {
+                            Vector3 pos = object3ds_[objectControlIndex_]->GetTranslate();
+                            ParticleManager::GetInstance()->Emit(groupName, pos, emitter->count);
+                        }
+                    }
+                }
+                ImGui::TreePop();
+            }
+        }
         ImGui::TreePop();
     }
 

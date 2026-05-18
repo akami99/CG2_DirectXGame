@@ -8,6 +8,7 @@
 #include "MatrixGenerators.h"
 #include "PSO/PipelineManager.h"
 #include "Texture/TextureManager.h"
+#include "Model/Model.h"
 
 #include <algorithm>
 #include <assert.h>
@@ -51,11 +52,27 @@ void ParticleManager::SetEmitter(const std::string& name,
 	}
 
 	// 2. グループ内の emitter メンバに、渡された emitter インスタンスをコピー
-	ParticleGroup& group = it->second;
+	ParticleGroup& group = particleGroups_[name];
 	group.emitter = emitter;
 
 	// 3. (Optional) 頻度時刻をリセット（すぐに発生を開始させたい場合）
 	group.emitter.frequencyTime = 0.0f;
+}
+
+std::vector<std::string> ParticleManager::GetParticleGroupNames() const {
+	std::vector<std::string> names;
+	for (const auto& pair : particleGroups_) {
+		names.push_back(pair.first);
+	}
+	return names;
+}
+
+ParticleEmitter* ParticleManager::GetEmitter(const std::string& name) {
+	auto it = particleGroups_.find(name);
+	if (it != particleGroups_.end()) {
+		return &it->second.emitter;
+	}
+	return nullptr;
 }
 
 void ParticleManager::ReleaseIntermediateResources() {
@@ -238,12 +255,13 @@ void ParticleManager::Initialize() {
 }
 
 void ParticleManager::CreateParticleGroup(const std::string& name,
-	const std::string& textureFilePath) {
+	const std::string& textureFilePath, Model* model) {
 	// 登録済みの名前かチェックしてassert
 	assert(particleGroups_.find(name) == particleGroups_.end());
 
 	// 新たな空のパーティクルグループを作成し、コンテナに登録
 	ParticleGroup newGroup;
+	newGroup.model = model;
 	newGroup.materialData.textureFilePath = textureFilePath;
 
 	// マテリアルデータにテクスチャのSRVインデックスを記録
@@ -515,12 +533,6 @@ void ParticleManager::Draw(BlendMode::BlendState blendMode) {
 	DX12Context::GetInstance()->GetCommandList()->IASetPrimitiveTopology(
 		D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	// 4. コマンド: VBV(Vertex Buffer View)を設定
-	DX12Context::GetInstance()->GetCommandList()->IASetVertexBuffers(
-		0, 1, &vertexBufferView_);
-	// インデックスバッファビューを設定
-	DX12Context::GetInstance()->GetCommandList()->IASetIndexBuffer(
-		&indexBufferView_);
 
 	// 5. 全てのパーティクルグループについて処理
 	// 1グループ分で1DrawCallなので、こちらは二重for文にはならない。
@@ -530,6 +542,22 @@ void ParticleManager::Draw(BlendMode::BlendState blendMode) {
 		// 描画インスタンス数が0の場合はスキップ
 		if (group.instanceCount == 0) {
 			continue;
+		}
+
+		// メッシュの設定
+		if (group.model) {
+			// モデル固有のメッシュを使用 (Ringなど)
+			DX12Context::GetInstance()->GetCommandList()->IASetVertexBuffers(
+				0, 1, &group.model->GetVertexBufferView());
+			DX12Context::GetInstance()->GetCommandList()->IASetIndexBuffer(
+				&group.model->GetIndexBufferView());
+		}
+		else {
+			// デフォルトの矩形を使用
+			DX12Context::GetInstance()->GetCommandList()->IASetVertexBuffers(
+				0, 1, &vertexBufferView_);
+			DX12Context::GetInstance()->GetCommandList()->IASetIndexBuffer(
+				&indexBufferView_);
 		}
 
 		// コマンド：マテリアルデータのCBVを設定 (RootParameter[0])
@@ -560,8 +588,9 @@ void ParticleManager::Draw(BlendMode::BlendState blendMode) {
 		// コマンド：DrawCall (インスタンシング描画)
 		// インスタンス数: group.instanceCount
 		if (group.instanceCount > 0) {
+			uint32_t indexCount = group.model ? group.model->GetIndexCount() : numIndices_;
 			DX12Context::GetInstance()->GetCommandList()->DrawIndexedInstanced(
-				numIndices_, // ParticleManager::numIndices_
+				indexCount,
 				group.instanceCount, 0, 0, 0);
 		}
 

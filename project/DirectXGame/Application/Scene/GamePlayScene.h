@@ -54,7 +54,6 @@ private:
     std::unique_ptr<LevelData> levelData_;
 
     // 設定
-	Vector3 particleRotation_{};    // パーティクルの回転（ImGuiで操作する用）
 	bool isShowParticle_ = true;    // パーティクルの表示フラグ
 	bool isShowSkybox_ = true;      // スカイボックスの表示フラグ
 	bool isShowMaterial_ = true;    // マテリアルを持つオブジェクトの表示フラグ
@@ -81,7 +80,10 @@ private:
     const std::string monsterBallPath_ = "monsterBall.png";
     const std::string grassPath_ = "grass.png";
     const std::string particleTexturePath_ = "circle2.png";
+	const std::string ringTexturePath_ = "gradationLine.png";
 	// ※DDSファイルはSRVのインデックスを指定して読み込む必要があるため、パス定数は用意しない
+    
     // パーティクルグループの作成
     const std::string particleGroupName_ = "TestGroup";
+	const std::string ringParticleGroupName_ = "RingGroup";
 };
