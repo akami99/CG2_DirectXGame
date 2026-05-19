@@ -34,6 +34,16 @@ struct Material {
   float environmentCoefficient; // 環境マップ係数
   float padding[1];       // パディング
   Matrix4x4 uvTransform;  // UV変換行列
+
+  // 追加分 (Ring / Particle 特殊効果用)
+  Vector4 innerColor;
+  Vector4 outerColor;
+  float fadeStartAlpha;
+  float fadeEndAlpha;
+  float fadeRange;
+  int32_t isUvSwap;
+  int32_t isRing;
+  float padding2[3];
 };
 
 // 変換行列をまとめた構造体

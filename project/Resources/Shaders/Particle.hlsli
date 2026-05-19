@@ -21,4 +21,5 @@ struct ParticleInstanceData
     float4x4 WVP;
     float4x4 World;
     float4 color;
+    float4x4 uvTransform;
 };

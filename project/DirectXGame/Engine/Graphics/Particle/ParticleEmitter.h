@@ -41,6 +41,19 @@ struct ParticleFieldSettings {
     Vector3 gravity = { 0.0f, -9.8f, 0.0f };
 };
 
+struct ParticleUVAnimationSettings {
+    bool isActive = false;
+    bool isIndividual = false;            // 各パーティクル個別でアニメーションを行うか (エフェクト形式)
+    Vector2 scrollSpeed = { 0.0f, 0.0f }; // U, V scroll speed per second
+    float rotateSpeed = 0.0f;             // Rotation speed (rad/sec)
+    Vector2 scaleSpeed = { 0.0f, 0.0f };  // Scale change speed per second
+
+    // Current state values (for global animation)
+    Vector2 currentTranslate = { 0.0f, 0.0f };
+    float currentRotate = 0.0f;
+    Vector2 currentScale = { 1.0f, 1.0f };
+};
+
 class ParticleEmitter {
 public:
   // エミッターの設定値
@@ -51,6 +64,8 @@ public:
   bool isEmit;         // 自動発生を有効にするかどうかのフラグ
   ParticleGenerateSettings generateSettings; // 生成時の設定
   ParticleFieldSettings fieldSettings;       // フィールドの設定
+  ParticleUVAnimationSettings uvAnimationSettings; // UVアニメーションの設定
+  RingSettings ringSettings;                 // リング形状の設定
 
   /// <summary>
   /// ParticleEmitterのコンストラクタ

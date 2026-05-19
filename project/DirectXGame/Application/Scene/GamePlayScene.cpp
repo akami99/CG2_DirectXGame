@@ -70,12 +70,13 @@ void GamePlayScene::Initialize() {
     ParticleManager::GetInstance()->SetEmitter(particleGroupName_,
         defaultEmitter);
 
-    // リングエミッターの設定 (デバッグ用なので頻度は0)
+    // リングエミッターの設定
     ParticleEmitter ringEmitter = ParticleEmitter(
         Transform{ {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 2.0f, 0.0f} },
         2,
         0.2f
     );
+    ringEmitter.ringSettings.isRing = true; // デフォルトでリング形状を使用
     ParticleManager::GetInstance()->SetEmitter(ringParticleGroupName_, ringEmitter);
 
     // 音声ファイルをロード
@@ -601,6 +602,58 @@ void GamePlayScene::UpdateImGui() {
                         ImGui::Checkbox("Gravity Field Active", &fs.isGravityFieldActive);
                         if (fs.isGravityFieldActive) {
                             ImGui::DragFloat3("Gravity Vector", &fs.gravity.x, 0.1f);
+                        }
+
+                        ImGui::TreePop();
+                    }
+
+                    if (ImGui::TreeNode("UV Animation Settings")) {
+                        auto& uvas = emitter->uvAnimationSettings;
+
+                        ImGui::Checkbox("UV Animation Active", &uvas.isActive);
+                        if (uvas.isActive) {
+                            ImGui::Checkbox("Individual UV Animation (Effect Mode)", &uvas.isIndividual);
+                            ImGui::DragFloat2("Scroll Speed (U, V)", &uvas.scrollSpeed.x, 0.01f);
+                            ImGui::DragFloat("Rotate Speed (rad/s)", &uvas.rotateSpeed, 0.01f);
+                            ImGui::DragFloat2("Scale Speed (U, V)", &uvas.scaleSpeed.x, 0.01f);
+
+                            if (ImGui::Button("Reset UV States")) {
+                                uvas.currentTranslate = { 0.0f, 0.0f };
+                                uvas.currentRotate = 0.0f;
+                                uvas.currentScale = { 1.0f, 1.0f };
+                            }
+                        }
+
+                        ImGui::TreePop();
+                    }
+
+                    if (ImGui::TreeNode("Ring Shape Settings")) {
+                        auto& rs = emitter->ringSettings;
+
+                        ImGui::Checkbox("Use Ring Shape", &rs.isRing);
+                        if (rs.isRing) {
+                            ImGui::DragFloat("Inner Radius", &rs.innerRadius, 0.01f, 0.0f, 20.0f);
+                            ImGui::DragFloat("Start Outer Radius", &rs.startOuterRadius, 0.01f, 0.0f, 20.0f);
+                            ImGui::DragFloat("Mid Outer Radius", &rs.midOuterRadius, 0.01f, 0.0f, 20.0f);
+                            ImGui::DragFloat("End Outer Radius", &rs.endOuterRadius, 0.01f, 0.0f, 20.0f);
+                            
+                            ImGui::DragFloat("Start Angle (deg)", &rs.startAngle, 1.0f, 0.0f, 360.0f);
+                            ImGui::DragFloat("End Angle (deg)", &rs.endAngle, 1.0f, 0.0f, 360.0f);
+                            
+                            int division = static_cast<int>(rs.division);
+                            if (ImGui::DragInt("Division", &division, 1, 3, 256)) {
+                                rs.division = static_cast<uint32_t>(division);
+                            }
+
+                            ImGui::Separator();
+                            ImGui::Text("Shader Blend & UV");
+                            ImGui::Checkbox("Swap UV (U <-> V)", &rs.isUvSwap);
+                            ImGui::ColorEdit4("Inner Vertex Color", &rs.innerColor.x);
+                            ImGui::ColorEdit4("Outer Vertex Color", &rs.outerColor.x);
+                            
+                            ImGui::DragFloat("Fade Start Alpha", &rs.fadeStartAlpha, 0.01f, 0.0f, 1.0f);
+                            ImGui::DragFloat("Fade End Alpha", &rs.fadeEndAlpha, 0.01f, 0.0f, 1.0f);
+                            ImGui::DragFloat("Fade Range", &rs.fadeRange, 0.01f, 0.0f, 0.5f);
                         }
 
                         ImGui::TreePop();

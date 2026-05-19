@@ -46,6 +46,8 @@ private: // メンバ変数
             nullptr; // インスタンシングデータを書き込むためのポインタ
         ParticleEmitter emitter;
         Model* model = nullptr; // 使用するモデル (nullならデフォルトの矩形)
+        Model* originalModel = nullptr; // グループ作成時のオリジナルモデル
+        std::unique_ptr<Model> customModel; // グループ独自のモデル（プロシージャルリング用など）
     };
     std::unordered_map<std::string, ParticleGroup> particleGroups_{};
 

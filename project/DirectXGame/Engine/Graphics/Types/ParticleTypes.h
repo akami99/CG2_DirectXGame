@@ -12,14 +12,20 @@ struct Particle {
   Vector4 color;       // 色
   float lifeTime;      // 生存時間
   float currentTime;   // 経過時間
-}; // Transform(36)+Vector3(12)+Vector4(16)=64バイト
+
+  // 個別UVアニメーション用パラメータ
+  Vector2 uvTranslate = { 0.0f, 0.0f };
+  float uvRotate = 0.0f;
+  Vector2 uvScale = { 1.0f, 1.0f };
+};
 
 // パーティクルインスタンスデータの構造体
 struct ParticleInstanceData {
   Matrix4x4 WVP;   // ワールドビュー射影行列
   Matrix4x4 World; // ワールド行列
   Vector4 color;   // 色
-}; // Matrix4x4(64)+Vector4(16)=80バイト
+  Matrix4x4 uvTransform; // 個別のUV変換行列
+};
 
 // パーティクルのエミッタの構造体
 struct Emitter {
@@ -35,6 +41,26 @@ struct Emitter {
 struct AccelerationField {
   Vector3 acceleration; // 加速度
   AABB area;            // 範囲
+};
+
+// リングプリミティブ用の詳細設定構造体
+struct RingSettings {
+    bool isRing = false;
+    float innerRadius = 0.5f;
+    float startOuterRadius = 1.0f;
+    float midOuterRadius = 1.0f;
+    float endOuterRadius = 1.0f;
+    float startAngle = 0.0f;     // 度数法 (0.0f - 360.0f)
+    float endAngle = 360.0f;    // 度数法 (0.0f - 360.0f)
+    uint32_t division = 32;
+
+    // UVとカラーのアニメーション/ブレンド設定
+    bool isUvSwap = false;
+    Vector4 innerColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+    Vector4 outerColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+    float fadeStartAlpha = 1.0f;
+    float fadeEndAlpha = 1.0f;
+    float fadeRange = 0.0f;     // 開始/終了地点からのフェード幅 (0.0f - 0.5f)
 };
 
 #endif // PARTICLE_TYPES_H

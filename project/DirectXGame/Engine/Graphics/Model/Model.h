@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Types/ModelTypes.h"
+#include "Types/ParticleTypes.h"
 
 #include <d3d12.h>
 #include <wrl/client.h>
@@ -48,6 +49,7 @@ public: // メンバ関数
 
   // リングプリミティブの生成
   void CreateRing(const std::string &textureFilePath, float innerRadius, float outerRadius, uint32_t division);
+  void CreateRing(const std::string &textureFilePath, const RingSettings& settings);
 
   // 描画処理
   void Draw();

@@ -9,6 +9,15 @@ struct Material {
     float environmentCoefficient;
     float _padding_dummy;
     float4x4 uvTransform;
+
+    float4 innerColor;
+    float4 outerColor;
+    float fadeStartAlpha;
+    float fadeEndAlpha;
+    float fadeRange;
+    int isUvSwap;
+    int isRing;
+    float3 padding2;
 };
 
 struct TransformationMatrix {

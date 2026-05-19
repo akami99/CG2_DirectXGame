@@ -262,6 +262,7 @@ void ParticleManager::CreateParticleGroup(const std::string& name,
 	// 新たな空のパーティクルグループを作成し、コンテナに登録
 	ParticleGroup newGroup;
 	newGroup.model = model;
+	newGroup.originalModel = model;
 	newGroup.materialData.textureFilePath = textureFilePath;
 
 	// マテリアルデータにテクスチャのSRVインデックスを記録
@@ -304,7 +305,7 @@ void ParticleManager::CreateParticleGroup(const std::string& name,
 	// 1. マテリアルデータ用のCBVリソースを生成
 	const UINT kCbvAlignedSize = 256;
 	newGroup.materialResource = DX12Context::GetInstance()->CreateBufferResource(
-		(sizeof(MaterialData) + kCbvAlignedSize - 1) & ~(kCbvAlignedSize - 1));
+		(sizeof(Material) + kCbvAlignedSize - 1) & ~(kCbvAlignedSize - 1));
 
 	// 2. リソースをMapし、ポインタを取得
 	HRESULT hr = newGroup.materialResource->Map(
@@ -316,6 +317,15 @@ void ParticleManager::CreateParticleGroup(const std::string& name,
 	newGroup.materialMappedData->enableLighting =
 		0; // パーティクルではライティングを無効化 (0)
 	newGroup.materialMappedData->uvTransform = MakeIdentity4x4();
+
+	// 追加パラメータの初期化
+	newGroup.materialMappedData->innerColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+	newGroup.materialMappedData->outerColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+	newGroup.materialMappedData->fadeStartAlpha = 1.0f;
+	newGroup.materialMappedData->fadeEndAlpha = 1.0f;
+	newGroup.materialMappedData->fadeRange = 0.0f;
+	newGroup.materialMappedData->isUvSwap = 0;
+	newGroup.materialMappedData->isRing = 0;
 
 	// グループをマップに追加
 	particleGroups_.emplace(name, std::move(newGroup));
@@ -444,6 +454,52 @@ void ParticleManager::Update(const Camera& camera, float deltaTime) {
 		}
 
 		// ------------------------------------------
+		// UVアニメーションの更新（グローバルのみ）
+		// ------------------------------------------
+		if (group.emitter.uvAnimationSettings.isActive && !group.emitter.uvAnimationSettings.isIndividual) {
+			auto& uvas = group.emitter.uvAnimationSettings;
+			uvas.currentTranslate.x += uvas.scrollSpeed.x * deltaTime;
+			uvas.currentTranslate.y += uvas.scrollSpeed.y * deltaTime;
+			uvas.currentRotate += uvas.rotateSpeed * deltaTime;
+			uvas.currentScale.x += uvas.scaleSpeed.x * deltaTime;
+			uvas.currentScale.y += uvas.scaleSpeed.y * deltaTime;
+
+			Matrix4x4 uvTransformMatrix = MakeAffineMatrix(
+				Vector3{ uvas.currentScale.x, uvas.currentScale.y, 1.0f },
+				Vector3{ 0.0f, 0.0f, uvas.currentRotate },
+				Vector3{ uvas.currentTranslate.x, uvas.currentTranslate.y, 0.0f }
+			);
+			group.materialMappedData->uvTransform = uvTransformMatrix;
+		} else {
+			group.materialMappedData->uvTransform = MakeIdentity4x4();
+		}
+
+		// ------------------------------------------
+		// リング形状の更新とマテリアル転送
+		// ------------------------------------------
+		auto& rs = group.emitter.ringSettings;
+		group.materialMappedData->isRing = rs.isRing ? 1 : 0;
+		group.materialMappedData->isUvSwap = rs.isUvSwap ? 1 : 0;
+		group.materialMappedData->innerColor = rs.innerColor;
+		group.materialMappedData->outerColor = rs.outerColor;
+		group.materialMappedData->fadeStartAlpha = rs.fadeStartAlpha;
+		group.materialMappedData->fadeEndAlpha = rs.fadeEndAlpha;
+		group.materialMappedData->fadeRange = rs.fadeRange;
+
+		if (rs.isRing) {
+			if (!group.customModel) {
+				group.customModel = std::make_unique<Model>();
+			}
+			group.customModel->CreateRing(group.materialData.textureFilePath, rs);
+			group.model = group.customModel.get();
+		} else {
+			if (group.customModel) {
+				group.customModel.reset();
+				group.model = group.originalModel;
+			}
+		}
+
+		// ------------------------------------------
 		// II. 既存パーティクルの更新とインスタンスデータの書き込み
 		// ------------------------------------------
 
@@ -478,17 +534,27 @@ void ParticleManager::Update(const Camera& camera, float deltaTime) {
 			particle.transform.translate =
 				particle.transform.translate + (particle.velocity * deltaTime);
 
-				// 3. 経過時間とアルファ値の計算
+			// 3. 個別UVアニメーションの更新
+			if (isUpdate_ && group.emitter.uvAnimationSettings.isActive && group.emitter.uvAnimationSettings.isIndividual) {
+				auto& uvas = group.emitter.uvAnimationSettings;
+				particle.uvTranslate.x += uvas.scrollSpeed.x * deltaTime;
+				particle.uvTranslate.y += uvas.scrollSpeed.y * deltaTime;
+				particle.uvRotate += uvas.rotateSpeed * deltaTime;
+				particle.uvScale.x += uvas.scaleSpeed.x * deltaTime;
+				particle.uvScale.y += uvas.scaleSpeed.y * deltaTime;
+			}
+
+			// 4. 経過時間とアルファ値の計算
 			particle.currentTime += deltaTime;
 			float alpha = 1.0f - (particle.currentTime / particle.lifeTime);
 
-			// 4. 寿命チェックと削除
+			// 5. 寿命チェックと削除
 			if (particle.currentTime >= particle.lifeTime) {
 				it = group.particles.erase(it);
 				continue;
 			}
 
-			// 5. インスタンシングデータの書き込み (行列計算とGPU転送)
+			// 6. インスタンシングデータの書き込み (行列計算とGPU転送)
 			if (instanceIndex < kNumMaxParticle) {
 
 				Matrix4x4 finalWorldMatrix;
@@ -520,11 +586,29 @@ void ParticleManager::Update(const Camera& camera, float deltaTime) {
 
 				Matrix4x4 wvpMatrix = Multiply(finalWorldMatrix, viewProjectionMatrix);
 
+				// UV変換行列の決定
+				Matrix4x4 uvTransformMatrix;
+				if (group.emitter.uvAnimationSettings.isActive) {
+					if (group.emitter.uvAnimationSettings.isIndividual) {
+						uvTransformMatrix = MakeAffineMatrix(
+							Vector3{ particle.uvScale.x, particle.uvScale.y, 1.0f },
+							Vector3{ 0.0f, 0.0f, particle.uvRotate },
+							Vector3{ particle.uvTranslate.x, particle.uvTranslate.y, 0.0f }
+						);
+					} else {
+						// グローバルアニメーションの場合は、事前に算出されたマテリアルの行列を使用
+						uvTransformMatrix = group.materialMappedData->uvTransform;
+					}
+				} else {
+					uvTransformMatrix = MakeIdentity4x4();
+				}
+
 				// GPU転送
 				instanceData[instanceIndex].WVP = wvpMatrix;
 				instanceData[instanceIndex].World = finalWorldMatrix;
 				instanceData[instanceIndex].color = particle.color;
 				instanceData[instanceIndex].color.w = alpha; // 透明度適用
+				instanceData[instanceIndex].uvTransform = uvTransformMatrix;
 
 				instanceIndex++;
 			}

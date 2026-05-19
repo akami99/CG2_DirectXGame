@@ -96,6 +96,86 @@ void Model::CreateRing(const std::string& textureFilePath, float innerRadius, fl
     modelData_.material.textureIndex = TextureManager::GetInstance()->GetSrvIndex(modelData_.material.textureFilePath);
 }
 
+void Model::CreateRing(const std::string& textureFilePath, const RingSettings& settings) {
+    // データをクリアしておく
+    modelData_.vertices.clear();
+    modelData_.indices.clear();
+
+    float startRad = settings.startAngle * std::numbers::pi_v<float> / 180.0f;
+    float endRad = settings.endAngle * std::numbers::pi_v<float> / 180.0f;
+    float angleRange = endRad - startRad;
+
+    float rStart = settings.startOuterRadius;
+    float rMid = settings.midOuterRadius;
+    float rEnd = settings.endOuterRadius;
+
+    // 二次スプライン（放物線補間）係数の算出
+    float aCoeff = 2.0f * rStart - 4.0f * rMid + 2.0f * rEnd;
+    float bCoeff = -3.0f * rStart + 4.0f * rMid - rEnd;
+    float cCoeff = rStart;
+
+    // 頂点データの生成
+    for (uint32_t i = 0; i <= settings.division; ++i) {
+        float t = float(i) / float(settings.division);
+        float angle = startRad + t * angleRange;
+        float s = std::sin(angle);
+        float c = std::cos(angle);
+
+        // スプライン曲線による外径の計算
+        float outerRadius = aCoeff * t * t + bCoeff * t + cCoeff;
+
+        // 外側の頂点
+        VertexData outerVertex;
+        outerVertex.position = { -s * outerRadius, c * outerRadius, 0.0f, 1.0f };
+        outerVertex.normal = { 0.0f, 0.0f, -1.0f };
+        if (settings.isUvSwap) {
+            outerVertex.texcoord = { 0.0f, t };
+        } else {
+            outerVertex.texcoord = { t, 0.0f };
+        }
+        modelData_.vertices.push_back(outerVertex);
+
+        // 内側の頂点
+        VertexData innerVertex;
+        innerVertex.position = { -s * settings.innerRadius, c * settings.innerRadius, 0.0f, 1.0f };
+        innerVertex.normal = { 0.0f, 0.0f, -1.0f };
+        if (settings.isUvSwap) {
+            innerVertex.texcoord = { 1.0f, t };
+        } else {
+            innerVertex.texcoord = { t, 1.0f };
+        }
+        modelData_.vertices.push_back(innerVertex);
+    }
+
+    // インデックスデータの生成
+    for (uint32_t i = 0; i < settings.division; ++i) {
+        uint32_t base = i * 2;
+        // 三角形1
+        modelData_.indices.push_back(base);     // Outer i
+        modelData_.indices.push_back(base + 2); // Outer i+1
+        modelData_.indices.push_back(base + 1); // Inner i
+        // 三角形2
+        modelData_.indices.push_back(base + 1); // Inner i
+        modelData_.indices.push_back(base + 2); // Outer i+1
+        modelData_.indices.push_back(base + 3); // Inner i+1
+    }
+
+    // マテリアル設定
+    modelData_.material.textureFilePath = textureFilePath;
+    modelData_.rootNode.localMatrix = MakeIdentity4x4();
+    modelData_.rootNode.name = "Ring";
+
+    // リソースの作成
+    CreateVertexResource();
+    CreateIndexResource();
+    CreateMaterialResource();
+
+    // テクスチャ読み込み
+    TextureManager::GetInstance()->LoadTexture(modelData_.material.textureFilePath);
+    modelData_.material.textureIndex = TextureManager::GetInstance()->GetSrvIndex(modelData_.material.textureFilePath);
+}
+
+
 // 描画処理
 void Model::Draw() {
   // VertexBufferの設定
