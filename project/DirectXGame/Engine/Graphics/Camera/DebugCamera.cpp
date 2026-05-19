@@ -1,8 +1,5 @@
-#define DIRECTIONINPUT_VERSION                                                 \
-  0x0800                 // 方向入力のバージョンを定義。0x0800は8.0.0を表す
 #define USE_MATH_DEFINES // 数学定義を使用する
 #include <cmath>
-#include <dinput.h>
 #include <numbers>
 
 #include "../Camera/DebugCamera.h"

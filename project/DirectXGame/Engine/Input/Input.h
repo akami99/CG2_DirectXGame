@@ -1,6 +1,6 @@
 #pragma once
 
-//#define DIRECTINPUT_VERSION 0x0800 // DirectInputのバージョン指定
+#define DIRECTINPUT_VERSION 0x0800 // DirectInputのバージョン指定
 #include <Windows.h>               // HWNDのために必要
 #include <dinput.h>                // DirectInputのヘッダーファイル
 #include <wrl.h>                   // ComPtr

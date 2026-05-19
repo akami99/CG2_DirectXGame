@@ -68,7 +68,7 @@ void MyGame::Initialize() {
   auto sceneFactory = std::make_unique<SceneFactory>();
   SceneManager::GetInstance()->SetSceneFactory(std::move(sceneFactory));
 
-  // 文字列で指定
+  // 文字列で指定(TITLE/GAMEPLAY/SHOOTINGなど)してシーン切り替え予約
   SceneManager::GetInstance()->ChangeScene("GAMEPLAY");
 }
 
