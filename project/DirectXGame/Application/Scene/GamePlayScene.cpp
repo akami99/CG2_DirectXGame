@@ -72,9 +72,9 @@ void GamePlayScene::Initialize() {
 
     // リングエミッターの設定 (デバッグ用なので頻度は0)
     ParticleEmitter ringEmitter = ParticleEmitter(
-        Transform{ {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} },
-        1,
-        0.0f
+        Transform{ {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 2.0f, 0.0f} },
+        2,
+        0.2f
     );
     ParticleManager::GetInstance()->SetEmitter(ringParticleGroupName_, ringEmitter);
 
@@ -530,7 +530,81 @@ void GamePlayScene::UpdateImGui() {
                         emitter->count = static_cast<uint32_t>(count);
                     }
                     
-                    ImGui::DragFloat("Frequency", &emitter->frequency, 0.01f, 0.0f, 10.0f);
+                    ImGui::Checkbox("Enable Auto Emit", &emitter->isEmit);
+                    ImGui::DragFloat("Frequency", &emitter->frequency, 0.01f, 0.01f, 10.0f);
+
+                    if (ImGui::TreeNode("Generate Settings")) {
+                        auto& gs = emitter->generateSettings;
+                        
+                        // Scale
+                        ImGui::Checkbox("Random Scale", &gs.isRandomScale);
+                        if (gs.isRandomScale) {
+                            ImGui::DragFloat3("Scale Min", &gs.scaleMin.x, 0.01f);
+                            ImGui::DragFloat3("Scale Max", &gs.scaleMax.x, 0.01f);
+                        } else {
+                            ImGui::DragFloat3("Fixed Scale", &gs.fixedScale.x, 0.01f);
+                        }
+                        
+                        // Rotate
+                        ImGui::Checkbox("Random Rotate", &gs.isRandomRotate);
+                        if (gs.isRandomRotate) {
+                            ImGui::DragFloat3("Rotate Min", &gs.rotateMin.x, 0.01f);
+                            ImGui::DragFloat3("Rotate Max", &gs.rotateMax.x, 0.01f);
+                        } else {
+                            ImGui::DragFloat3("Fixed Rotate", &gs.fixedRotate.x, 0.01f);
+                        }
+                        
+                        // Velocity
+                        ImGui::Checkbox("Random Velocity", &gs.isRandomVelocity);
+                        if (gs.isRandomVelocity) {
+                            ImGui::DragFloat3("Velocity Min", &gs.velocityMin.x, 0.01f);
+                            ImGui::DragFloat3("Velocity Max", &gs.velocityMax.x, 0.01f);
+                        } else {
+                            ImGui::DragFloat3("Fixed Velocity", &gs.fixedVelocity.x, 0.01f);
+                        }
+                        
+                        // LifeTime
+                        ImGui::Checkbox("Random LifeTime", &gs.isRandomLifeTime);
+                        if (gs.isRandomLifeTime) {
+                            ImGui::DragFloat("LifeTime Min", &gs.lifeTimeMin, 0.01f);
+                            ImGui::DragFloat("LifeTime Max", &gs.lifeTimeMax, 0.01f);
+                        } else {
+                            ImGui::DragFloat("Fixed LifeTime", &gs.fixedLifeTime, 0.01f);
+                        }
+                        
+                        // Color
+                        ImGui::Checkbox("Random Color", &gs.isRandomColor);
+                        if (gs.isRandomColor) {
+                            ImGui::ColorEdit4("Color Min", &gs.colorMin.x);
+                            ImGui::ColorEdit4("Color Max", &gs.colorMax.x);
+                        } else {
+                            ImGui::ColorEdit4("Fixed Color", &gs.fixedColor.x);
+                        }
+                        
+                        ImGui::TreePop();
+                    }
+
+                    if (ImGui::TreeNode("Field Settings")) {
+                        auto& fs = emitter->fieldSettings;
+
+                        // Acceleration Field
+                        ImGui::Checkbox("Acceleration Field Active", &fs.isAccelerationFieldActive);
+                        if (fs.isAccelerationFieldActive) {
+                            ImGui::DragFloat3("Acceleration", &fs.accelerationField.acceleration.x, 0.1f);
+                            ImGui::DragFloat3("Area Min", &fs.accelerationField.area.min.x, 0.1f);
+                            ImGui::DragFloat3("Area Max", &fs.accelerationField.area.max.x, 0.1f);
+                        }
+
+                        ImGui::Separator();
+
+                        // Gravity Field
+                        ImGui::Checkbox("Gravity Field Active", &fs.isGravityFieldActive);
+                        if (fs.isGravityFieldActive) {
+                            ImGui::DragFloat3("Gravity Vector", &fs.gravity.x, 0.1f);
+                        }
+
+                        ImGui::TreePop();
+                    }
 
                     // 手動でEmitさせるボタン
                     std::string emitLabel = "Emit " + groupName;

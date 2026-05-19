@@ -334,8 +334,8 @@ void ParticleManager::Emit(const std::string& name, const Vector3& translate,
 
 	// 指定された個数だけパーティクルを生成
 	for (uint32_t i = 0; i < count; ++i) {
-		// MakeNewParticle でランダムな初期値を持つパーティクルを生成
-		Particle newParticle = MakeNewParticle(translate);
+		// MakeNewParticle で設定に基づいたランダムな初期値を持つパーティクルを生成
+		Particle newParticle = MakeNewParticle(translate, group.emitter.generateSettings);
 
 		// グループ内のパーティクルリストに追加
 		group.particles.push_back(std::move(newParticle));
@@ -343,14 +343,27 @@ void ParticleManager::Emit(const std::string& name, const Vector3& translate,
 }
 
 // パーティクル生成関数
-Particle ParticleManager::MakeNewParticle(const Vector3& translate) {
+Particle ParticleManager::MakeNewParticle(const Vector3& translate, const ParticleGenerateSettings& settings) {
 
 	// 乱数分布の定義 (エンジンは引数の randomEngine を使用)
-	std::uniform_real_distribution<float> distScale(0.4f, 1.5f);
-	std::uniform_real_distribution<float> distRotate(-std::numbers::pi_v<float>, std::numbers::pi_v<float>);
-	//std::uniform_real_distribution<float> distTranslate(-1.0f, 1.0f);
-	//std::uniform_real_distribution<float> distTime(1.0f, 3.0f);
-	std::uniform_real_distribution<float> distColor(0.0f, 1.0f); // 0.0f to 1.0f に変更
+	std::uniform_real_distribution<float> distScaleX(settings.scaleMin.x, settings.scaleMax.x);
+	std::uniform_real_distribution<float> distScaleY(settings.scaleMin.y, settings.scaleMax.y);
+	std::uniform_real_distribution<float> distScaleZ(settings.scaleMin.z, settings.scaleMax.z);
+
+	std::uniform_real_distribution<float> distRotateX(settings.rotateMin.x, settings.rotateMax.x);
+	std::uniform_real_distribution<float> distRotateY(settings.rotateMin.y, settings.rotateMax.y);
+	std::uniform_real_distribution<float> distRotateZ(settings.rotateMin.z, settings.rotateMax.z);
+
+	std::uniform_real_distribution<float> distVelocityX(settings.velocityMin.x, settings.velocityMax.x);
+	std::uniform_real_distribution<float> distVelocityY(settings.velocityMin.y, settings.velocityMax.y);
+	std::uniform_real_distribution<float> distVelocityZ(settings.velocityMin.z, settings.velocityMax.z);
+
+	std::uniform_real_distribution<float> distLifeTime(settings.lifeTimeMin, settings.lifeTimeMax);
+
+	std::uniform_real_distribution<float> distColorR(settings.colorMin.x, settings.colorMax.x);
+	std::uniform_real_distribution<float> distColorG(settings.colorMin.y, settings.colorMax.y);
+	std::uniform_real_distribution<float> distColorB(settings.colorMin.z, settings.colorMax.z);
+	std::uniform_real_distribution<float> distColorA(settings.colorMin.w, settings.colorMax.w);
 
 	// パーティクルの初期化
 	Particle particle;
@@ -358,36 +371,31 @@ Particle ParticleManager::MakeNewParticle(const Vector3& translate) {
 	// -------------------
 	// トランスフォーム
 	// -------------------
-	particle.transform.scale = { 0.05f, distScale(randomEngine_), 1.0f };
-	particle.transform.rotate = { 0.0f, 0.0f, distRotate(randomEngine_) };
+	particle.transform.scale = settings.isRandomScale ? 
+		Vector3{ distScaleX(randomEngine_), distScaleY(randomEngine_), distScaleZ(randomEngine_) } : settings.fixedScale;
+	
+	particle.transform.rotate = settings.isRandomRotate ? 
+		Vector3{ distRotateX(randomEngine_), distRotateY(randomEngine_), distRotateZ(randomEngine_) } : settings.fixedRotate;
 
-	//// 基準位置からのランダムなオフセットを加える
-	//Vector3 randomTranslate{distTranslate(randomEngine_), distTranslate(randomEngine_),
-	//                        distTranslate(randomEngine_)};
-	//particle.transform.translate = translate + randomTranslate;
 	particle.transform.translate = translate; // オフセットなしで基準位置に発生させる
 
 	// -------------------
 	// 速度
 	// -------------------
-	// 速度をランダムに設定 (例: -1.0から1.0の範囲)
-	/*particle.velocity = {distPos(randomEngine_), distPos(randomEngine_),
-						 distPos(randomEngine_)};*/
-	particle.velocity = { 0.0f, 0.0f, 0.0f }; // 静止させる
+	particle.velocity = settings.isRandomVelocity ? 
+		Vector3{ distVelocityX(randomEngine_), distVelocityY(randomEngine_), distVelocityZ(randomEngine_) } : settings.fixedVelocity;
 
 	// -------------------
 	// 寿命と時間
 	// -------------------
-	//particle.lifeTime = distTime(randomEngine_); // 1.0秒から 3.0秒
-	particle.lifeTime = 1.0f; // 固定で1秒の寿命
+	particle.lifeTime = settings.isRandomLifeTime ? distLifeTime(randomEngine_) : settings.fixedLifeTime;
 	particle.currentTime = 0.0f;
 
 	// -------------------
 	// 色
 	// -------------------
-	// 色をランダムに設定 (0.0から1.0の範囲)
-	particle.color = { distColor(randomEngine_), distColor(randomEngine_),
-					  distColor(randomEngine_), 1.0f }; // アルファは不透明
+	particle.color = settings.isRandomColor ? 
+		Vector4{ distColorR(randomEngine_), distColorG(randomEngine_), distColorB(randomEngine_), distColorA(randomEngine_) } : settings.fixedColor;
 
 	return particle;
 }
@@ -415,19 +423,24 @@ void ParticleManager::Update(const Camera& camera, float deltaTime) {
 		// I. エミッターの更新とパーティクルの生成
 		// ------------------------------------------
 
-		// 1. 時刻を進める
-		group.emitter.frequencyTime += deltaTime;
+		if (group.emitter.isEmit) {
+			// 1. 時刻を進める
+			group.emitter.frequencyTime += deltaTime;
 
-		// 2. 発生頻度より大きいなら発生
-		if (group.emitter.frequency > 0.0f &&
-			group.emitter.frequency <= group.emitter.frequencyTime) {
+			// 2. 発生頻度より大きいなら発生
+			if (group.emitter.frequency > 0.0f &&
+				group.emitter.frequency <= group.emitter.frequencyTime) {
 
-			// ParticleEmitter::Emit を呼び出し、ParticleManager::Emit へ処理を委譲
-			// Emitter自身の設定値 (translate, count) を使って生成を依頼する
-			group.emitter.Emit(pair.first); // pair.first はグループ名
+				// ParticleEmitter::Emit を呼び出し、ParticleManager::Emit へ処理を委譲
+				// Emitter自身の設定値 (translate, count) を使って生成を依頼する
+				group.emitter.Emit(pair.first); // pair.first はグループ名
 
-			// 余計に過ぎた時間も加味して頻度計算する
-			group.emitter.frequencyTime -= group.emitter.frequency;
+				// 余計に過ぎた時間も加味して頻度計算する
+				group.emitter.frequencyTime -= group.emitter.frequency;
+			}
+		} else {
+			// 自動発生が無効な場合は時刻をリセットし、再び有効になったときに一気に発生するのを防ぐ
+			group.emitter.frequencyTime = 0.0f;
 		}
 
 		// ------------------------------------------
@@ -446,19 +459,24 @@ void ParticleManager::Update(const Camera& camera, float deltaTime) {
 
 			// 1. フィールドの影響計算 (場の影響)
 			if (isUpdate_) {
-				AccelerationField accelerationField;
-				accelerationField.acceleration = { 15.0f, 0.0f, 0.0f };
-				accelerationField.area.min = { -1.0f, -1.0f, -1.0f };
-				accelerationField.area.max = { 1.0f, 1.0f, 1.0f };
-
-				if (IsCollision(accelerationField.area, particle.transform.translate)) {
-					particle.velocity += accelerationField.acceleration * deltaTime;
+				const auto& fs = group.emitter.fieldSettings;
+				
+				// 加速フィールド
+				if (fs.isAccelerationFieldActive) {
+					if (IsCollision(fs.accelerationField.area, particle.transform.translate)) {
+						particle.velocity += fs.accelerationField.acceleration * deltaTime;
+					}
+				}
+				
+				// 重力フィールド
+				if (fs.isGravityFieldActive) {
+					particle.velocity += fs.gravity * deltaTime;
 				}
 			}
 
 			// 2. 移動処理
-			/*particle.transform.translate =
-				particle.transform.translate + (particle.velocity * deltaTime);*/
+			particle.transform.translate =
+				particle.transform.translate + (particle.velocity * deltaTime);
 
 				// 3. 経過時間とアルファ値の計算
 			particle.currentTime += deltaTime;

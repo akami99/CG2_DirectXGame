@@ -96,7 +96,7 @@ public: // メンバ関数
     void Emit(const std::string& name, const Vector3& translate, uint32_t count);
 
     // パーティクル生成関数
-    Particle MakeNewParticle(const Vector3& translate);
+    Particle MakeNewParticle(const Vector3& translate, const ParticleGenerateSettings& settings);
 
     // 更新処理
     void Update(const Camera& camera, float deltaTime);
