@@ -62,6 +62,9 @@ public:
   float frequency;     // 発生頻度 (秒)
   float frequencyTime; // 頻度計算用の時刻 (初期値 0.0f)
   bool isEmit;         // 自動発生を有効にするかどうかのフラグ
+  bool isEffectMode = false; // エフェクトモード（単発/ループ再生）にするか
+  bool isLoop = false;       // アニメーション完了時にループ再生するか
+  bool isPlaying = false;    // エフェクト再生中フラグ
   ParticleGenerateSettings generateSettings; // 生成時の設定
   ParticleFieldSettings fieldSettings;       // フィールドの設定
   ParticleUVAnimationSettings uvAnimationSettings; // UVアニメーションの設定
@@ -74,10 +77,10 @@ public:
   /// <param name="c">1回で生成するパーティクル数</param>
   /// <param name="freq">発生頻度 (秒)</param>
   ParticleEmitter(const Transform &t, uint32_t c, float freq)
-      : transform(t), count(c), frequency(freq), frequencyTime(0.0f), isEmit(true) {}
+      : transform(t), count(c), frequency(freq), frequencyTime(0.0f), isEmit(true), isEffectMode(false), isLoop(false), isPlaying(false) {}
 
   // デフォルトコンストラクタ
-  ParticleEmitter() : count(1), frequency(0.1f), frequencyTime(0.0f), isEmit(true) {}
+  ParticleEmitter() : count(1), frequency(0.1f), frequencyTime(0.0f), isEmit(true), isEffectMode(false), isLoop(false), isPlaying(false) {}
 
   void Emit(const std::string &groupName);
 };

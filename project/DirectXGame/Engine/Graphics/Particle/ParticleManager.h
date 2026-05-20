@@ -134,4 +134,10 @@ private: // メンバ関数
     ParticleManager& operator=(const ParticleManager&) = delete;
 
     friend std::default_delete<ParticleManager>;
+
+    // Update 分割ヘルパー
+    void UpdateGroupEmitter(ParticleGroup& group, const std::string& name, float deltaTime);
+    void UpdateGroupMaterial(ParticleGroup& group, float deltaTime);
+    bool UpdateParticle(Particle& particle, const ParticleGroup& group, float deltaTime);
+    void WriteInstanceData(ParticleGroup& group, const Camera& camera, const Matrix4x4& viewProjectionMatrix, uint32_t& instanceIndex);
 };

@@ -410,213 +410,293 @@ Particle ParticleManager::MakeNewParticle(const Vector3& translate, const Partic
 	return particle;
 }
 
-void ParticleManager::Update(const Camera& camera, float deltaTime) {
-	// 1. ビルボード行列の計算
-	// カメラの回転情報からビルボード行列を計算します
-	Matrix4x4 billboardMatrix = camera.GetWorldMatrix();
-	billboardMatrix.m[3][0] = 0.0f; // 平行移動成分を削除
-	billboardMatrix.m[3][1] = 0.0f;
-	billboardMatrix.m[3][2] = 0.0f;
-	// ※カリングがoffになっていないのなら表裏を反転 (必要に応じてコメント解除)
-	// billboardMatrix = Multiply(billboardMatrix,
-	// MakeRotateYMatrix(std::numbers::pi_v<float>));
+// ---------------------------------------------------------------------------
+// Update ヘルパー: エミッターの時刻進行とパーティクル生成
+// ---------------------------------------------------------------------------
+void ParticleManager::UpdateGroupEmitter(ParticleGroup& group, const std::string& name, float deltaTime) {
+	if (group.emitter.isEffectMode) {
+		// エフェクトモードの場合（独立した別枠の「パーティクル生成システム」）
+		bool hasActiveParticles = !group.particles.empty();
 
-	// 2. ビュー行列とプロジェクション行列をカメラから取得
-	const Matrix4x4 viewProjectionMatrix =
-		Multiply(camera.GetViewMatrix(), camera.GetProjectionMatrix());
+		if (!hasActiveParticles) {
+			// パーティクルがない（消滅した＝アニメーション完了）
+			if (group.emitter.isPlaying) {
+				// 再生中だったものが消滅した場合
+				group.emitter.isPlaying = false;
 
-	// 全てのパーティクルグループについて処理
-	for (auto& pair : particleGroups_) {
-		ParticleGroup& group = pair.second;
+				if (group.emitter.isLoop) {
+					// ループが有効なら、UV設定をリセットして最初から再再生
+					auto& uvas = group.emitter.uvAnimationSettings;
+					uvas.currentTranslate = { 0.0f, 0.0f };
+					uvas.currentRotate = 0.0f;
+					uvas.currentScale = { 1.0f, 1.0f };
 
-		// ------------------------------------------
-		// I. エミッターの更新とパーティクルの生成
-		// ------------------------------------------
+					// 再度発生
+					Emit(name, group.emitter.transform.translate, group.emitter.count);
+					group.emitter.isPlaying = true;
+				}
+			} else {
+				// 再生中でない（初期状態、または一度再生が終わってループ無効）
+				// isEmit がオンになった瞬間に最初の1回を再生開始する
+				if (group.emitter.isEmit) {
+					auto& uvas = group.emitter.uvAnimationSettings;
+					uvas.currentTranslate = { 0.0f, 0.0f };
+					uvas.currentRotate = 0.0f;
+					uvas.currentScale = { 1.0f, 1.0f };
 
+					Emit(name, group.emitter.transform.translate, group.emitter.count);
+					group.emitter.isPlaying = true;
+				}
+			}
+		}
+	} else {
+		// 既存の frequency に基づく自動連続生成処理
 		if (group.emitter.isEmit) {
-			// 1. 時刻を進める
 			group.emitter.frequencyTime += deltaTime;
-
-			// 2. 発生頻度より大きいなら発生
 			if (group.emitter.frequency > 0.0f &&
 				group.emitter.frequency <= group.emitter.frequencyTime) {
-
-				// ParticleEmitter::Emit を呼び出し、ParticleManager::Emit へ処理を委譲
-				// Emitter自身の設定値 (translate, count) を使って生成を依頼する
-				group.emitter.Emit(pair.first); // pair.first はグループ名
-
-				// 余計に過ぎた時間も加味して頻度計算する
+				Emit(name, group.emitter.transform.translate, group.emitter.count);
 				group.emitter.frequencyTime -= group.emitter.frequency;
 			}
 		} else {
 			// 自動発生が無効な場合は時刻をリセットし、再び有効になったときに一気に発生するのを防ぐ
 			group.emitter.frequencyTime = 0.0f;
 		}
+	}
+}
 
-		// ------------------------------------------
-		// UVアニメーションの更新（グローバルのみ）
-		// ------------------------------------------
-		if (group.emitter.uvAnimationSettings.isActive && !group.emitter.uvAnimationSettings.isIndividual) {
-			auto& uvas = group.emitter.uvAnimationSettings;
-			uvas.currentTranslate.x += uvas.scrollSpeed.x * deltaTime;
-			uvas.currentTranslate.y += uvas.scrollSpeed.y * deltaTime;
-			uvas.currentRotate += uvas.rotateSpeed * deltaTime;
-			uvas.currentScale.x += uvas.scaleSpeed.x * deltaTime;
-			uvas.currentScale.y += uvas.scaleSpeed.y * deltaTime;
+// ---------------------------------------------------------------------------
+// Update ヘルパー: グローバル UV アニメーションとリングマテリアルの CPU → GPU 転送
+// ---------------------------------------------------------------------------
+void ParticleManager::UpdateGroupMaterial(ParticleGroup& group, float deltaTime) {
+	// --- グローバル UV アニメーション ---
+	auto& uvas = group.emitter.uvAnimationSettings;
+	if (uvas.isActive && !uvas.isIndividual) {
+		uvas.currentTranslate.x += uvas.scrollSpeed.x * deltaTime;
+		uvas.currentTranslate.y += uvas.scrollSpeed.y * deltaTime;
+		uvas.currentRotate      += uvas.rotateSpeed   * deltaTime;
+		uvas.currentScale.x     += uvas.scaleSpeed.x  * deltaTime;
+		uvas.currentScale.y     += uvas.scaleSpeed.y  * deltaTime;
 
-			Matrix4x4 uvTransformMatrix = MakeAffineMatrix(
-				Vector3{ uvas.currentScale.x, uvas.currentScale.y, 1.0f },
-				Vector3{ 0.0f, 0.0f, uvas.currentRotate },
-				Vector3{ uvas.currentTranslate.x, uvas.currentTranslate.y, 0.0f }
-			);
-			group.materialMappedData->uvTransform = uvTransformMatrix;
-		} else {
-			group.materialMappedData->uvTransform = MakeIdentity4x4();
+		group.materialMappedData->uvTransform = MakeAffineMatrix(
+			Vector3{ uvas.currentScale.x, uvas.currentScale.y, 1.0f },
+			Vector3{ 0.0f, 0.0f, uvas.currentRotate },
+			Vector3{ uvas.currentTranslate.x, uvas.currentTranslate.y, 0.0f });
+	} else {
+		group.materialMappedData->uvTransform = MakeIdentity4x4();
+	}
+
+	// --- リング設定のマテリアル転送 ---
+	auto& rs = group.emitter.ringSettings;
+	group.materialMappedData->isRing        = rs.isRing   ? 1 : 0;
+	group.materialMappedData->isUvSwap      = rs.isUvSwap ? 1 : 0;
+	group.materialMappedData->innerColor    = rs.innerColor;
+	group.materialMappedData->outerColor    = rs.outerColor;
+	group.materialMappedData->fadeStartAlpha= rs.fadeStartAlpha;
+	group.materialMappedData->fadeEndAlpha  = rs.fadeEndAlpha;
+	group.materialMappedData->fadeRange     = rs.fadeRange;
+
+	// --- リングモデルの動的生成／解放 ---
+	if (rs.isRing) {
+		if (!group.customModel) {
+			group.customModel = std::make_unique<Model>();
+		}
+		group.customModel->CreateRing(group.materialData.textureFilePath, rs);
+		group.model = group.customModel.get();
+	} else {
+		if (group.customModel) {
+			group.customModel.reset();
+			group.model = group.originalModel;
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Update ヘルパー: 単一パーティクルの物理・UV 更新
+// 戻り値: true = まだ生存、false = 寿命切れ（呼び出し側が erase する）
+// ---------------------------------------------------------------------------
+bool ParticleManager::UpdateParticle(Particle& particle, const ParticleGroup& group, float deltaTime) {
+	if (isUpdate_) {
+		const auto& fs = group.emitter.fieldSettings;
+
+		// 加速フィールド
+		if (fs.isAccelerationFieldActive &&
+			IsCollision(fs.accelerationField.area, particle.transform.translate)) {
+			particle.velocity += fs.accelerationField.acceleration * deltaTime;
+		}
+		// 重力フィールド
+		if (fs.isGravityFieldActive) {
+			particle.velocity += fs.gravity * deltaTime;
+		}
+	}
+
+	// 移動
+	particle.transform.translate += particle.velocity * deltaTime;
+
+	// 個別 UV アニメーション
+	if (isUpdate_ &&
+		group.emitter.uvAnimationSettings.isActive &&
+		group.emitter.uvAnimationSettings.isIndividual) {
+		const auto& uvas = group.emitter.uvAnimationSettings;
+		particle.uvTranslate.x += uvas.scrollSpeed.x * deltaTime;
+		particle.uvTranslate.y += uvas.scrollSpeed.y * deltaTime;
+		particle.uvRotate      += uvas.rotateSpeed   * deltaTime;
+		particle.uvScale.x     += uvas.scaleSpeed.x  * deltaTime;
+		particle.uvScale.y     += uvas.scaleSpeed.y  * deltaTime;
+	}
+
+	// 時間経過
+	particle.currentTime += deltaTime;
+
+	// 寿命チェック
+	return particle.currentTime < particle.lifeTime;
+}
+
+// ---------------------------------------------------------------------------
+// Update ヘルパー: インスタンシングバッファへの書き込み
+// ---------------------------------------------------------------------------
+void ParticleManager::WriteInstanceData(
+	ParticleGroup& group,
+	const Camera& camera,
+	const Matrix4x4& viewProjectionMatrix,
+	uint32_t& instanceIndex)
+{
+	auto* instanceData = static_cast<ParticleInstanceData*>(group.mappedData);
+
+	auto it = group.particles.begin();
+	while (it != group.particles.end()) {
+		Particle& particle = *it;
+
+		// 更新して寿命切れなら削除
+		if (!UpdateParticle(particle, group, 0.0f)) {
+			// ※ 時間はすでに Update 本体で進めているため 0 を渡すのは NG。
+			// この関数ではインスタンスデータ書き込みのみ担う（時間更新済み）
 		}
 
-		// ------------------------------------------
-		// リング形状の更新とマテリアル転送
-		// ------------------------------------------
-		auto& rs = group.emitter.ringSettings;
-		group.materialMappedData->isRing = rs.isRing ? 1 : 0;
-		group.materialMappedData->isUvSwap = rs.isUvSwap ? 1 : 0;
-		group.materialMappedData->innerColor = rs.innerColor;
-		group.materialMappedData->outerColor = rs.outerColor;
-		group.materialMappedData->fadeStartAlpha = rs.fadeStartAlpha;
-		group.materialMappedData->fadeEndAlpha = rs.fadeEndAlpha;
-		group.materialMappedData->fadeRange = rs.fadeRange;
+		float alpha = 1.0f - (particle.currentTime / particle.lifeTime);
 
-		if (rs.isRing) {
-			if (!group.customModel) {
-				group.customModel = std::make_unique<Model>();
+		if (instanceIndex < kNumMaxParticle) {
+			// ワールド行列の計算
+			Matrix4x4 scaleM  = MakeScaleMatrix(particle.transform.scale);
+			Matrix4x4 rotateM = MakeRotateXYZMatrix(particle.transform.rotate);
+
+			Matrix4x4 billboardM;
+			if (useBillboard_) {
+				billboardM = camera.GetWorldMatrix();
+				billboardM.m[3][0] = billboardM.m[3][1] = billboardM.m[3][2] = 0.0f;
+			} else {
+				billboardM = MakeIdentity4x4();
 			}
-			group.customModel->CreateRing(group.materialData.textureFilePath, rs);
-			group.model = group.customModel.get();
-		} else {
-			if (group.customModel) {
-				group.customModel.reset();
-				group.model = group.originalModel;
+
+			Matrix4x4 worldM = Multiply(scaleM, Multiply(rotateM, billboardM));
+			worldM.m[3][0] = particle.transform.translate.x;
+			worldM.m[3][1] = particle.transform.translate.y;
+			worldM.m[3][2] = particle.transform.translate.z;
+
+			// UV 変換行列
+			Matrix4x4 uvM;
+			const auto& uvas = group.emitter.uvAnimationSettings;
+			if (uvas.isActive) {
+				if (uvas.isIndividual) {
+					uvM = MakeAffineMatrix(
+						Vector3{ particle.uvScale.x, particle.uvScale.y, 1.0f },
+						Vector3{ 0.0f, 0.0f, particle.uvRotate },
+						Vector3{ particle.uvTranslate.x, particle.uvTranslate.y, 0.0f });
+				} else {
+					uvM = group.materialMappedData->uvTransform;
+				}
+			} else {
+				uvM = MakeIdentity4x4();
 			}
+
+			instanceData[instanceIndex].WVP         = Multiply(worldM, viewProjectionMatrix);
+			instanceData[instanceIndex].World        = worldM;
+			instanceData[instanceIndex].color        = particle.color;
+			instanceData[instanceIndex].color.w      = alpha;
+			instanceData[instanceIndex].uvTransform  = uvM;
+			++instanceIndex;
 		}
+		++it;
+	}
+}
 
-		// ------------------------------------------
-		// II. 既存パーティクルの更新とインスタンスデータの書き込み
-		// ------------------------------------------
+// ---------------------------------------------------------------------------
+// Update 本体 (スリム化済み)
+// ---------------------------------------------------------------------------
+void ParticleManager::Update(const Camera& camera, float deltaTime) {
+	// ビュープロジェクション行列の算出
+	const Matrix4x4 viewProjectionMatrix =
+		Multiply(camera.GetViewMatrix(), camera.GetProjectionMatrix());
 
-		// インスタンスデータへの書き込み用ポインタ
-		ParticleInstanceData* instanceData =
-			(ParticleInstanceData*)group.mappedData;
-		uint32_t instanceIndex = 0; // 現在書き込んでいるインスタンスのインデックス
+	for (auto& pair : particleGroups_) {
+		ParticleGroup& group = pair.second;
 
-		// グループ内の全てのパーティクルについて処理
+		// 1. エミッター更新 (時刻管理／生成制御)
+		UpdateGroupEmitter(group, pair.first, deltaTime);
+
+		// 2. マテリアル・UV・リング更新
+		UpdateGroupMaterial(group, deltaTime);
+
+		// 3. パーティクル更新 → インスタンスデータ書き込み
+		uint32_t instanceIndex = 0;
+
 		auto it = group.particles.begin();
 		while (it != group.particles.end()) {
 			Particle& particle = *it;
 
-			// 1. フィールドの影響計算 (場の影響)
-			if (isUpdate_) {
-				const auto& fs = group.emitter.fieldSettings;
-				
-				// 加速フィールド
-				if (fs.isAccelerationFieldActive) {
-					if (IsCollision(fs.accelerationField.area, particle.transform.translate)) {
-						particle.velocity += fs.accelerationField.acceleration * deltaTime;
-					}
-				}
-				
-				// 重力フィールド
-				if (fs.isGravityFieldActive) {
-					particle.velocity += fs.gravity * deltaTime;
-				}
-			}
-
-			// 2. 移動処理
-			particle.transform.translate =
-				particle.transform.translate + (particle.velocity * deltaTime);
-
-			// 3. 個別UVアニメーションの更新
-			if (isUpdate_ && group.emitter.uvAnimationSettings.isActive && group.emitter.uvAnimationSettings.isIndividual) {
-				auto& uvas = group.emitter.uvAnimationSettings;
-				particle.uvTranslate.x += uvas.scrollSpeed.x * deltaTime;
-				particle.uvTranslate.y += uvas.scrollSpeed.y * deltaTime;
-				particle.uvRotate += uvas.rotateSpeed * deltaTime;
-				particle.uvScale.x += uvas.scaleSpeed.x * deltaTime;
-				particle.uvScale.y += uvas.scaleSpeed.y * deltaTime;
-			}
-
-			// 4. 経過時間とアルファ値の計算
-			particle.currentTime += deltaTime;
-			float alpha = 1.0f - (particle.currentTime / particle.lifeTime);
-
-			// 5. 寿命チェックと削除
-			if (particle.currentTime >= particle.lifeTime) {
+			// 物理・UV 更新、寿命チェック
+			if (!UpdateParticle(particle, group, deltaTime)) {
 				it = group.particles.erase(it);
 				continue;
 			}
 
-			// 6. インスタンシングデータの書き込み (行列計算とGPU転送)
+			// インスタンスデータ書き込み
 			if (instanceIndex < kNumMaxParticle) {
+				float alpha = 1.0f - (particle.currentTime / particle.lifeTime);
 
-				Matrix4x4 finalWorldMatrix;
-				// --- パーティクルの変換行列計算 ---
-				Matrix4x4 scaleMatrix = MakeScaleMatrix(particle.transform.scale);
-				Matrix4x4 rotateMatrix = MakeRotateXYZMatrix(particle.transform.rotate); // パーティクル自身の回転を追加
-				Matrix4x4 billboardMatrix{};
+				Matrix4x4 scaleM  = MakeScaleMatrix(particle.transform.scale);
+				Matrix4x4 rotateM = MakeRotateXYZMatrix(particle.transform.rotate);
 
-				// useBillboard_ が true の場合のみビルボード行列を適用
+				Matrix4x4 billboardM;
 				if (useBillboard_) {
-					billboardMatrix = camera.GetWorldMatrix();
-					billboardMatrix.m[3][0] = 0.0f;
-					billboardMatrix.m[3][1] = 0.0f;
-					billboardMatrix.m[3][2] = 0.0f;
-				}
-				else {
-					billboardMatrix = MakeIdentity4x4();
+					billboardM = camera.GetWorldMatrix();
+					billboardM.m[3][0] = billboardM.m[3][1] = billboardM.m[3][2] = 0.0f;
+				} else {
+					billboardM = MakeIdentity4x4();
 				}
 
-				// 回転を合成 (スケール -> パーティクル回転 -> ビルボード回転)
-				Matrix4x4 rotateBillboardMatrix = Multiply(rotateMatrix, billboardMatrix);
-				finalWorldMatrix = Multiply(scaleMatrix, rotateBillboardMatrix);
+				Matrix4x4 worldM = Multiply(scaleM, Multiply(rotateM, billboardM));
+				worldM.m[3][0] = particle.transform.translate.x;
+				worldM.m[3][1] = particle.transform.translate.y;
+				worldM.m[3][2] = particle.transform.translate.z;
 
-				// 平行移動を適用
-				finalWorldMatrix.m[3][0] = particle.transform.translate.x;
-				finalWorldMatrix.m[3][1] = particle.transform.translate.y;
-				finalWorldMatrix.m[3][2] = particle.transform.translate.z;
-				// ---------------------------------
-
-				Matrix4x4 wvpMatrix = Multiply(finalWorldMatrix, viewProjectionMatrix);
-
-				// UV変換行列の決定
-				Matrix4x4 uvTransformMatrix;
-				if (group.emitter.uvAnimationSettings.isActive) {
-					if (group.emitter.uvAnimationSettings.isIndividual) {
-						uvTransformMatrix = MakeAffineMatrix(
+				// UV 変換行列
+				Matrix4x4 uvM;
+				const auto& uvas = group.emitter.uvAnimationSettings;
+				if (uvas.isActive) {
+					if (uvas.isIndividual) {
+						uvM = MakeAffineMatrix(
 							Vector3{ particle.uvScale.x, particle.uvScale.y, 1.0f },
 							Vector3{ 0.0f, 0.0f, particle.uvRotate },
-							Vector3{ particle.uvTranslate.x, particle.uvTranslate.y, 0.0f }
-						);
+							Vector3{ particle.uvTranslate.x, particle.uvTranslate.y, 0.0f });
 					} else {
-						// グローバルアニメーションの場合は、事前に算出されたマテリアルの行列を使用
-						uvTransformMatrix = group.materialMappedData->uvTransform;
+						uvM = group.materialMappedData->uvTransform;
 					}
 				} else {
-					uvTransformMatrix = MakeIdentity4x4();
+					uvM = MakeIdentity4x4();
 				}
 
-				// GPU転送
-				instanceData[instanceIndex].WVP = wvpMatrix;
-				instanceData[instanceIndex].World = finalWorldMatrix;
-				instanceData[instanceIndex].color = particle.color;
-				instanceData[instanceIndex].color.w = alpha; // 透明度適用
-				instanceData[instanceIndex].uvTransform = uvTransformMatrix;
-
-				instanceIndex++;
+				auto* instanceData = static_cast<ParticleInstanceData*>(group.mappedData);
+				instanceData[instanceIndex].WVP        = Multiply(worldM, viewProjectionMatrix);
+				instanceData[instanceIndex].World       = worldM;
+				instanceData[instanceIndex].color       = particle.color;
+				instanceData[instanceIndex].color.w     = alpha;
+				instanceData[instanceIndex].uvTransform = uvM;
+				++instanceIndex;
 			}
-
 			++it;
 		}
 
-		// グループの描画インスタンス数を更新
 		group.instanceCount = instanceIndex;
 	}
 }

@@ -533,6 +533,12 @@ void GamePlayScene::UpdateImGui() {
                     
                     ImGui::Checkbox("Enable Auto Emit", &emitter->isEmit);
                     ImGui::DragFloat("Frequency", &emitter->frequency, 0.01f, 0.01f, 10.0f);
+                    
+                    ImGui::Checkbox("Effect Mode (Single/Loop Effect)", &emitter->isEffectMode);
+                    if (emitter->isEffectMode) {
+                        ImGui::Checkbox("Loop Effect", &emitter->isLoop);
+                        ImGui::Text("Playing State: %s", emitter->isPlaying ? "Playing" : "Stopped");
+                    }
 
                     if (ImGui::TreeNode("Generate Settings")) {
                         auto& gs = emitter->generateSettings;

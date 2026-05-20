@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -186,6 +186,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="DirectXGame\Engine\Graphics\Object3d\Object3dCommon.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\Object3d\Object3d.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\PSO\PipelineManager.cpp" />
+    <ClCompile Include="DirectXGame\Engine\Graphics\PSO\PostProcessManager.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\Model\Model.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\Model\ModelCommon.cpp" />
     <ClCompile Include="DirectXGame\Engine\Graphics\Model\ModelManager.cpp" />
@@ -342,6 +343,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="DirectXGame\Engine\Graphics\Object3d\Object3dCommon.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\Object3d\Object3d.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\PSO\PipelineManager.h" />
+    <ClInclude Include="DirectXGame\Engine\Graphics\PSO\PostProcessManager.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\Model\Model.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\Model\ModelCommon.h" />
     <ClInclude Include="DirectXGame\Engine\Graphics\Model\ModelManager.h" />
