@@ -51,6 +51,9 @@ public: // メンバ関数
   void CreateRing(const std::string &textureFilePath, float innerRadius, float outerRadius, uint32_t division);
   void CreateRing(const std::string &textureFilePath, const RingSettings& settings);
 
+  // シリンダープリミティブの生成
+  void CreateCylinder(const std::string &textureFilePath, const CylinderSettings& settings);
+
   // 描画処理
   void Draw();
 

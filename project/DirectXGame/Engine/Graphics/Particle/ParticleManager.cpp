@@ -75,6 +75,23 @@ ParticleEmitter* ParticleManager::GetEmitter(const std::string& name) {
 	return nullptr;
 }
 
+void ParticleManager::SetGroupTexture(const std::string& name, const std::string& textureFilePath) {
+	auto it = particleGroups_.find(name);
+	if (it != particleGroups_.end()) {
+		it->second.materialData.textureFilePath = textureFilePath;
+		TextureManager::GetInstance()->LoadTexture(textureFilePath);
+		it->second.materialData.textureIndex = TextureManager::GetInstance()->GetSrvIndex(textureFilePath);
+	}
+}
+
+std::string ParticleManager::GetGroupTexture(const std::string& name) const {
+	auto it = particleGroups_.find(name);
+	if (it != particleGroups_.end()) {
+		return it->second.materialData.textureFilePath;
+	}
+	return "";
+}
+
 void ParticleManager::ReleaseIntermediateResources() {
 	// GPUがコマンド実行を完了した後、保持していたアップロードリソースをクリアする
 	intermediateResources_.clear();
@@ -488,20 +505,42 @@ void ParticleManager::UpdateGroupMaterial(ParticleGroup& group, float deltaTime)
 
 	// --- リング設定のマテリアル転送 ---
 	auto& rs = group.emitter.ringSettings;
+	auto& cs = group.emitter.cylinderSettings;
 	group.materialMappedData->isRing        = rs.isRing   ? 1 : 0;
-	group.materialMappedData->isUvSwap      = rs.isUvSwap ? 1 : 0;
-	group.materialMappedData->innerColor    = rs.innerColor;
-	group.materialMappedData->outerColor    = rs.outerColor;
-	group.materialMappedData->fadeStartAlpha= rs.fadeStartAlpha;
-	group.materialMappedData->fadeEndAlpha  = rs.fadeEndAlpha;
-	group.materialMappedData->fadeRange     = rs.fadeRange;
+	group.materialMappedData->isCylinder    = cs.isCylinder ? 1 : 0;
+	group.materialMappedData->alphaReference = cs.alphaReference;
 
-	// --- リングモデルの動的生成／解放 ---
+	if (rs.isRing) {
+		group.materialMappedData->isUvSwap      = rs.isUvSwap ? 1 : 0;
+		group.materialMappedData->innerColor    = rs.innerColor;
+		group.materialMappedData->outerColor    = rs.outerColor;
+		group.materialMappedData->fadeStartAlpha= rs.fadeStartAlpha;
+		group.materialMappedData->fadeEndAlpha  = rs.fadeEndAlpha;
+		group.materialMappedData->fadeRange     = rs.fadeRange;
+	} else if (cs.isCylinder) {
+		group.materialMappedData->isUvSwap      = cs.isUvSwap ? 1 : 0;
+		group.materialMappedData->innerColor    = cs.topColor;      // topColor -> innerColor
+		group.materialMappedData->outerColor    = cs.bottomColor;   // bottomColor -> outerColor
+		group.materialMappedData->fadeStartAlpha= cs.fadeStartAlpha;
+		group.materialMappedData->fadeEndAlpha  = cs.fadeEndAlpha;
+		group.materialMappedData->fadeRange     = cs.fadeRange;
+	} else {
+		group.materialMappedData->isUvSwap      = 0;
+		group.materialMappedData->fadeRange     = 0.0f;
+	}
+
+	// --- モデルの動的生成／解放 ---
 	if (rs.isRing) {
 		if (!group.customModel) {
 			group.customModel = std::make_unique<Model>();
 		}
 		group.customModel->CreateRing(group.materialData.textureFilePath, rs);
+		group.model = group.customModel.get();
+	} else if (cs.isCylinder) {
+		if (!group.customModel) {
+			group.customModel = std::make_unique<Model>();
+		}
+		group.customModel->CreateCylinder(group.materialData.textureFilePath, cs);
 		group.model = group.customModel.get();
 	} else {
 		if (group.customModel) {

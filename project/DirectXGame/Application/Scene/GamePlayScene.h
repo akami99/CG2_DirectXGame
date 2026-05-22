@@ -30,11 +30,21 @@ private:
     // ゲームカメラの更新
     void UpdateGameCamera();
 
+    // レベルデータからオブジェクトを再帰的に生成
+    void CreateObjects(const std::vector<LevelData::ObjectData>& data);
+
     // ImGui操作の更新
     void UpdateImGui();
 
-    // レベルデータからオブジェクトを再帰的に生成
-    void CreateObjects(const std::vector<LevelData::ObjectData>& data);
+    void UpdateImGui_GlobalSettings();
+    void UpdateImGui_LightSettings();
+    void UpdateImGui_GameCamera();
+    void UpdateImGui_Object3d();
+    void UpdateImGui_Particle();
+    void UpdateImGui_Sprite();
+    void UpdateImGui_Sound();
+	void UpdateImGui_Skybox();
+    void UpdateImGui_HelpWindow();
 
 private:
     // カメラ
@@ -59,7 +69,7 @@ private:
 	bool isShowMaterial_ = true;    // マテリアルを持つオブジェクトの表示フラグ
 	bool isShowSprite_ = false;     // スプライトの表示フラグ
 	bool isUpdateParticle_ = false; // パーティクルの更新フラグ
-	bool useBillboard_ = true;      // パーティクルのビルボード使用フラグ
+	bool useBillboard_ = false;      // パーティクルのビルボード使用フラグ
 	int objectControlIndex_ = 0;    // ImGuiで操作するオブジェクトのインデックス
 
 	// ブレンドモード
@@ -79,11 +89,11 @@ private:
     const std::string uvCheckerPath_ = "uvChecker.png";
     const std::string monsterBallPath_ = "monsterBall.png";
     const std::string grassPath_ = "grass.png";
-    const std::string particleTexturePath_ = "circle2.png";
-	const std::string ringTexturePath_ = "gradationLine.png";
-	// ※DDSファイルはSRVのインデックスを指定して読み込む必要があるため、パス定数は用意しない
     
     // パーティクルグループの作成
+    const std::string particleCirclePath_ = "Particles/circle.png";
+	const std::string particleCircle2Path_ = "Particles/circle2.png";
+	const std::string particleGradationLinePath_ = "Particles/gradationLine.png";
     const std::string particleGroupName_ = "TestGroup";
-	const std::string ringParticleGroupName_ = "RingGroup";
+	const std::string cylinderParticleGroupName_ = "RingGroup";
 };

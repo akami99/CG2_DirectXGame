@@ -119,6 +119,10 @@ public: // メンバ関数
     // エミッターの取得(ImGui等での編集用)
     ParticleEmitter* GetEmitter(const std::string& name);
 
+    // パーティクルグループのテクスチャ設定/取得
+    void SetGroupTexture(const std::string& name, const std::string& textureFilePath);
+    std::string GetGroupTexture(const std::string& name) const;
+
     // 解放処理
     void ReleaseIntermediateResources();
 

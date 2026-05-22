@@ -17,7 +17,9 @@ struct Material {
     float fadeRange;
     int isUvSwap;
     int isRing;
-    float3 padding2;
+    int isCylinder;
+    float alphaReference;
+    float padding2_1;
 };
 
 struct TransformationMatrix {

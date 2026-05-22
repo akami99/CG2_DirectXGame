@@ -43,7 +43,9 @@ struct Material {
   float fadeRange;
   int32_t isUvSwap;
   int32_t isRing;
-  float padding2[3];
+  int32_t isCylinder;
+  float alphaReference;
+  float padding2[1];
 };
 
 // 変換行列をまとめた構造体

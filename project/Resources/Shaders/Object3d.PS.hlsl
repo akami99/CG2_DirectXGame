@@ -23,14 +23,40 @@ PixelShaderOutput main(VertexShaderOutput input) {
     float4 textureColor = gTexture.Sample(gSampler, input.texcoord);
     
     // アルファテスト(2値抜き)
-    if (textureColor.a < 0.5f) {
+    if (textureColor.a <= gMaterial.alphaReference) {
         discard; // Pixelを棄却
+    }
+
+    float4 vertexColor = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    if (gMaterial.isRing != 0 || gMaterial.isCylinder != 0) {
+        float r = input.texcoord.y;
+        float a = input.texcoord.x;
+        if (gMaterial.isUvSwap != 0) {
+            r = input.texcoord.x;
+            a = input.texcoord.y;
+        }
+
+        r = saturate(r);
+        a = saturate(a);
+
+        vertexColor = lerp(gMaterial.outerColor, gMaterial.innerColor, r);
+
+        if (gMaterial.fadeRange > 0.0f) {
+            float fadeFactor = 1.0f;
+            if (a < gMaterial.fadeRange) {
+                fadeFactor = lerp(gMaterial.fadeStartAlpha, 1.0f, a / gMaterial.fadeRange);
+            } else if (a > 1.0f - gMaterial.fadeRange) {
+                fadeFactor = lerp(1.0f, gMaterial.fadeEndAlpha, (a - (1.0f - gMaterial.fadeRange)) / gMaterial.fadeRange);
+            }
+            vertexColor.a *= fadeFactor;
+        }
     }
     
     if (gMaterial.enableLighting != 0) { // Lightingする場合
         // --- 準備 ---
         float3 normal = normalize(input.normal); // 法線ベクトル (N)
         float3 toEye = normalize(gCamera.worldPosition - input.worldPosition); // 視線ベクトル (V)
+        float3 baseDiffuse = gMaterial.color.rgb * textureColor.rgb * vertexColor.rgb;
         
         // ===============================================
         //  平行光源 (Directional Light) の計算
@@ -41,7 +67,7 @@ PixelShaderOutput main(VertexShaderOutput input) {
         // 拡散反射 (Half-Lambert)
         float NdotL_Dir = dot(normal, directionToDirLight);
         float cos_Dir = pow(NdotL_Dir * 0.5f + 0.5f, 2.0f);
-        float3 diffuseDirectionalLight = gMaterial.color.rgb * textureColor.rgb * gDirectionalLight.color.rgb * cos_Dir * gDirectionalLight.intensity;
+        float3 diffuseDirectionalLight = baseDiffuse * gDirectionalLight.color.rgb * cos_Dir * gDirectionalLight.intensity;
 
         // 鏡面反射 (Blinn-Phong)
         float3 halfVector_Dir = normalize(directionToDirLight + toEye); // ハーフベクトル
@@ -62,7 +88,7 @@ PixelShaderOutput main(VertexShaderOutput input) {
         // 拡散反射 (Half-Lambert) : ポイントライト専用の角度(NdotL)を計算する
         float NdotL_Point = dot(normal, directionToPointLight);
         float cos_Point = pow(NdotL_Point * 0.5f + 0.5f, 2.0f);
-        float3 diffusePointLight = gMaterial.color.rgb * textureColor.rgb * gPointLight.color.rgb * cos_Point * gPointLight.intensity * factor;
+        float3 diffusePointLight = baseDiffuse * gPointLight.color.rgb * cos_Point * gPointLight.intensity * factor;
 
         // 鏡面反射 (Blinn-Phong) : ポイントライト専用のハーフベクトルを計算する
         float3 halfVector_Point = normalize(directionToPointLight + toEye);
@@ -90,11 +116,11 @@ PixelShaderOutput main(VertexShaderOutput input) {
         
         // 最終的な減衰係数
         float spotFactor = attenuationFactor * falloffFactor;
-
+ 
         // 拡散反射 (Half-Lambert)
         float NdotL_Spot = dot(normal, directionToSpotLight);
         float cos_Spot = pow(NdotL_Spot * 0.5f + 0.5f, 2.0f);
-        float3 diffuseSpotLight = gMaterial.color.rgb * textureColor.rgb * gSpotLight.color.rgb * cos_Spot * gSpotLight.intensity * spotFactor;
+        float3 diffuseSpotLight = baseDiffuse * gSpotLight.color.rgb * cos_Spot * gSpotLight.intensity * spotFactor;
 
         // 鏡面反射 (Blinn-Phong)
         float3 halfVector_Spot = normalize(directionToSpotLight + toEye);
@@ -118,15 +144,15 @@ PixelShaderOutput main(VertexShaderOutput input) {
                            diffusePointLight + specularPointLight +
                            diffuseSpotLight + specularSpotLight +
                            environmentReflection;
-        output.color.a = gMaterial.color.a * textureColor.a;
+        output.color.a = gMaterial.color.a * textureColor.a * vertexColor.a;
         
     } else { // Lightingしない場合。前回までと同じ演算
-        output.color = gMaterial.color * textureColor;
+        output.color = gMaterial.color * textureColor * vertexColor;
     }
     
-    if (output.color.a == 0.0f) {
+    if (output.color.a <= gMaterial.alphaReference) {
         discard; // Pixelを棄却
     }
     
     return output;
-}
+}

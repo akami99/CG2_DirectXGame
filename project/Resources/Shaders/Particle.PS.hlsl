@@ -17,7 +17,7 @@ PixelShaderOutput main(VertexShaderOutput input) {
     float4 textureColor = gTexture.Sample(gSampler, uv);
     
     float4 vertexColor = float4(1.0f, 1.0f, 1.0f, 1.0f);
-    if (gMaterial.isRing != 0) {
+    if (gMaterial.isRing != 0 || gMaterial.isCylinder != 0) {
         float r = uv.y;
         float a = uv.x;
         if (gMaterial.isUvSwap != 0) {
@@ -44,7 +44,7 @@ PixelShaderOutput main(VertexShaderOutput input) {
     output.color = gMaterial.color * textureColor * input.color * vertexColor;
     
     // アルファテスト
-    if (output.color.a == 0.0f) {
+    if (output.color.a <= gMaterial.alphaReference) {
         discard; // Pixelを棄却
     }
     

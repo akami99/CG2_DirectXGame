@@ -69,6 +69,7 @@ public:
   ParticleFieldSettings fieldSettings;       // フィールドの設定
   ParticleUVAnimationSettings uvAnimationSettings; // UVアニメーションの設定
   RingSettings ringSettings;                 // リング形状の設定
+  CylinderSettings cylinderSettings;         // シリンダー形状の設定
 
   /// <summary>
   /// ParticleEmitterのコンストラクタ

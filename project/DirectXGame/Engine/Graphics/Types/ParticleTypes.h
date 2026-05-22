@@ -63,4 +63,28 @@ struct RingSettings {
     float fadeRange = 0.0f;     // 開始/終了地点からのフェード幅 (0.0f - 0.5f)
 };
 
+// シリンダープリミティブ用の詳細設定構造体
+struct CylinderSettings {
+    bool isCylinder = false;
+    float height = 3.0f;
+    Vector2 topRadius = { 1.0f, 1.0f };      // X, Z 半径
+    Vector2 bottomRadius = { 1.0f, 1.0f };   // X, Z 半径
+    float startAngle = 0.0f;     // 度数法 (0.0f - 360.0f)
+    float endAngle = 360.0f;    // 度数法 (0.0f - 360.0f)
+    uint32_t division = 32;      // 円周方向の分割数
+    uint32_t verticalDivision = 1; // 縦方向の分割数
+
+    // UV設定
+    bool flipV = false;          // V方向反転 (1 - V)
+    bool isUvSwap = false;       // UVの入れ替え
+
+    // カラー設定
+    Vector4 topColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+    Vector4 bottomColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+    float fadeStartAlpha = 1.0f;
+    float fadeEndAlpha = 1.0f;
+    float fadeRange = 0.0f;     // 開始/終了角度からのフェード幅 (0.0f - 0.5f)
+    float alphaReference = 0.0f; // アルファのしきい値
+};
+
 #endif // PARTICLE_TYPES_H

@@ -175,6 +175,94 @@ void Model::CreateRing(const std::string& textureFilePath, const RingSettings& s
     modelData_.material.textureIndex = TextureManager::GetInstance()->GetSrvIndex(modelData_.material.textureFilePath);
 }
 
+void Model::CreateCylinder(const std::string& textureFilePath, const CylinderSettings& settings) {
+    // データをクリアしておく
+    modelData_.vertices.clear();
+    modelData_.indices.clear();
+
+    float startRad = settings.startAngle * std::numbers::pi_v<float> / 180.0f;
+    float endRad = settings.endAngle * std::numbers::pi_v<float> / 180.0f;
+    float angleRange = endRad - startRad;
+
+    // 頂点の生成 (縦方向 yIndex: 0 から verticalDivision)
+    for (uint32_t yIndex = 0; yIndex <= settings.verticalDivision; ++yIndex) {
+        float vNorm = float(yIndex) / float(settings.verticalDivision);
+        float h = (1.0f - vNorm) * settings.height; // yIndex=0 が上(高さ height), yIndex=verticalDivision が下(高さ 0)
+
+        // 上底から下底にかけての半径を線形補間 (楕円対応)
+        Vector2 radius = {
+            settings.topRadius.x * (1.0f - vNorm) + settings.bottomRadius.x * vNorm,
+            settings.topRadius.y * (1.0f - vNorm) + settings.bottomRadius.y * vNorm
+        };
+
+        // 円周方向の頂点生成 (xIndex: 0 から division)
+        for (uint32_t xIndex = 0; xIndex <= settings.division; ++xIndex) {
+            float uNorm = float(xIndex) / float(settings.division);
+            float angle = startRad + uNorm * angleRange;
+            float s = std::sin(angle);
+            float c = std::cos(angle);
+
+            // 頂点の位置 (X, Y, Z)
+            VertexData vertex;
+            vertex.position = { -s * radius.x, h, c * radius.y, 1.0f };
+
+            // 法線：Y軸の高さは無視し、X, Z方向の外側を向く法線
+            vertex.normal = { -s, 0.0f, c };
+            float normalLen = std::sqrt(vertex.normal.x * vertex.normal.x + vertex.normal.z * vertex.normal.z);
+            if (normalLen > 0.0f) {
+                vertex.normal.x /= normalLen;
+                vertex.normal.z /= normalLen;
+            }
+
+            // UV座標
+            float u = uNorm;
+            float v = vNorm;
+            if (settings.flipV) {
+                v = 1.0f - v;
+            }
+            if (settings.isUvSwap) {
+                std::swap(u, v);
+            }
+            vertex.texcoord = { u, v };
+
+            modelData_.vertices.push_back(vertex);
+        }
+    }
+
+    // インデックスデータの生成
+    for (uint32_t y = 0; y < settings.verticalDivision; ++y) {
+        for (uint32_t x = 0; x < settings.division; ++x) {
+            uint32_t topLeft = y * (settings.division + 1) + x;
+            uint32_t topRight = topLeft + 1;
+            uint32_t bottomLeft = (y + 1) * (settings.division + 1) + x;
+            uint32_t bottomRight = bottomLeft + 1;
+
+            // 三角形1
+            modelData_.indices.push_back(topLeft);
+            modelData_.indices.push_back(topRight);
+            modelData_.indices.push_back(bottomLeft);
+
+            // 三角形2
+            modelData_.indices.push_back(bottomLeft);
+            modelData_.indices.push_back(topRight);
+            modelData_.indices.push_back(bottomRight);
+        }
+    }
+
+    // マテリアル設定
+    modelData_.material.textureFilePath = textureFilePath;
+    modelData_.rootNode.localMatrix = MakeIdentity4x4();
+    modelData_.rootNode.name = "Cylinder";
+
+    // リソースの作成
+    CreateVertexResource();
+    CreateIndexResource();
+    CreateMaterialResource();
+
+    // テクスチャ読み込み
+    TextureManager::GetInstance()->LoadTexture(modelData_.material.textureFilePath);
+    modelData_.material.textureIndex = TextureManager::GetInstance()->GetSrvIndex(modelData_.material.textureFilePath);
+}
 
 // 描画処理
 void Model::Draw() {
