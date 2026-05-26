@@ -33,6 +33,7 @@ private:
     // レベルデータからオブジェクトを再帰的に生成
     void CreateObjects(const std::vector<LevelData::ObjectData>& data);
 
+#ifdef USE_IMGUI
     // ImGui操作の更新
     void UpdateImGui();
 
@@ -45,6 +46,7 @@ private:
     void UpdateImGui_Sound();
 	void UpdateImGui_Skybox();
     void UpdateImGui_HelpWindow();
+#endif // USE_IMGUI
 
 private:
     // カメラ

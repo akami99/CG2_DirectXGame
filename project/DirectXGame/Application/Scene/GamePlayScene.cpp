@@ -177,8 +177,11 @@ void GamePlayScene::Finalize() {
 void GamePlayScene::Update() {
 	// 入力の更新
 	Input::GetInstance()->Update();
+
+#ifdef USE_IMGUI
 	// 3. UI処理 (ImGuiの定義)
 	UpdateImGui();
+#endif // USE_IMGUI
 
 	// 4. ゲームロジックの更新
 
@@ -371,7 +374,6 @@ void GamePlayScene::UpdateGameCamera() {
 #ifdef USE_IMGUI
 
 void GamePlayScene::UpdateImGui() {
-#ifdef USE_IMGUI
 	// メイン設定ウィンドウの位置とサイズ
 	ImGui::SetNextWindowPos(ImVec2(Win32Window::kClientWidth - 10.0f, 10.0f), ImGuiCond_Once, ImVec2(1.0f, 0.0f));
 	ImGui::SetNextWindowSize(ImVec2(450.0f, 600.0f), ImGuiCond_Once);
@@ -390,7 +392,6 @@ void GamePlayScene::UpdateImGui() {
 
 	// ヘルプウィンドウの表示
 	UpdateImGui_HelpWindow();
-#endif // USE_IMGUI
 }
 
 void GamePlayScene::UpdateImGui_GlobalSettings() {
