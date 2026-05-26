@@ -70,7 +70,7 @@ void MyGame::Update() {
 	ImGui::SetNextWindowSize(ImVec2(280.0f, 150.0f), ImGuiCond_Once);
 	ImGui::Begin("PostEffect");
 	int mode = PostProcessManager::GetInstance()->GetCurrentMode();
-	if (ImGui::Combo("Mode", &mode, "Copy (None)\0GrayScale\0Sepia\0Vignette\0")) {
+	if (ImGui::Combo("Mode", &mode, "Copy (None)\0GrayScale\0Sepia\0Vignette\0Smoothing\0")) {
 		PostProcessManager::SetMode(mode);
 	}
 	if (mode == PostProcessManager::kModeVignette) {
@@ -85,6 +85,15 @@ void MyGame::Update() {
 		}
 		if (changed) {
 			PostProcessManager::SetVignetteParams(scale, exponent);
+		}
+	} else if (mode == PostProcessManager::kModeSmoothing) {
+		static int kernelSize = 3;
+		if (ImGui::SliderInt("Kernel Size", &kernelSize, 3, 15)) {
+			// 偶数なら奇数に補正する
+			if (kernelSize % 2 == 0) {
+				kernelSize += 1;
+			}
+			PostProcessManager::SetSmoothingParams(kernelSize);
 		}
 	}
 	ImGui::End();

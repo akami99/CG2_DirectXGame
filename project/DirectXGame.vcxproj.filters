@@ -520,5 +520,6 @@
       <Filter>シェーダー ファイル\Object3d</Filter>
     </FxCompile>
     <FxCompile Include="Resources\Shaders\Vignette.PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Smoothing.PS.hlsl" />
   </ItemGroup>
 </Project>

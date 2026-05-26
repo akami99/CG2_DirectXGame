@@ -15,6 +15,7 @@ public:
     static constexpr int kModeGrayscale = 1;
     static constexpr int kModeSepia     = 2;
     static constexpr int kModeVignette  = 3;
+    static constexpr int kModeSmoothing = 4;
 
     // ---- Passkey Idiom ----
     struct Token {
@@ -39,20 +40,31 @@ private:
         float exponent;
     };
 
+    // 平滑化用の定数バッファ構造体
+    struct SmoothingParams {
+        int kernelSize;
+        float padding[3]; // 16バイトアライメント
+    };
+
     ComPtr<ID3D12PipelineState> postProcessPSO_; // CopyImage (passthrough)
     ComPtr<ID3D12PipelineState> colorFilterPSO_; // グレースケール/セピア
     ComPtr<ID3D12PipelineState> vignettePSO_;    // ビネット
+    ComPtr<ID3D12PipelineState> smoothingPSO_;   // 平滑化
     ComPtr<ID3D12Resource> paramsResource_;
     PostProcessParams* paramsMapped_ = nullptr;
 
     ComPtr<ID3D12Resource> vignetteParamsResource_;
     VignetteParams* vignetteParamsMapped_ = nullptr;
 
+    ComPtr<ID3D12Resource> smoothingParamsResource_;
+    SmoothingParams* smoothingParamsMapped_ = nullptr;
+
     // 遅延適用用 (Update から Draw への橋渡し)
     static int modeNext_;
     static float strengthNext_;
     static float vignetteScaleNext_;
     static float vignetteExponentNext_;
+    static int smoothingKernelSizeNext_;
     int currentMode_ = kModeCopy;
 
     static std::unique_ptr<PostProcessManager> instance_;
@@ -76,6 +88,9 @@ public:
     static void SetVignetteParams(float scale, float exponent) {
         vignetteScaleNext_ = scale;
         vignetteExponentNext_ = exponent;
+    }
+    static void SetSmoothingParams(int kernelSize) {
+        smoothingKernelSizeNext_ = kernelSize;
     }
     int GetCurrentMode() const            { return currentMode_; }
 

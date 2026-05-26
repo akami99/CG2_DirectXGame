@@ -11,6 +11,7 @@ int PostProcessManager::modeNext_ = 0;
 float PostProcessManager::strengthNext_ = 1.0f;
 float PostProcessManager::vignetteScaleNext_ = 16.0f;
 float PostProcessManager::vignetteExponentNext_ = 0.8f;
+int PostProcessManager::smoothingKernelSizeNext_ = 3;
 
 PostProcessManager* PostProcessManager::GetInstance() {
     if (!instance_) {
@@ -28,6 +29,7 @@ void PostProcessManager::Initialize() {
     postProcessPSO_ = PipelineManager::GetInstance()->CreatePostProcessPSO();
     colorFilterPSO_  = PipelineManager::GetInstance()->CreateColorFilterPSO();
     vignettePSO_     = PipelineManager::GetInstance()->CreateVignettePSO();
+    smoothingPSO_    = PipelineManager::GetInstance()->CreateSmoothingPSO();
 
     // 定数バッファの生成とマッピング
     paramsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(PostProcessParams));
@@ -44,16 +46,22 @@ void PostProcessManager::Initialize() {
     vignetteParamsResource_->Map(0, nullptr, reinterpret_cast<void**>(&vignetteParamsMapped_));
     vignetteParamsMapped_->scale = 16.0f;
     vignetteParamsMapped_->exponent = 0.8f;
+
+    // 平滑化用の定数バッファの生成とマッピング
+    smoothingParamsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(SmoothingParams));
+    smoothingParamsResource_->Map(0, nullptr, reinterpret_cast<void**>(&smoothingParamsMapped_));
+    smoothingParamsMapped_->kernelSize = 3;
 }
 
 void PostProcessManager::Draw(RenderTexture* renderTexture) {
     ID3D12GraphicsCommandList* commandList = DX12Context::GetInstance()->GetCommandList();
 
-    // モードと強度を遅延適用
+    // モードとパラメータを遅延適用
     currentMode_ = modeNext_;
     const float strength = strengthNext_;
     const float vignetteScale = vignetteScaleNext_;
     const float vignetteExponent = vignetteExponentNext_;
+    const int smoothingKernelSize = smoothingKernelSizeNext_;
 
     // 共通ルートシグネチャのセット
     commandList->SetGraphicsRootSignature(
@@ -72,6 +80,11 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
         vignetteParamsMapped_->scale = vignetteScale;
         vignetteParamsMapped_->exponent = vignetteExponent;
         commandList->SetGraphicsRootConstantBufferView(0, vignetteParamsResource_->GetGPUVirtualAddress());
+    } else if (currentMode_ == kModeSmoothing) {
+        // 平滑化
+        commandList->SetPipelineState(smoothingPSO_.Get());
+        smoothingParamsMapped_->kernelSize = smoothingKernelSize;
+        commandList->SetGraphicsRootConstantBufferView(0, smoothingParamsResource_->GetGPUVirtualAddress());
     } else {
         // グレースケール or セピア
         commandList->SetPipelineState(colorFilterPSO_.Get());

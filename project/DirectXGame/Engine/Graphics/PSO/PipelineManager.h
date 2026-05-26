@@ -56,6 +56,9 @@ private: // メンバ変数
     // --- ビネット用アセット ---
     ComPtr<IDxcBlob> psBlobVignette_;    // Pixel Shader (Vignette.PS.hlsl)
 
+    // --- 平滑化用アセット ---
+    ComPtr<IDxcBlob> psBlobSmoothing_;   // Pixel Shader (Smoothing.PS.hlsl)
+
 private: // シングルトン管理用メンバ変数
     static std::unique_ptr<PipelineManager> instance_;
 
@@ -96,6 +99,9 @@ public: // メンバ関数
 
     // ビネット用 PSOを生成して返す関数
     ComPtr<ID3D12PipelineState> CreateVignettePSO();
+
+    // 平滑化用 PSOを生成して返す関数
+    ComPtr<ID3D12PipelineState> CreateSmoothingPSO();
 
     // ゲッター
 
