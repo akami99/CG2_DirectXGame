@@ -9,6 +9,7 @@
 
 #include "RenderTexture.h"
 #include "EnemyProjectile.h"
+#include "PostProcessManager.h"
 
 class ShootingScene : public BaseScene {
 public:
@@ -17,6 +18,14 @@ public:
     void DrawOffscreen() override;
     void Draw() override;
     void Finalize() override;
+
+    // ゲームオーバー演出フェーズ
+    enum class Phase {
+        Playing,           // 通常プレイ
+        GameOverVignette,  // ビネットで覆っていく
+        GameOverWait,      // 暗転維持
+        RestartSmoothing,  // リセット後スムージングを徐々に消す
+    };
 
 private:
     // シーン描画のヘルパー
@@ -63,8 +72,26 @@ private:
     float projectileSpawnTimer_ = 0.0f;
     const float kProjectileSpawnInterval = 120.0f; // 2秒おき
 
-    // ダメージ効果
+    // ダメージ効果（グレースケール）
     float damageEffectStrength_ = 0.0f;
+
+    // ヒットポイントとゲームオーバー管理
+    int hitCount_ = 0;
+    static constexpr int kMaxHits = 3;
+
+    Phase phase_ = Phase::Playing;
+    float phaseTimer_ = 0.0f;
+
+    // ビネット演出パラメータ（徐々に強化）
+    float vignetteScale_    = 16.0f;  // 小さいほど暗くなる
+    float vignetteExponent_ = 0.8f;   // 大きいほど急激に暗くなる
+    static constexpr float kVignetteInDuration  = 1.5f; // 覆うのにかかる時間(秒)
+    static constexpr float kGameOverWaitDuration = 3.0f; // 暗転維持時間(秒)
+
+    // スムージング演出パラメータ
+    float smoothingKernel_ = 31.0f;  // 最大カーネルサイズ
+    static constexpr float kSmoothingOutDuration = 2.0f; // フェードアウト時間(秒)
+    static constexpr float kDeltaTime = 1.0f / 60.0f;
 
     // パス定数
     // 3Dモデルのファイルパス
