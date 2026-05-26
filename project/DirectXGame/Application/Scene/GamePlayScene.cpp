@@ -81,8 +81,10 @@ void GamePlayScene::Initialize() {
 	cylinderEmitter.generateSettings.rotateMax = { 0.0f, 1.0f, 0.0f };
 	cylinderEmitter.uvAnimationSettings.isActive = true;
 	cylinderEmitter.uvAnimationSettings.scrollSpeed = { 0.3f, 0.0f };
-	cylinderEmitter.cylinderSettings.isCylinder = true;
-	cylinderEmitter.cylinderSettings.flipV = true;
+	cylinderEmitter.SetShapeType(ParticleShapeType::Cylinder);
+	if (auto* cs = cylinderEmitter.GetCylinderShape()) {
+		cs->settings.flipV = true; 
+	}
 	ParticleManager::GetInstance()->SetEmitter(cylinderParticleGroupName_, cylinderEmitter);
 
 	// 音声ファイルをロード
@@ -633,52 +635,98 @@ void GamePlayScene::UpdateImGui_Particle() {
 						ImGui::TreePop();
 					}
 
-					// Ring Shape Settings
-					if (ImGui::TreeNode("Ring Shape Settings")) {
-						auto& rs = emitter->ringSettings;
-						ImGui::Checkbox("Use Ring Shape", &rs.isRing);
-						if (rs.isRing) {
-							DragFloatMinMax("Inner Radius", "Start Outer Radius", &rs.innerRadius, &rs.startOuterRadius);
-							ImGui::DragFloat("Mid Outer Radius", &rs.midOuterRadius, 0.01f, 0.0f, 20.0f);
-							ImGui::DragFloat("End Outer Radius", &rs.endOuterRadius, 0.01f, 0.0f, 20.0f);
-							DragFloatMinMax("Start Angle (deg)", "End Angle (deg)", &rs.startAngle, &rs.endAngle, 1.0f);
-							int division = static_cast<int>(rs.division);
-							if (ImGui::DragInt("Division", &division, 1, 3, 256)) { rs.division = static_cast<uint32_t>(division); }
-							ImGui::Separator();
-							ImGui::Checkbox("Swap UV (U <-> V)", &rs.isUvSwap);
-							ImGui::ColorEdit4("Inner Vertex Color", &rs.innerColor.x);
-							ImGui::ColorEdit4("Outer Vertex Color", &rs.outerColor.x);
-							ImGui::DragFloat("Fade Start Alpha", &rs.fadeStartAlpha, 0.01f, 0.0f, 1.0f);
-							ImGui::DragFloat("Fade End Alpha", &rs.fadeEndAlpha, 0.01f, 0.0f, 1.0f);
-							ImGui::DragFloat("Fade Range", &rs.fadeRange, 0.01f, 0.0f, 0.5f);
-						}
-						ImGui::TreePop();
+					// ============================================================
+					// 【新設計】形状切り替えコンボボックス
+					// ============================================================
+					const char* shapeItems[] = { "Billboard", "Ring", "Cylinder" };
+					int shapeIndex = static_cast<int>(emitter->GetShapeType());
+					if (ImGui::Combo("Shape Type", &shapeIndex, shapeItems, 3)) {
+						emitter->SetShapeType(static_cast<ParticleShapeType>(shapeIndex));
 					}
 
-					// Cylinder Shape Settings
-					if (ImGui::TreeNode("Cylinder Shape Settings")) {
-						auto& cs = emitter->cylinderSettings;
-						ImGui::Checkbox("Use Cylinder Shape", &cs.isCylinder);
-						if (cs.isCylinder) {
-							ImGui::DragFloat("Height", &cs.height, 0.01f, 0.0f, 50.0f);
-							ImGui::DragFloat2("Top Radius (X, Z)", &cs.topRadius.x, 0.01f, 0.0f, 20.0f);
-							ImGui::DragFloat2("Bottom Radius (X, Z)", &cs.bottomRadius.x, 0.01f, 0.0f, 20.0f);
-							DragFloatMinMax("Start Angle (deg)", "End Angle (deg)", &cs.startAngle, &cs.endAngle, 1.0f);
-							int division = static_cast<int>(cs.division);
-							if (ImGui::DragInt("Division", &division, 1, 3, 256)) { cs.division = static_cast<uint32_t>(division); }
-							int verticalDivision = static_cast<int>(cs.verticalDivision);
-							if (ImGui::DragInt("Vertical Division", &verticalDivision, 1, 1, 256)) { cs.verticalDivision = static_cast<uint32_t>(verticalDivision); }
+					// --- Ring Shape Settings ---
+					if (auto* rs = emitter->GetRingShape()) {
+						if (ImGui::TreeNode("Ring Shape Settings")) {
+							// 頂点構築に関わる変更があった場合は、モデルのリビルド（MarkDirty）を行う
+							bool isMeshChanged = false;
+
+							// 元のコードの全設定項目を完全網羅
+							float tempInner = rs->settings.innerRadius;
+							float tempOuter = rs->settings.startOuterRadius;
+							DragFloatMinMax("Inner Radius", "Start Outer Radius", &tempInner, &tempOuter);
+							if (tempInner != rs->settings.innerRadius || tempOuter != rs->settings.startOuterRadius) {
+								rs->settings.innerRadius = tempInner;
+								rs->settings.startOuterRadius = tempOuter;
+								isMeshChanged = true;
+							}
+
+							if (ImGui::DragFloat("Mid Outer Radius", &rs->settings.midOuterRadius, 0.01f, 0.0f, 20.0f)) isMeshChanged = true;
+							if (ImGui::DragFloat("End Outer Radius", &rs->settings.endOuterRadius, 0.01f, 0.0f, 20.0f)) isMeshChanged = true;
+
+							if (ImGui::DragFloat("Start Angle (deg)", &rs->settings.startAngle, 1.0f) ||
+								ImGui::DragFloat("End Angle (deg)", &rs->settings.endAngle, 1.0f)) isMeshChanged = true;
+
+							int division = static_cast<int>(rs->settings.division);
+							if (ImGui::DragInt("Division", &division, 1, 3, 256)) {
+								rs->settings.division = static_cast<uint32_t>(division);
+								isMeshChanged = true;
+							}
+
+							if (isMeshChanged) {
+								rs->MarkDirty(); // メッシュ形状の再構築フラグ
+							}
+
 							ImGui::Separator();
-							ImGui::Checkbox("Swap UV (U <-> V)", &cs.isUvSwap);
-							ImGui::Checkbox("Flip V", &cs.flipV);
-							ImGui::ColorEdit4("Top Vertex Color", &cs.topColor.x);
-							ImGui::ColorEdit4("Bottom Vertex Color", &cs.bottomColor.x);
-							ImGui::DragFloat("Fade Start Alpha", &cs.fadeStartAlpha, 0.01f, 0.0f, 1.0f);
-							ImGui::DragFloat("Fade End Alpha", &cs.fadeEndAlpha, 0.01f, 0.0f, 1.0f);
-							ImGui::DragFloat("Fade Range", &cs.fadeRange, 0.01f, 0.0f, 0.5f);
-							ImGui::DragFloat("Alpha Reference (Discard)", &cs.alphaReference, 0.01f, 0.0f, 1.0f);
+							ImGui::Checkbox("Swap UV (U <-> V)", &rs->settings.isUvSwap);
+							ImGui::ColorEdit4("Inner Vertex Color", &rs->settings.innerColor.x);
+							ImGui::ColorEdit4("Outer Vertex Color", &rs->settings.outerColor.x);
+							ImGui::DragFloat("Fade Start Alpha", &rs->settings.fadeStartAlpha, 0.01f, 0.0f, 1.0f);
+							ImGui::DragFloat("Fade End Alpha", &rs->settings.fadeEndAlpha, 0.01f, 0.0f, 1.0f);
+							ImGui::DragFloat("Fade Range", &rs->settings.fadeRange, 0.01f, 0.0f, 0.5f);
+
+							ImGui::TreePop();
 						}
-						ImGui::TreePop();
+					}
+
+					// --- Cylinder Shape Settings ---
+					if (auto* cs = emitter->GetCylinderShape()) {
+						if (ImGui::TreeNode("Cylinder Shape Settings")) {
+							bool isMeshChanged = false;
+
+							if (ImGui::DragFloat("Height", &cs->settings.height, 0.01f, 0.0f, 50.0f)) isMeshChanged = true;
+							if (ImGui::DragFloat2("Top Radius (X, Z)", &cs->settings.topRadius.x, 0.01f, 0.0f, 20.0f)) isMeshChanged = true;
+							if (ImGui::DragFloat2("Bottom Radius (X, Z)", &cs->settings.bottomRadius.x, 0.01f, 0.0f, 20.0f)) isMeshChanged = true;
+
+							if (ImGui::DragFloat("Start Angle (deg)", &cs->settings.startAngle, 1.0f) ||
+								ImGui::DragFloat("End Angle (deg)", &cs->settings.endAngle, 1.0f)) isMeshChanged = true;
+
+							int division = static_cast<int>(cs->settings.division);
+							if (ImGui::DragInt("Division", &division, 1, 3, 256)) {
+								cs->settings.division = static_cast<uint32_t>(division);
+								isMeshChanged = true;
+							}
+							int verticalDivision = static_cast<int>(cs->settings.verticalDivision);
+							if (ImGui::DragInt("Vertical Division", &verticalDivision, 1, 1, 256)) {
+								cs->settings.verticalDivision = static_cast<uint32_t>(verticalDivision);
+								isMeshChanged = true;
+							}
+
+							if (isMeshChanged) {
+								cs->MarkDirty(); // メッシュ形状の再構築フラグ
+							}
+
+							ImGui::Separator();
+							ImGui::Checkbox("Swap UV (U <-> V)", &cs->settings.isUvSwap);
+							ImGui::Checkbox("Flip V", &cs->settings.flipV);
+							ImGui::ColorEdit4("Top Vertex Color", &cs->settings.topColor.x);
+							ImGui::ColorEdit4("Bottom Vertex Color", &cs->settings.bottomColor.x);
+							ImGui::DragFloat("Fade Start Alpha", &cs->settings.fadeStartAlpha, 0.01f, 0.0f, 1.0f);
+							ImGui::DragFloat("Fade End Alpha", &cs->settings.fadeEndAlpha, 0.01f, 0.0f, 1.0f);
+							ImGui::DragFloat("Fade Range", &cs->settings.fadeRange, 0.01f, 0.0f, 0.5f);
+							ImGui::DragFloat("Alpha Reference (Discard)", &cs->settings.alphaReference, 0.01f, 0.0f, 1.0f);
+
+							ImGui::TreePop();
+						}
 					}
 
 					// ボタン類

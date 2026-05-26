@@ -278,8 +278,8 @@ void ParticleManager::CreateParticleGroup(const std::string& name,
 
 	// 新たな空のパーティクルグループを作成し、コンテナに登録
 	ParticleGroup newGroup;
+	newGroup.defaultModel = model;
 	newGroup.model = model;
-	newGroup.originalModel = model;
 	newGroup.materialData.textureFilePath = textureFilePath;
 
 	// マテリアルデータにテクスチャのSRVインデックスを記録
@@ -486,6 +486,8 @@ void ParticleManager::UpdateGroupEmitter(ParticleGroup& group, const std::string
 // Update ヘルパー: グローバル UV アニメーションとリングマテリアルの CPU → GPU 転送
 // ---------------------------------------------------------------------------
 void ParticleManager::UpdateGroupMaterial(ParticleGroup& group, float deltaTime) {
+	if (!group.materialMappedData) return;
+
 	// --- グローバル UV アニメーション ---
 	auto& uvas = group.emitter.uvAnimationSettings;
 	if (uvas.isActive && !uvas.isIndividual) {
@@ -503,51 +505,19 @@ void ParticleManager::UpdateGroupMaterial(ParticleGroup& group, float deltaTime)
 		group.materialMappedData->uvTransform = MakeIdentity4x4();
 	}
 
-	// --- リング設定のマテリアル転送 ---
-	auto& rs = group.emitter.ringSettings;
-	auto& cs = group.emitter.cylinderSettings;
-	group.materialMappedData->isRing        = rs.isRing   ? 1 : 0;
-	group.materialMappedData->isCylinder    = cs.isCylinder ? 1 : 0;
-	group.materialMappedData->alphaReference = cs.alphaReference;
+	// 形状に応じたマテリアル設定（isRing / isCylinder フラグ等）を委譲
+	if (group.emitter.shape) {
+		group.emitter.shape->ApplyMaterial(group.materialMappedData);
 
-	if (rs.isRing) {
-		group.materialMappedData->isUvSwap      = rs.isUvSwap ? 1 : 0;
-		group.materialMappedData->innerColor    = rs.innerColor;
-		group.materialMappedData->outerColor    = rs.outerColor;
-		group.materialMappedData->fadeStartAlpha= rs.fadeStartAlpha;
-		group.materialMappedData->fadeEndAlpha  = rs.fadeEndAlpha;
-		group.materialMappedData->fadeRange     = rs.fadeRange;
-	} else if (cs.isCylinder) {
-		group.materialMappedData->isUvSwap      = cs.isUvSwap ? 1 : 0;
-		group.materialMappedData->innerColor    = cs.topColor;      // topColor -> innerColor
-		group.materialMappedData->outerColor    = cs.bottomColor;   // bottomColor -> outerColor
-		group.materialMappedData->fadeStartAlpha= cs.fadeStartAlpha;
-		group.materialMappedData->fadeEndAlpha  = cs.fadeEndAlpha;
-		group.materialMappedData->fadeRange     = cs.fadeRange;
-	} else {
-		group.materialMappedData->isUvSwap      = 0;
-		group.materialMappedData->fadeRange     = 0.0f;
+		// 必要ならモデルを内部で再構築し、キャッシュされたモデルポインタを取得
+		// (テクスチャパスが変わっていなければ再構築は走らず、前回作成したモデルが返る)
+		Model* shapeModel = group.emitter.shape->GetOrBuildModel(group.materialData.textureFilePath);
+
+		// シェイプ固有のモデルがあればそれを使い、なければデフォルトのモデル（Billboard等）を使う
+		group.model = shapeModel ? shapeModel : group.defaultModel;
 	}
 
-	// --- モデルの動的生成／解放 ---
-	if (rs.isRing) {
-		if (!group.customModel) {
-			group.customModel = std::make_unique<Model>();
-		}
-		group.customModel->CreateRing(group.materialData.textureFilePath, rs);
-		group.model = group.customModel.get();
-	} else if (cs.isCylinder) {
-		if (!group.customModel) {
-			group.customModel = std::make_unique<Model>();
-		}
-		group.customModel->CreateCylinder(group.materialData.textureFilePath, cs);
-		group.model = group.customModel.get();
-	} else {
-		if (group.customModel) {
-			group.customModel.reset();
-			group.model = group.originalModel;
-		}
-	}
+	// --- 共通マテリアル処理（色やUVトランスフォーム以外の共通項目） ---
 }
 
 // ---------------------------------------------------------------------------
@@ -620,7 +590,7 @@ void ParticleManager::WriteInstanceData(
 			Matrix4x4 rotateM = MakeRotateXYZMatrix(particle.transform.rotate);
 
 			Matrix4x4 billboardM;
-			if (useBillboard_) {
+			if (group.emitter.shape && group.emitter.shape->NeedsBillboard() && useBillboard_) {
 				billboardM = camera.GetWorldMatrix();
 				billboardM.m[3][0] = billboardM.m[3][1] = billboardM.m[3][2] = 0.0f;
 			} else {

@@ -33,10 +33,16 @@ private: // namespace省略のためのusing宣言
 
 private: // メンバ変数
     struct ParticleGroup {
+        std::string name;
+        std::list<Particle> particles;           // パーティクルのリスト
+        ParticleEmitter emitter;
+
+        // マテリアルや定数バッファ関連
+        Model * model = nullptr;           // 現在描画に使用するモデルへのポインタ
+        Model * defaultModel = nullptr;    // 外部から渡されたデフォルトモデル (null = 矩形/Billboard)
         MaterialData materialData;               // マテリアルデータ
         ComPtr<ID3D12Resource> materialResource; // CBV用リソース
         Material* materialMappedData = nullptr;  // マッピングされたポインタ
-        std::list<Particle> particles;           // パーティクルのリスト
         D3D12_GPU_DESCRIPTOR_HANDLE
             instanceSrvHandleGPU; // インスタンシングデータ用SRVインデックス
         ComPtr<ID3D12Resource>
@@ -44,10 +50,6 @@ private: // メンバ変数
         uint32_t instanceCount; // インスタンス数
         ParticleInstanceData* mappedData =
             nullptr; // インスタンシングデータを書き込むためのポインタ
-        ParticleEmitter emitter;
-        Model* model = nullptr; // 使用するモデル (nullならデフォルトの矩形)
-        Model* originalModel = nullptr; // グループ作成時のオリジナルモデル
-        std::unique_ptr<Model> customModel; // グループ独自のモデル（プロシージャルリング用など）
     };
     std::unordered_map<std::string, ParticleGroup> particleGroups_{};
 
