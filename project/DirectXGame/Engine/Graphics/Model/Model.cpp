@@ -1,3 +1,5 @@
+#define NOMINMAX
+
 #include "Model.h"
 #include "Base/DX12Context.h"
 #include "Texture/TextureManager.h"
@@ -11,6 +13,7 @@
 #include <sstream>
 #include <string>
 #include <numbers>
+#include <algorithm>
 
 using namespace Microsoft::WRL;
 using namespace MathUtils;
@@ -43,14 +46,23 @@ void Model::CreateRing(const std::string& textureFilePath, float innerRadius, fl
     modelData_.vertices.clear();
     modelData_.indices.clear();
 
-    const float radianPerDivide = 2.0f * std::numbers::pi_v<float> / float(division);
+    // ============================================================
+    // 【ガード処理】不正な値をシャットアウト
+    // ============================================================
+    uint32_t safeDivision = std::max(3u, division);
+    if (safeDivision > 256) safeDivision = 256; // 念のため上限もガード
+
+    float safeInnerRadius = std::max(0.0f, innerRadius);
+    // ============================================================
+
+    const float radianPerDivide = 2.0f * std::numbers::pi_v<float> / float(safeDivision);
 
     // 頂点データの生成
-    for (uint32_t i = 0; i <= division; ++i) {
+    for (uint32_t i = 0; i <= safeDivision; ++i) {
         float angle = i * radianPerDivide;
         float s = std::sin(angle);
         float c = std::cos(angle);
-        float u = float(i) / float(division);
+        float u = float(i) / float(safeDivision);
 
         // 外側の頂点
         VertexData outerVertex;
@@ -61,14 +73,14 @@ void Model::CreateRing(const std::string& textureFilePath, float innerRadius, fl
 
         // 内側の頂点
         VertexData innerVertex;
-        innerVertex.position = { -s * innerRadius, c * innerRadius, 0.0f, 1.0f };
+        innerVertex.position = { -s * safeInnerRadius, c * safeInnerRadius, 0.0f, 1.0f };
         innerVertex.normal = { 0.0f, 0.0f, -1.0f };
         innerVertex.texcoord = { u, 1.0f };
         modelData_.vertices.push_back(innerVertex);
     }
 
     // インデックスデータの生成
-    for (uint32_t i = 0; i < division; ++i) {
+    for (uint32_t i = 0; i < safeDivision; ++i) {
         uint32_t base = i * 2;
         // 頂点レイアウト: [Outer0, Inner0, Outer1, Inner1, ...]
         // 三角形1
@@ -101,6 +113,15 @@ void Model::CreateRing(const std::string& textureFilePath, const RingSettings& s
     modelData_.vertices.clear();
     modelData_.indices.clear();
 
+    // ============================================================
+    // 【ガード処理】不正な値をシャットアウト
+    // ============================================================
+    uint32_t safeDivision = std::max(3u, settings.division);
+    if (safeDivision > 256) safeDivision = 256; // 念のため上限もガード
+
+    float safeInnerRadius = std::max(0.0f, settings.innerRadius);
+    // ============================================================
+
     float startRad = settings.startAngle * std::numbers::pi_v<float> / 180.0f;
     float endRad = settings.endAngle * std::numbers::pi_v<float> / 180.0f;
     float angleRange = endRad - startRad;
@@ -115,8 +136,8 @@ void Model::CreateRing(const std::string& textureFilePath, const RingSettings& s
     float cCoeff = rStart;
 
     // 頂点データの生成
-    for (uint32_t i = 0; i <= settings.division; ++i) {
-        float t = float(i) / float(settings.division);
+    for (uint32_t i = 0; i <= safeDivision; ++i) {
+        float t = float(i) / float(safeDivision);
         float angle = startRad + t * angleRange;
         float s = std::sin(angle);
         float c = std::cos(angle);
@@ -137,7 +158,7 @@ void Model::CreateRing(const std::string& textureFilePath, const RingSettings& s
 
         // 内側の頂点
         VertexData innerVertex;
-        innerVertex.position = { -s * settings.innerRadius, c * settings.innerRadius, 0.0f, 1.0f };
+        innerVertex.position = { -s * safeInnerRadius, c * safeInnerRadius, 0.0f, 1.0f };
         innerVertex.normal = { 0.0f, 0.0f, -1.0f };
         if (settings.isUvSwap) {
             innerVertex.texcoord = { 1.0f, t };
@@ -148,7 +169,7 @@ void Model::CreateRing(const std::string& textureFilePath, const RingSettings& s
     }
 
     // インデックスデータの生成
-    for (uint32_t i = 0; i < settings.division; ++i) {
+    for (uint32_t i = 0; i < safeDivision; ++i) {
         uint32_t base = i * 2;
         // 三角形1
         modelData_.indices.push_back(base);     // Outer i
@@ -180,13 +201,23 @@ void Model::CreateCylinder(const std::string& textureFilePath, const CylinderSet
     modelData_.vertices.clear();
     modelData_.indices.clear();
 
+    // ============================================================
+    // 【安全ガード処理】関数の先頭で不正な値をシャットアウト
+    // ============================================================
+    uint32_t safeDivision = std::max(3u, settings.division);
+    if (safeDivision > 256) safeDivision = 256;
+
+    uint32_t safeVerticalDivision = std::max(1u, settings.verticalDivision);
+    if (safeVerticalDivision > 256) safeVerticalDivision = 256;
+	// ============================================================
+
     float startRad = settings.startAngle * std::numbers::pi_v<float> / 180.0f;
     float endRad = settings.endAngle * std::numbers::pi_v<float> / 180.0f;
     float angleRange = endRad - startRad;
 
     // 頂点の生成 (縦方向 yIndex: 0 から verticalDivision)
-    for (uint32_t yIndex = 0; yIndex <= settings.verticalDivision; ++yIndex) {
-        float vNorm = float(yIndex) / float(settings.verticalDivision);
+    for (uint32_t yIndex = 0; yIndex <= safeVerticalDivision; ++yIndex) {
+        float vNorm = float(yIndex) / float(safeVerticalDivision);
         float h = (1.0f - vNorm) * settings.height; // yIndex=0 が上(高さ height), yIndex=verticalDivision が下(高さ 0)
 
         // 上底から下底にかけての半径を線形補間 (楕円対応)
@@ -196,8 +227,8 @@ void Model::CreateCylinder(const std::string& textureFilePath, const CylinderSet
         };
 
         // 円周方向の頂点生成 (xIndex: 0 から division)
-        for (uint32_t xIndex = 0; xIndex <= settings.division; ++xIndex) {
-            float uNorm = float(xIndex) / float(settings.division);
+        for (uint32_t xIndex = 0; xIndex <= safeDivision; ++xIndex) {
+            float uNorm = float(xIndex) / float(safeDivision);
             float angle = startRad + uNorm * angleRange;
             float s = std::sin(angle);
             float c = std::cos(angle);
@@ -230,11 +261,11 @@ void Model::CreateCylinder(const std::string& textureFilePath, const CylinderSet
     }
 
     // インデックスデータの生成
-    for (uint32_t y = 0; y < settings.verticalDivision; ++y) {
-        for (uint32_t x = 0; x < settings.division; ++x) {
-            uint32_t topLeft = y * (settings.division + 1) + x;
+    for (uint32_t y = 0; y < safeVerticalDivision; ++y) {
+        for (uint32_t x = 0; x < safeDivision; ++x) {
+            uint32_t topLeft = y * (safeDivision + 1) + x;
             uint32_t topRight = topLeft + 1;
-            uint32_t bottomLeft = (y + 1) * (settings.division + 1) + x;
+            uint32_t bottomLeft = (y + 1) * (safeDivision + 1) + x;
             uint32_t bottomRight = bottomLeft + 1;
 
             // 三角形1
