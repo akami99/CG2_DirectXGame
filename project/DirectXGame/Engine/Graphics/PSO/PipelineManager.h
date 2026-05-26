@@ -53,6 +53,9 @@ private: // メンバ変数
     ComPtr<IDxcBlob> vsBlobColorFilter_; // Vertex Shader (Fullscreenと共用)
     ComPtr<IDxcBlob> psBlobColorFilter_; // Pixel Shader (Grayscale.PS.hlsl)
 
+    // --- ビネット用アセット ---
+    ComPtr<IDxcBlob> psBlobVignette_;    // Pixel Shader (Vignette.PS.hlsl)
+
 private: // シングルトン管理用メンバ変数
     static std::unique_ptr<PipelineManager> instance_;
 
@@ -90,6 +93,9 @@ public: // メンバ関数
 
     // グレースケール/セピアフィルター用 PSOを生成して返す関数
     ComPtr<ID3D12PipelineState> CreateColorFilterPSO();
+
+    // ビネット用 PSOを生成して返す関数
+    ComPtr<ID3D12PipelineState> CreateVignettePSO();
 
     // ゲッター
 

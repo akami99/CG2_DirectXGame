@@ -67,11 +67,25 @@ void MyGame::Update() {
 #ifdef USE_IMGUI
 	// ポストエフェクトモード選択 ImGui
 	ImGui::SetNextWindowPos(ImVec2(10.0f, 210.0f), ImGuiCond_Once);
-	ImGui::SetNextWindowSize(ImVec2(280.0f, 100.0f), ImGuiCond_Once);
+	ImGui::SetNextWindowSize(ImVec2(280.0f, 150.0f), ImGuiCond_Once);
 	ImGui::Begin("PostEffect");
 	int mode = PostProcessManager::GetInstance()->GetCurrentMode();
-	if (ImGui::Combo("Mode", &mode, "Copy (None)\0GrayScale\0Sepia\0")) {
+	if (ImGui::Combo("Mode", &mode, "Copy (None)\0GrayScale\0Sepia\0Vignette\0")) {
 		PostProcessManager::SetMode(mode);
+	}
+	if (mode == PostProcessManager::kModeVignette) {
+		static float scale = 16.0f;
+		static float exponent = 0.8f;
+		bool changed = false;
+		if (ImGui::SliderFloat("Vignette Scale", &scale, 0.0f, 32.0f)) {
+			changed = true;
+		}
+		if (ImGui::SliderFloat("Vignette Exponent", &exponent, 0.0f, 5.0f)) {
+			changed = true;
+		}
+		if (changed) {
+			PostProcessManager::SetVignetteParams(scale, exponent);
+		}
 	}
 	ImGui::End();
 #endif

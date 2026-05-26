@@ -42,6 +42,19 @@ void Model::Initialize(const std::string &directoryPath,
 }
 
 void Model::CreateRing(const std::string& textureFilePath, float innerRadius, float outerRadius, uint32_t division) {
+    // 既存リソースがある場合はGPUの完了を待ち、アンマップして安全に破棄できるようにする
+    if (vertexResource_ || indexResource_ || materialResource_) {
+        DX12Context::GetInstance()->WaitForGpu();
+        if (vertexResource_ && vertexData_) {
+            vertexResource_->Unmap(0, nullptr);
+            vertexData_ = nullptr;
+        }
+        if (materialResource_ && materialData_) {
+            materialResource_->Unmap(0, nullptr);
+            materialData_ = nullptr;
+        }
+    }
+
     // データをクリアしておく
     modelData_.vertices.clear();
     modelData_.indices.clear();
@@ -109,6 +122,19 @@ void Model::CreateRing(const std::string& textureFilePath, float innerRadius, fl
 }
 
 void Model::CreateRing(const std::string& textureFilePath, const RingSettings& settings) {
+    // 既存リソースがある場合はGPUの完了を待ち、アンマップして安全に破棄できるようにする
+    if (vertexResource_ || indexResource_ || materialResource_) {
+        DX12Context::GetInstance()->WaitForGpu();
+        if (vertexResource_ && vertexData_) {
+            vertexResource_->Unmap(0, nullptr);
+            vertexData_ = nullptr;
+        }
+        if (materialResource_ && materialData_) {
+            materialResource_->Unmap(0, nullptr);
+            materialData_ = nullptr;
+        }
+    }
+
     // データをクリアしておく
     modelData_.vertices.clear();
     modelData_.indices.clear();
@@ -197,6 +223,19 @@ void Model::CreateRing(const std::string& textureFilePath, const RingSettings& s
 }
 
 void Model::CreateCylinder(const std::string& textureFilePath, const CylinderSettings& settings) {
+    // 既存リソースがある場合はGPUの完了を待ち、アンマップして安全に破棄できるようにする
+    if (vertexResource_ || indexResource_ || materialResource_) {
+        DX12Context::GetInstance()->WaitForGpu();
+        if (vertexResource_ && vertexData_) {
+            vertexResource_->Unmap(0, nullptr);
+            vertexData_ = nullptr;
+        }
+        if (materialResource_ && materialData_) {
+            materialResource_->Unmap(0, nullptr);
+            materialData_ = nullptr;
+        }
+    }
+
     // データをクリアしておく
     modelData_.vertices.clear();
     modelData_.indices.clear();

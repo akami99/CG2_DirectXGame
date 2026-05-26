@@ -519,5 +519,6 @@
     <FxCompile Include="Resources\Shaders\Skybox.VS.hlsl">
       <Filter>シェーダー ファイル\Object3d</Filter>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\Vignette.PS.hlsl" />
   </ItemGroup>
 </Project>

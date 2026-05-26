@@ -385,9 +385,8 @@ void GamePlayScene::UpdateImGui() {
 		UpdateImGui_Sprite();
 		UpdateImGui_Sound();
 		UpdateImGui_Skybox();
-
-		ImGui::End(); // "Settings" ウィンドウの終了
 	}
+		ImGui::End(); // "Settings" ウィンドウの終了
 
 	// ヘルプウィンドウの表示
 	UpdateImGui_HelpWindow();

@@ -9,6 +9,8 @@
 std::unique_ptr<PostProcessManager> PostProcessManager::instance_;
 int PostProcessManager::modeNext_ = 0;
 float PostProcessManager::strengthNext_ = 1.0f;
+float PostProcessManager::vignetteScaleNext_ = 16.0f;
+float PostProcessManager::vignetteExponentNext_ = 0.8f;
 
 PostProcessManager* PostProcessManager::GetInstance() {
     if (!instance_) {
@@ -25,6 +27,7 @@ void PostProcessManager::Initialize() {
     // PSO の生成
     postProcessPSO_ = PipelineManager::GetInstance()->CreatePostProcessPSO();
     colorFilterPSO_  = PipelineManager::GetInstance()->CreateColorFilterPSO();
+    vignettePSO_     = PipelineManager::GetInstance()->CreateVignettePSO();
 
     // 定数バッファの生成とマッピング
     paramsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(PostProcessParams));
@@ -35,6 +38,12 @@ void PostProcessManager::Initialize() {
     paramsMapped_->colorScale[1] = 1.0f;
     paramsMapped_->colorScale[2] = 1.0f;
     paramsMapped_->strength = 1.0f;
+
+    // ビネット用の定数バッファの生成とマッピング
+    vignetteParamsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(VignetteParams));
+    vignetteParamsResource_->Map(0, nullptr, reinterpret_cast<void**>(&vignetteParamsMapped_));
+    vignetteParamsMapped_->scale = 16.0f;
+    vignetteParamsMapped_->exponent = 0.8f;
 }
 
 void PostProcessManager::Draw(RenderTexture* renderTexture) {
@@ -43,6 +52,8 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
     // モードと強度を遅延適用
     currentMode_ = modeNext_;
     const float strength = strengthNext_;
+    const float vignetteScale = vignetteScaleNext_;
+    const float vignetteExponent = vignetteExponentNext_;
 
     // 共通ルートシグネチャのセット
     commandList->SetGraphicsRootSignature(
@@ -55,6 +66,12 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
         // パススルー
         commandList->SetPipelineState(postProcessPSO_.Get());
         commandList->SetGraphicsRootConstantBufferView(0, paramsResource_->GetGPUVirtualAddress());
+    } else if (currentMode_ == kModeVignette) {
+        // ビネット
+        commandList->SetPipelineState(vignettePSO_.Get());
+        vignetteParamsMapped_->scale = vignetteScale;
+        vignetteParamsMapped_->exponent = vignetteExponent;
+        commandList->SetGraphicsRootConstantBufferView(0, vignetteParamsResource_->GetGPUVirtualAddress());
     } else {
         // グレースケール or セピア
         commandList->SetPipelineState(colorFilterPSO_.Get());
