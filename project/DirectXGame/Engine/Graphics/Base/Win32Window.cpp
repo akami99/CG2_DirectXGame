@@ -1,8 +1,10 @@
 #include <Windows.h> //timeBeginPeriod
 #include "Win32Window.h"
 #include <imgui_impl_win32.h>
+#include <imm.h> // 日本語入力のために必要
 
 #pragma comment(lib, "winmm.lib")
+#pragma comment(lib, "imm32.lib") // 日本語入力のために必要
 
 #ifdef USE_IMGUI
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -101,6 +103,9 @@ void Win32Window::Initialize() {
       nullptr,                  // メニューハンドル
       wc_.hInstance,            // インスタンスハンドル
       nullptr);                 // オプション
+
+  // このウィンドウに対するIMEの関連付けを解除（無効化）する
+  ImmAssociateContext(hwnd_, nullptr);
 
   // ウィンドウを表示する
   ShowWindow(hwnd_, SW_SHOW);
