@@ -12,6 +12,8 @@ float PostProcessManager::strengthNext_ = 1.0f;
 float PostProcessManager::vignetteScaleNext_ = 16.0f;
 float PostProcessManager::vignetteExponentNext_ = 0.8f;
 int PostProcessManager::smoothingKernelSizeNext_ = 3;
+int PostProcessManager::gaussianBlurKernelSizeNext_ = 3;
+float PostProcessManager::gaussianBlurSigmaNext_ = 2.0f;
 
 PostProcessManager* PostProcessManager::GetInstance() {
     if (!instance_) {
@@ -30,6 +32,7 @@ void PostProcessManager::Initialize() {
     colorFilterPSO_  = PipelineManager::GetInstance()->CreateColorFilterPSO();
     vignettePSO_     = PipelineManager::GetInstance()->CreateVignettePSO();
     smoothingPSO_    = PipelineManager::GetInstance()->CreateSmoothingPSO();
+    gaussianBlurPSO_ = PipelineManager::GetInstance()->CreateGaussianBlurPSO();
 
     // 定数バッファの生成とマッピング
     paramsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(PostProcessParams));
@@ -51,6 +54,12 @@ void PostProcessManager::Initialize() {
     smoothingParamsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(SmoothingParams));
     smoothingParamsResource_->Map(0, nullptr, reinterpret_cast<void**>(&smoothingParamsMapped_));
     smoothingParamsMapped_->kernelSize = 3;
+
+    // ガウシアンフィルター用の定数バッファの生成とマッピング
+    gaussianBlurParamsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(GaussianBlurParams));
+    gaussianBlurParamsResource_->Map(0, nullptr, reinterpret_cast<void**>(&gaussianBlurParamsMapped_));
+    gaussianBlurParamsMapped_->kernelSize = 3;
+    gaussianBlurParamsMapped_->sigma = 2.0f;
 }
 
 void PostProcessManager::Draw(RenderTexture* renderTexture) {
@@ -62,6 +71,8 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
     const float vignetteScale = vignetteScaleNext_;
     const float vignetteExponent = vignetteExponentNext_;
     const int smoothingKernelSize = smoothingKernelSizeNext_;
+    const int gaussianBlurKernelSize = gaussianBlurKernelSizeNext_;
+    const float gaussianBlurSigma = gaussianBlurSigmaNext_;
 
     // 共通ルートシグネチャのセット
     commandList->SetGraphicsRootSignature(
@@ -85,6 +96,12 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
         commandList->SetPipelineState(smoothingPSO_.Get());
         smoothingParamsMapped_->kernelSize = smoothingKernelSize;
         commandList->SetGraphicsRootConstantBufferView(0, smoothingParamsResource_->GetGPUVirtualAddress());
+    } else if (currentMode_ == kModeGaussianBlur) {
+        // ガウシアンフィルター
+        commandList->SetPipelineState(gaussianBlurPSO_.Get());
+        gaussianBlurParamsMapped_->kernelSize = gaussianBlurKernelSize;
+        gaussianBlurParamsMapped_->sigma = gaussianBlurSigma;
+        commandList->SetGraphicsRootConstantBufferView(0, gaussianBlurParamsResource_->GetGPUVirtualAddress());
     } else {
         // グレースケール or セピア
         commandList->SetPipelineState(colorFilterPSO_.Get());

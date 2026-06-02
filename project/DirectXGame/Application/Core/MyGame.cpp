@@ -70,7 +70,7 @@ void MyGame::Update() {
 	ImGui::SetNextWindowSize(ImVec2(280.0f, 150.0f), ImGuiCond_Once);
 	ImGui::Begin("PostEffect");
 	int mode = PostProcessManager::GetInstance()->GetCurrentMode();
-	if (ImGui::Combo("Mode", &mode, "Copy (None)\0GrayScale\0Sepia\0Vignette\0Smoothing\0")) {
+	if (ImGui::Combo("Mode", &mode, "Copy (None)\0GrayScale\0Sepia\0Vignette\0Smoothing\0Gaussian Blur\0")) {
 		PostProcessManager::SetMode(mode);
 	}
 	if (mode == PostProcessManager::kModeVignette) {
@@ -94,6 +94,22 @@ void MyGame::Update() {
 				kernelSize += 1;
 			}
 			PostProcessManager::SetSmoothingParams(kernelSize);
+		}
+	} else if (mode == PostProcessManager::kModeGaussianBlur) {
+		static int kernelSize = 3;
+		static float sigma = 2.0f;
+		bool changed = false;
+		if (ImGui::SliderInt("Kernel Size", &kernelSize, 3, 15)) {
+			if (kernelSize % 2 == 0) {
+				kernelSize += 1;
+			}
+			changed = true;
+		}
+		if (ImGui::SliderFloat("Sigma", &sigma, 0.1f, 10.0f)) {
+			changed = true;
+		}
+		if (changed) {
+			PostProcessManager::SetGaussianBlurParams(kernelSize, sigma);
 		}
 	}
 	ImGui::End();

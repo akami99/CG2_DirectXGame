@@ -59,6 +59,9 @@ private: // メンバ変数
     // --- 平滑化用アセット ---
     ComPtr<IDxcBlob> psBlobSmoothing_;   // Pixel Shader (Smoothing.PS.hlsl)
 
+    // --- Gaussian Blur用アセット ---
+    ComPtr<IDxcBlob> psBlobGaussianBlur_; // Pixel Shader (GaussianBlur.PS.hlsl)
+
 private: // シングルトン管理用メンバ変数
     static std::unique_ptr<PipelineManager> instance_;
 
@@ -102,6 +105,9 @@ public: // メンバ関数
 
     // 平滑化用 PSOを生成して返す関数
     ComPtr<ID3D12PipelineState> CreateSmoothingPSO();
+
+    // Gaussian Blur用 PSOを生成して返す関数
+    ComPtr<ID3D12PipelineState> CreateGaussianBlurPSO();
 
     // ゲッター
 

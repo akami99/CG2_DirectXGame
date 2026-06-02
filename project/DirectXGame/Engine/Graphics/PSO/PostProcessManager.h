@@ -16,6 +16,7 @@ public:
     static constexpr int kModeSepia     = 2;
     static constexpr int kModeVignette  = 3;
     static constexpr int kModeSmoothing = 4;
+    static constexpr int kModeGaussianBlur = 5;
 
     // ---- Passkey Idiom ----
     struct Token {
@@ -46,10 +47,18 @@ private:
         float padding[3]; // 16バイトアライメント
     };
 
+    // ガウシアンフィルター用の定数バッファ構造体
+    struct GaussianBlurParams {
+        int kernelSize;
+        float sigma;
+        float padding[2]; // 16バイトアライメント
+    };
+
     ComPtr<ID3D12PipelineState> postProcessPSO_; // CopyImage (passthrough)
     ComPtr<ID3D12PipelineState> colorFilterPSO_; // グレースケール/セピア
     ComPtr<ID3D12PipelineState> vignettePSO_;    // ビネット
     ComPtr<ID3D12PipelineState> smoothingPSO_;   // 平滑化
+    ComPtr<ID3D12PipelineState> gaussianBlurPSO_; // ガウシアンフィルター
     ComPtr<ID3D12Resource> paramsResource_;
     PostProcessParams* paramsMapped_ = nullptr;
 
@@ -59,12 +68,17 @@ private:
     ComPtr<ID3D12Resource> smoothingParamsResource_;
     SmoothingParams* smoothingParamsMapped_ = nullptr;
 
+    ComPtr<ID3D12Resource> gaussianBlurParamsResource_;
+    GaussianBlurParams* gaussianBlurParamsMapped_ = nullptr;
+
     // 遅延適用用 (Update から Draw への橋渡し)
     static int modeNext_;
     static float strengthNext_;
     static float vignetteScaleNext_;
     static float vignetteExponentNext_;
     static int smoothingKernelSizeNext_;
+    static int gaussianBlurKernelSizeNext_;
+    static float gaussianBlurSigmaNext_;
     int currentMode_ = kModeCopy;
 
     static std::unique_ptr<PostProcessManager> instance_;
@@ -91,6 +105,10 @@ public:
     }
     static void SetSmoothingParams(int kernelSize) {
         smoothingKernelSizeNext_ = kernelSize;
+    }
+    static void SetGaussianBlurParams(int kernelSize, float sigma) {
+        gaussianBlurKernelSizeNext_ = kernelSize;
+        gaussianBlurSigmaNext_ = sigma;
     }
     int GetCurrentMode() const            { return currentMode_; }
 
