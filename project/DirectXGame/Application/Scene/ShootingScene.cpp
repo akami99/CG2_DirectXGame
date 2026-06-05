@@ -1,9 +1,11 @@
 #include "ShootingScene.h"
+#include "Model.h"
 #include "DX12Context.h"
 #include "ModelManager.h"
 #include "TextureManager.h"
 #include "Object3dCommon.h"
 #include "SpriteCommon.h"
+#include "ParticleManager.h"
 #include "BlendMode.h"
 #include "Input.h"
 #include "Win32Window.h"
@@ -14,6 +16,9 @@
 
 using namespace MathUtils;
 using namespace BlendMode;
+
+ShootingScene::ShootingScene() = default;
+ShootingScene::~ShootingScene() = default;
 
 void ShootingScene::Initialize() {
     // カメラの初期化
@@ -48,6 +53,20 @@ void ShootingScene::Initialize() {
     target_->Initialize();
     target_->SetModel(sphereModel_);
     target_->SetCamera(camera_.get());
+    
+    // プリミティブ平面モデルの動的生成
+    hitEffectPlaneModel_ = std::make_unique<Model>();
+    PlaneSettings planeSettings;
+    planeSettings.size = { 3.0f, 3.0f };
+    planeSettings.divisionX = 1;
+    planeSettings.divisionY = 1;
+    planeSettings.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+    hitEffectPlaneModel_->CreatePlane(crosshairPath_, planeSettings);
+
+    hitEffectPlane_ = std::make_unique<Object3d>();
+    hitEffectPlane_->Initialize();
+    hitEffectPlane_->SetModel(hitEffectPlaneModel_.get());
+    hitEffectPlane_->SetCamera(camera_.get());
 
     // --- スプライト生成 ---
     crosshair_ = std::make_unique<Sprite>();
@@ -198,20 +217,30 @@ void ShootingScene::Update() {
     // ヒットフィードバック
     if (hitFeedbackTimer_ > 0) {
         hitFeedbackTimer_ -= kDeltaTime;
-        target_->SetScale({ 1.5f, 1.5f, 1.5f });
+        
+        // Planeの回転角を更新（Y軸/Z軸で回転）
+        Vector3 rot = hitEffectPlane_->GetRotation();
+        rot.y += 0.1f;
+        rot.z += 0.1f;
+        hitEffectPlane_->SetRotation(rot);
+        hitEffectPlane_->SetTranslate(target_->GetTranslate());
     }
-    else {
-        target_->SetScale({ 1.0f, 1.0f, 1.0f });
-    }
+    target_->SetScale({ 1.0f, 1.0f, 1.0f });
 
     // オブジェクトの更新 (マルチビュー対応)
-    target_->Update(0, camera_.get());
-    target_->Update(1, leftCamera_.get());
-    target_->Update(2, rightCamera_.get());
+    target_->Update(mainViewIndex_, camera_.get());
+    target_->Update(leftViewIndex_, leftCamera_.get());
+    target_->Update(rightViewIndex_, rightCamera_.get());
+    
+    if (hitFeedbackTimer_ > 0) {
+        hitEffectPlane_->Update(mainViewIndex_, camera_.get());
+        hitEffectPlane_->Update(leftViewIndex_, leftCamera_.get());
+        hitEffectPlane_->Update(rightViewIndex_, rightCamera_.get());
+    }
 
-    skybox_->Update(0, camera_.get());
-    skybox_->Update(1, leftCamera_.get());
-    skybox_->Update(2, rightCamera_.get());
+    skybox_->Update(mainViewIndex_, camera_.get());
+    skybox_->Update(leftViewIndex_, leftCamera_.get());
+    skybox_->Update(rightViewIndex_, rightCamera_.get());
 
     // --- プロジェクタイルの生成 ---
     projectileSpawnTimer_ += 1.0f;
@@ -230,9 +259,9 @@ void ShootingScene::Update() {
     // プロジェクタイルの移動・行列更新
     for (auto& p : projectiles_) {
         p->Update();
-        p->Update(0, camera_.get());
-        p->Update(1, leftCamera_.get());
-        p->Update(2, rightCamera_.get());
+        p->Update(mainViewIndex_, camera_.get());
+        p->Update(leftViewIndex_, leftCamera_.get());
+        p->Update(rightViewIndex_, rightCamera_.get());
     }
 
     // カメラとの当たり判定（プレイヤー被弾処理）
@@ -318,6 +347,14 @@ void ShootingScene::Update() {
             if (distance < 1.0f) {
                 isHit_ = true;
                 hitFeedbackTimer_ = 0.2f;
+
+                // 当たった瞬間に、その場で位置を合わせて行列を更新する
+                hitEffectPlane_->SetTranslate(targetPos);
+
+                // マルチビュー（メイン、左、右）のすべてのカメラに対して即座に更新をかける
+                hitEffectPlane_->Update(mainViewIndex_, camera_.get());
+                hitEffectPlane_->Update(leftViewIndex_, leftCamera_.get());
+                hitEffectPlane_->Update(rightViewIndex_, rightCamera_.get());
             }
         }
 
@@ -343,7 +380,10 @@ void ShootingScene::DrawOffscreen() {
     // 左側カメラの描画 (ViewIndex 1)
     leftRT_->PreDraw(cmd);
     Object3dCommon::GetInstance()->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode_));
-    if (isShowMaterial_) target_->Draw(1);
+    if (isShowMaterial_) {
+        target_->Draw(1);
+        if (hitFeedbackTimer_ > 0 && hitEffectPlane_) hitEffectPlane_->Draw(1);
+    }
     for (auto& p : projectiles_) p->Draw(1);
     if (isShowSkybox_) skybox_->Draw(1);
     leftRT_->PostDraw(cmd);
@@ -351,7 +391,10 @@ void ShootingScene::DrawOffscreen() {
     // 右側カメラの描画 (ViewIndex 2)
     rightRT_->PreDraw(cmd);
     Object3dCommon::GetInstance()->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode_));
-    if (isShowMaterial_) target_->Draw(2);
+    if (isShowMaterial_) {
+        target_->Draw(2);
+        if (hitFeedbackTimer_ > 0 && hitEffectPlane_) hitEffectPlane_->Draw(2);
+    }
     for (auto& p : projectiles_) p->Draw(2);
     if (isShowSkybox_) skybox_->Draw(2);
     rightRT_->PostDraw(cmd);
@@ -362,7 +405,10 @@ void ShootingScene::Draw() {
     Object3dCommon::GetInstance()->SetCommonDrawSettings(static_cast<BlendState>(currentBlendMode_));
 
     // メインカメラ (ViewIndex 0)
-    if (isShowMaterial_) target_->Draw(0);
+    if (isShowMaterial_) {
+        target_->Draw(0);
+        if (hitFeedbackTimer_ > 0 && hitEffectPlane_) hitEffectPlane_->Draw(0);
+    }
     for (auto& p : projectiles_) p->Draw(0);
     if (isShowSkybox_) skybox_->Draw(0);
 

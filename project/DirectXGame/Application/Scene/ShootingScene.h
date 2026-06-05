@@ -13,6 +13,9 @@
 
 class ShootingScene : public BaseScene {
 public:
+    ShootingScene();
+    ~ShootingScene() override;
+
     void Initialize() override;
     void Update() override;
     void DrawOffscreen() override;
@@ -43,6 +46,10 @@ private:
     // 的（Object3d）
     std::unique_ptr<Object3d> target_;
     
+    // ヒットエフェクト（Planeモデル）
+    std::unique_ptr<Object3d> hitEffectPlane_;
+    std::unique_ptr<Model> hitEffectPlaneModel_;
+    
     // 照準（スプライト）
     std::unique_ptr<Sprite> crosshair_;
 
@@ -51,6 +58,11 @@ private:
     std::unique_ptr<RenderTexture> rightRT_;
     std::unique_ptr<Sprite> leftSideSprite_;
     std::unique_ptr<Sprite> rightSideSprite_;
+
+    // ビューのインデックス（0: Main, 1: Left, 2: Right）
+    int mainViewIndex_ = 0;
+	int leftViewIndex_ = 1;
+	int rightViewIndex_ = 2;
 
     // ゲームロジック用変数
     float targetTimer_ = 0.0f;

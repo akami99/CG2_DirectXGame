@@ -54,6 +54,9 @@ public: // メンバ関数
   // シリンダープリミティブの生成
   void CreateCylinder(const std::string &textureFilePath, const CylinderSettings& settings);
 
+  // 平面プリミティブの生成
+  void CreatePlane(const std::string &textureFilePath, const PlaneSettings& settings);
+
   // 描画処理
   void Draw();
 

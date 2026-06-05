@@ -52,6 +52,9 @@ void ParticleEmitter::SetShapeType(ParticleShapeType type) {
 	case ParticleShapeType::Cylinder:
 		shape = std::make_unique<CylinderShape>();
 		break;
+	case ParticleShapeType::Plane:
+		shape = std::make_unique<PlaneShape>();
+		break;
 	}
 }
 

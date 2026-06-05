@@ -98,4 +98,5 @@ private:
 	const std::string particleGradationLinePath_ = "Particles/gradationLine.png";
     const std::string particleGroupName_ = "TestGroup";
 	const std::string cylinderParticleGroupName_ = "RingGroup";
+	const std::string ringParticleGroupName_ = "RingShapeGroup";
 };

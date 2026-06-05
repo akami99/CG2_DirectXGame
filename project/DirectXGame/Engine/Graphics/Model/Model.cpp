@@ -334,6 +334,83 @@ void Model::CreateCylinder(const std::string& textureFilePath, const CylinderSet
     modelData_.material.textureIndex = TextureManager::GetInstance()->GetSrvIndex(modelData_.material.textureFilePath);
 }
 
+void Model::CreatePlane(const std::string &textureFilePath, const PlaneSettings& settings) {
+    modelData_.vertices.clear();
+    modelData_.indices.clear();
+
+    uint32_t divX = settings.divisionX > 0 ? settings.divisionX : 1;
+    uint32_t divY = settings.divisionY > 0 ? settings.divisionY : 1;
+
+    float stepX = settings.size.x / static_cast<float>(divX);
+    float stepY = settings.size.y / static_cast<float>(divY);
+
+    float startX = -settings.size.x * 0.5f;
+    float startY = -settings.size.y * 0.5f;
+
+    // 頂点生成
+    for (uint32_t y = 0; y <= divY; ++y) {
+        float posY = startY + static_cast<float>(y) * stepY;
+        float v = static_cast<float>(y) / static_cast<float>(divY);
+        if (settings.flipV) {
+            v = 1.0f - v;
+        }
+
+        for (uint32_t x = 0; x <= divX; ++x) {
+            float posX = startX + static_cast<float>(x) * stepX;
+            float u = static_cast<float>(x) / static_cast<float>(divX);
+
+            VertexData vertex;
+            vertex.position = { posX, posY, 0.0f, 1.0f };
+            vertex.normal = { 0.0f, 0.0f, -1.0f };
+            
+            float finalU = u;
+            float finalV = v;
+            if (settings.isUvSwap) {
+                std::swap(finalU, finalV);
+            }
+            vertex.texcoord = { finalU, finalV };
+
+            modelData_.vertices.push_back(vertex);
+        }
+    }
+
+    // インデックス生成
+    for (uint32_t y = 0; y < divY; ++y) {
+        for (uint32_t x = 0; x < divX; ++x) {
+            uint32_t topLeft = y * (divX + 1) + x;
+            uint32_t topRight = topLeft + 1;
+            uint32_t bottomLeft = (y + 1) * (divX + 1) + x;
+            uint32_t bottomRight = bottomLeft + 1;
+
+            // 三角形1
+            modelData_.indices.push_back(topLeft);
+            modelData_.indices.push_back(topRight);
+            modelData_.indices.push_back(bottomLeft);
+
+            // 三角形2
+            modelData_.indices.push_back(bottomLeft);
+            modelData_.indices.push_back(topRight);
+            modelData_.indices.push_back(bottomRight);
+        }
+    }
+
+    modelData_.material.textureFilePath = textureFilePath;
+    modelData_.rootNode.localMatrix = MakeIdentity4x4();
+    modelData_.rootNode.name = "Plane";
+
+    CreateVertexResource();
+    CreateIndexResource();
+    CreateMaterialResource();
+
+    // マテリアルの初期色を設定
+    if (materialData_) {
+        materialData_->color = settings.color;
+    }
+
+    TextureManager::GetInstance()->LoadTexture(modelData_.material.textureFilePath);
+    modelData_.material.textureIndex = TextureManager::GetInstance()->GetSrvIndex(modelData_.material.textureFilePath);
+}
+
 // 描画処理
 void Model::Draw() {
   // VertexBufferの設定

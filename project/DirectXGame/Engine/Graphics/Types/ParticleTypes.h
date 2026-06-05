@@ -87,4 +87,14 @@ struct CylinderSettings {
     float alphaReference = 0.0f; // アルファのしきい値
 };
 
+// 平面プリミティブ用の詳細設定構造体
+struct PlaneSettings {
+    Vector2 size = { 1.0f, 1.0f };
+    uint32_t divisionX = 1;
+    uint32_t divisionY = 1;
+    bool flipV = false;
+    bool isUvSwap = false;
+    Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+};
+
 #endif // PARTICLE_TYPES_H

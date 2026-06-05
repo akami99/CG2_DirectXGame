@@ -91,6 +91,7 @@ public:
 	// 型を安全にキャストして取得するヘルパー
 	RingShape* GetRingShape() { return dynamic_cast<RingShape*>(shape.get()); }
 	CylinderShape* GetCylinderShape() { return dynamic_cast<CylinderShape*>(shape.get()); }
+	PlaneShape* GetPlaneShape() { return dynamic_cast<PlaneShape*>(shape.get()); }
 
 	void Emit(const std::string& groupName);
 

@@ -59,6 +59,7 @@ void GamePlayScene::Initialize() {
 	// パーティクル設定
 	ParticleManager::GetInstance()->CreateParticleGroup(particleGroupName_, particleGradationLinePath_);
 	ParticleManager::GetInstance()->CreateParticleGroup(cylinderParticleGroupName_, particleGradationLinePath_);
+	ParticleManager::GetInstance()->CreateParticleGroup(ringParticleGroupName_, particleCirclePath_);
 
 	// エミッターの設定と登録
 	ParticleEmitter defaultEmitter = ParticleEmitter(
@@ -68,7 +69,7 @@ void GamePlayScene::Initialize() {
 	);
 	ParticleManager::GetInstance()->SetEmitter(particleGroupName_, defaultEmitter);
 
-	// リングエミッターの設定
+	// シリンダーエミッターの設定
 	ParticleEmitter cylinderEmitter = ParticleEmitter(
 		Transform{ {1.0f, 1.0f, 1.0f}, {-0.3f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f} },
 		1,
@@ -86,6 +87,26 @@ void GamePlayScene::Initialize() {
 		cs->settings.flipV = true; 
 	}
 	ParticleManager::GetInstance()->SetEmitter(cylinderParticleGroupName_, cylinderEmitter);
+
+	// リングエミッターの設定
+	ParticleEmitter ringEmitter = ParticleEmitter(
+		Transform{ {1.0f, 1.0f, 1.0f}, {0.3f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} },
+		1,
+		0.4f
+	);
+	ringEmitter.isEffectMode = true;
+	ringEmitter.isLoop = true;
+	ringEmitter.generateSettings.isRandomScale = false;
+	ringEmitter.uvAnimationSettings.isActive = true;
+	ringEmitter.uvAnimationSettings.scrollSpeed = { 0.1f, 0.0f };
+	ringEmitter.SetShapeType(ParticleShapeType::Ring);
+	if (auto* rs = ringEmitter.GetRingShape()) {
+		rs->settings.innerRadius = 0.5f;
+		rs->settings.startOuterRadius = 1.0f;
+		rs->settings.midOuterRadius = 1.2f;
+		rs->settings.endOuterRadius = 1.5f;
+	}
+	ParticleManager::GetInstance()->SetEmitter(ringParticleGroupName_, ringEmitter);
 
 	// 音声ファイルをロード
 	if (!AudioManager::GetInstance()->LoadSound("alarm1", "Alarm01.mp3")) {
@@ -638,9 +659,9 @@ void GamePlayScene::UpdateImGui_Particle() {
 					// ============================================================
 					// 【新設計】形状切り替えコンボボックス
 					// ============================================================
-					const char* shapeItems[] = { "Billboard", "Ring", "Cylinder" };
+					const char* shapeItems[] = { "Billboard", "Ring", "Cylinder", "Plane" };
 					int shapeIndex = static_cast<int>(emitter->GetShapeType());
-					if (ImGui::Combo("Shape Type", &shapeIndex, shapeItems, 3)) {
+					if (ImGui::Combo("Shape Type", &shapeIndex, shapeItems, 4)) {
 						emitter->SetShapeType(static_cast<ParticleShapeType>(shapeIndex));
 					}
 
@@ -724,6 +745,37 @@ void GamePlayScene::UpdateImGui_Particle() {
 							ImGui::DragFloat("Fade End Alpha", &cs->settings.fadeEndAlpha, 0.01f, 0.0f, 1.0f);
 							ImGui::DragFloat("Fade Range", &cs->settings.fadeRange, 0.01f, 0.0f, 0.5f);
 							ImGui::DragFloat("Alpha Reference (Discard)", &cs->settings.alphaReference, 0.01f, 0.0f, 1.0f);
+
+							ImGui::TreePop();
+						}
+					}
+
+					// --- Plane Shape Settings ---
+					if (auto* ps = emitter->GetPlaneShape()) {
+						if (ImGui::TreeNode("Plane Shape Settings")) {
+							bool isMeshChanged = false;
+
+							if (ImGui::DragFloat2("Size", &ps->settings.size.x, 0.01f, 0.01f, 50.0f)) isMeshChanged = true;
+							
+							int divX = static_cast<int>(ps->settings.divisionX);
+							int divY = static_cast<int>(ps->settings.divisionY);
+							if (ImGui::DragInt("Division X", &divX, 1, 1, 256)) {
+								ps->settings.divisionX = static_cast<uint32_t>(divX);
+								isMeshChanged = true;
+							}
+							if (ImGui::DragInt("Division Y", &divY, 1, 1, 256)) {
+								ps->settings.divisionY = static_cast<uint32_t>(divY);
+								isMeshChanged = true;
+							}
+
+							if (isMeshChanged) {
+								ps->MarkDirty();
+							}
+
+							ImGui::Separator();
+							ImGui::Checkbox("Flip V", &ps->settings.flipV);
+							ImGui::Checkbox("Swap UV (U <-> V)", &ps->settings.isUvSwap);
+							ImGui::ColorEdit4("Plane Color", &ps->settings.color.x);
 
 							ImGui::TreePop();
 						}

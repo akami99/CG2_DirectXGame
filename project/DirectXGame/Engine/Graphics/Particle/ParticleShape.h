@@ -11,6 +11,7 @@ enum class ParticleShapeType {
     Billboard = 0,
     Ring = 1,
     Cylinder = 2,
+    Plane = 3,
 };
 
 // ============================================================
@@ -89,6 +90,25 @@ public:
     void ApplyMaterial(Material* mat) const override;
     Model* GetOrBuildModel(const std::string& texPath) override;
     ParticleShapeType GetType() const override { return ParticleShapeType::Cylinder; }
+
+private:
+    std::unique_ptr<Model> model_;
+};
+
+// ============================================================
+// PlaneShape — 平面プリミティブ
+// ============================================================
+class PlaneShape : public ParticleShape {
+public:
+    PlaneShape();
+    ~PlaneShape() override;
+
+    PlaneSettings settings;
+
+    std::unique_ptr<ParticleShape> clone() const override;
+    void ApplyMaterial(Material* mat) const override;
+    Model* GetOrBuildModel(const std::string& texPath) override;
+    ParticleShapeType GetType() const override { return ParticleShapeType::Plane; }
 
 private:
     std::unique_ptr<Model> model_;

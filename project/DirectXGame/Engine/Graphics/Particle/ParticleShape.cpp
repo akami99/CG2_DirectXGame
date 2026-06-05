@@ -102,3 +102,43 @@ Model* CylinderShape::GetOrBuildModel(const std::string& texPath) {
     }
     return model_.get();
 }
+
+// ============================================================
+// PlaneShape の実装
+// ============================================================
+PlaneShape::PlaneShape() = default;
+PlaneShape::~PlaneShape() = default;
+
+std::unique_ptr<ParticleShape> PlaneShape::clone() const {
+    auto copy = std::make_unique<PlaneShape>();
+    copy->settings = this->settings;
+    copy->MarkDirty();
+    return copy;
+}
+
+void PlaneShape::ApplyMaterial(Material* mat) const {
+    if (!mat) return;
+    mat->isRing = 0;
+    mat->isCylinder = 0;
+
+    mat->isUvSwap = settings.isUvSwap ? 1 : 0;
+    mat->innerColor = settings.color;
+    mat->outerColor = settings.color;
+    mat->fadeStartAlpha = 1.0f;
+    mat->fadeEndAlpha = 1.0f;
+    mat->fadeRange = 0.0f;
+}
+
+Model* PlaneShape::GetOrBuildModel(const std::string& texPath) {
+    if (isDirty_ || lastTexPath_ != texPath) {
+        if (!model_) {
+            model_ = std::make_unique<Model>();
+        }
+
+        model_->CreatePlane(texPath, settings);
+
+        isDirty_ = false;
+        lastTexPath_ = texPath;
+    }
+    return model_.get();
+}

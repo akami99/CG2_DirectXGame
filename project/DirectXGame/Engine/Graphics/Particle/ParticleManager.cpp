@@ -646,66 +646,20 @@ void ParticleManager::Update(const Camera& camera, float deltaTime) {
 		// 2. マテリアル・UV・リング更新
 		UpdateGroupMaterial(group, deltaTime);
 
-		// 3. パーティクル更新 → インスタンスデータ書き込み
-		uint32_t instanceIndex = 0;
-
+		// 3. パーティクル物理更新のみ行う（寿命切れは削除）
 		auto it = group.particles.begin();
 		while (it != group.particles.end()) {
 			Particle& particle = *it;
-
-			// 物理・UV 更新、寿命チェック
 			if (!UpdateParticle(particle, group, deltaTime)) {
 				it = group.particles.erase(it);
 				continue;
 			}
-
-			// インスタンスデータ書き込み
-			if (instanceIndex < kNumMaxParticle) {
-				float alpha = 1.0f - (particle.currentTime / particle.lifeTime);
-
-				Matrix4x4 scaleM  = MakeScaleMatrix(particle.transform.scale);
-				Matrix4x4 rotateM = MakeRotateXYZMatrix(particle.transform.rotate);
-
-				Matrix4x4 billboardM;
-				if (useBillboard_) {
-					billboardM = camera.GetWorldMatrix();
-					billboardM.m[3][0] = billboardM.m[3][1] = billboardM.m[3][2] = 0.0f;
-				} else {
-					billboardM = MakeIdentity4x4();
-				}
-
-				Matrix4x4 worldM = Multiply(scaleM, Multiply(rotateM, billboardM));
-				worldM.m[3][0] = particle.transform.translate.x;
-				worldM.m[3][1] = particle.transform.translate.y;
-				worldM.m[3][2] = particle.transform.translate.z;
-
-				// UV 変換行列
-				Matrix4x4 uvM;
-				const auto& uvas = group.emitter.uvAnimationSettings;
-				if (uvas.isActive) {
-					if (uvas.isIndividual) {
-						uvM = MakeAffineMatrix(
-							Vector3{ particle.uvScale.x, particle.uvScale.y, 1.0f },
-							Vector3{ 0.0f, 0.0f, particle.uvRotate },
-							Vector3{ particle.uvTranslate.x, particle.uvTranslate.y, 0.0f });
-					} else {
-						uvM = group.materialMappedData->uvTransform;
-					}
-				} else {
-					uvM = MakeIdentity4x4();
-				}
-
-				auto* instanceData = static_cast<ParticleInstanceData*>(group.mappedData);
-				instanceData[instanceIndex].WVP        = Multiply(worldM, viewProjectionMatrix);
-				instanceData[instanceIndex].World       = worldM;
-				instanceData[instanceIndex].color       = particle.color;
-				instanceData[instanceIndex].color.w     = alpha;
-				instanceData[instanceIndex].uvTransform = uvM;
-				++instanceIndex;
-			}
 			++it;
 		}
 
+		// 4. インスタンスデータ書き込み
+		uint32_t instanceIndex = 0;
+		WriteInstanceData(group, camera, viewProjectionMatrix, instanceIndex);
 		group.instanceCount = instanceIndex;
 	}
 }
