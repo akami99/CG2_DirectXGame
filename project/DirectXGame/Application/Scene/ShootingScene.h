@@ -6,6 +6,7 @@
 #include "Object3d.h"
 #include "Sprite.h"
 #include "Skybox.h"
+#include "LevelLoader.h"
 
 #include "RenderTexture.h"
 #include "EnemyProjectile.h"
@@ -33,6 +34,20 @@ public:
 private:
     // シーン描画のヘルパー
     void DrawScene(Camera* camera);
+
+#ifdef USE_IMGUI
+	// ImGui操作の更新
+	void UpdateImGui();
+	// ImGuiでグローバル設定のパラメータを調整するための関数
+	void UpdateImGui_GlobalSettings();
+	// ImGuiでゲームカメラのパラメータを調整するための関数
+	void UpdateImGui_GameCamera();
+	// ImGuiでObject3dのパラメータを調整するための関数
+	void UpdateImGui_Object3d();
+	// ImGuiでSkyboxのパラメータを調整するための関数
+	void UpdateImGui_Skybox();
+#endif // USE_IMGUI
+
 
 private:
     // カメラ
@@ -110,4 +125,7 @@ private:
     const std::string sphereModel_ = "sphere.obj";
     // テクスチャファイルパスを保持
     const std::string crosshairPath_ = "crosshair.png";
+
+    // レベルデータ
+    std::unique_ptr<LevelData> levelData_;
 };

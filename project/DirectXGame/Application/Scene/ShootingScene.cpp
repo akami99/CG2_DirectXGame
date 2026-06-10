@@ -21,11 +21,22 @@ ShootingScene::ShootingScene() = default;
 ShootingScene::~ShootingScene() = default;
 
 void ShootingScene::Initialize() {
+    // レベルデータのロード
+    levelData_ = LevelLoader::LoadFile("testScene");
+
     // カメラの初期化
     camera_ = std::make_unique<Camera>();
     camera_->Initialize();
-    camera_->SetTranslate({ 0.0f, 2.0f, -15.0f });
-    camera_->SetRotate({ 0.0f, 0.0f, 0.0f });
+    if (levelData_ && !levelData_->players.empty()) {
+        const auto& spawn = levelData_->players[0];
+        camera_->SetTranslate(spawn.translation);
+        camera_->SetRotate(spawn.rotation);
+        cameraYaw_ = spawn.rotation.y;
+    } else {
+        camera_->SetTranslate({ 0.0f, 2.0f, -15.0f });
+        camera_->SetRotate({ 0.0f, 0.0f, 0.0f });
+        cameraYaw_ = 0.0f;
+    }
 
     Object3dCommon::GetInstance()->SetDefaultCamera(camera_.get());
 
@@ -101,6 +112,11 @@ void ShootingScene::Update() {
     // 入力の更新は常に行う
     Input::GetInstance()->Update();
 
+#ifdef USE_IMGUI
+    // UI処理 (ImGuiの定義)
+    UpdateImGui();
+#endif // USE_IMGUI
+
     const float kHalfPI = std::numbers::pi_v<float> / 2.0f;
 
     // =====================================================
@@ -148,8 +164,16 @@ void ShootingScene::Update() {
             projectiles_.clear();
 
             // カメラを初期位置に戻す
-            camera_->SetTranslate({ 0.0f, 2.0f, -15.0f });
-            camera_->SetRotate({ 0.0f, 0.0f, 0.0f });
+            if (levelData_ && !levelData_->players.empty()) {
+                const auto& spawn = levelData_->players[0];
+                camera_->SetTranslate(spawn.translation);
+                camera_->SetRotate(spawn.rotation);
+                cameraYaw_ = spawn.rotation.y;
+            } else {
+                camera_->SetTranslate({ 0.0f, 2.0f, -15.0f });
+                camera_->SetRotate({ 0.0f, 0.0f, 0.0f });
+                cameraYaw_ = 0.0f;
+            }
 
             // スムージングを最大限（31）適用してリスタート
             smoothingKernel_ = 31.0f;
@@ -194,6 +218,19 @@ void ShootingScene::Update() {
     // 通常プレイ時のゲームロジック (Playing / RestartSmoothing共通)
     // =====================================================
 
+	// W/Sキーでカメラ前後移動
+	Vector3 camPos = camera_->GetTranslate();
+    if (Input::GetInstance()->IsKeyDown(DIK_W)) {
+		camPos.x += std::sin(cameraYaw_) * 0.1f;
+		camPos.z += std::cos(cameraYaw_) * 0.1f;
+    }
+    if (Input::GetInstance()->IsKeyDown(DIK_S)) {
+		camPos.x -= std::sin(cameraYaw_) * 0.1f;
+		camPos.z -= std::cos(cameraYaw_) * 0.1f;
+    }
+	// カメラの位置を更新
+	camera_->SetTranslate(camPos);
+
     // A/Dキーでカメラ回転
     if (Input::GetInstance()->IsKeyDown(DIK_A)) {
         cameraYaw_ -= kHalfPI / 100.0f;
@@ -201,13 +238,13 @@ void ShootingScene::Update() {
     if (Input::GetInstance()->IsKeyDown(DIK_D)) {
         cameraYaw_ += kHalfPI / 100.0f;
     }
-    camera_->SetRotate({ 0.0f, cameraYaw_, 0.0f });
+	Vector3 currentRot = camera_->GetRotate();
+    camera_->SetRotate({ currentRot.x, cameraYaw_, currentRot.z });
 
     // ターゲットの移動
     orbitAngle_ += 0.005f;
     targetTimer_ += 0.05f;
 
-    Vector3 camPos = camera_->GetTranslate();
     Vector3 pos;
     pos.x = camPos.x + std::sin(orbitAngle_) * orbitRadius_;
     pos.z = camPos.z + std::cos(orbitAngle_) * orbitRadius_;
@@ -399,6 +436,128 @@ void ShootingScene::DrawOffscreen() {
     if (isShowSkybox_) skybox_->Draw(2);
     rightRT_->PostDraw(cmd);
 }
+
+#ifdef USE_IMGUI
+// ImGui操作の更新
+void ShootingScene::UpdateImGui() {
+    // メイン設定ウィンドウの位置とサイズ
+    ImGui::SetNextWindowPos(ImVec2(Win32Window::kClientWidth - 10.0f, 10.0f), ImGuiCond_Once, ImVec2(1.0f, 0.0f));
+    ImGui::SetNextWindowSize(ImVec2(450.0f, 600.0f), ImGuiCond_Once);
+
+    if (ImGui::Begin("Settings")) {
+        UpdateImGui_GlobalSettings();
+        UpdateImGui_GameCamera();
+        UpdateImGui_Object3d();
+        UpdateImGui_Skybox();
+    }
+	ImGui::End();
+}
+
+// ImGuiでグローバル設定のパラメータを調整するための関数
+void ShootingScene::UpdateImGui_GlobalSettings() {
+    ImGui::Separator();
+    if (ImGui::TreeNode("Global Settings")) {
+        ImGui::Separator();
+        ImGui::Text("Blend Mode");
+        const char* blendModeNames[] = { "None", "Normal", "Add", "Subtractive", "Multiply", "Screen" };
+        int currentBlendModeInt = static_cast<int>(currentBlendMode_);
+        if (ImGui::Combo("##blendMode", &currentBlendModeInt, blendModeNames, IM_ARRAYSIZE(blendModeNames))) {
+            currentBlendMode_ = static_cast<BlendState>(currentBlendModeInt);
+        }
+        ImGui::Separator();
+        // ヒットポイントのパラメータを確認
+        ImGui::Text("Hit Points: %d / %d", hitCount_, kMaxHits);
+        if (ImGui::Button("Reset Hit Count")) {
+            hitCount_ = 0;
+        }
+        if (hitCount_ < kMaxHits) {
+            ImGui::Text("Player is Alive");
+        }
+        else {
+            ImGui::Text("Player is Dead");
+        }
+        ImGui::Separator();
+        // --- シーンを初期化（論理リセット） ---
+        if (ImGui::Button("Reset Game")) {
+            hitCount_ = 0;
+            orbitAngle_ = 0.0f;
+            targetTimer_ = 0.0f;
+            cameraYaw_ = 0.0f;
+            hitFeedbackTimer_ = 0.0f;
+            isHit_ = false;
+            damageEffectStrength_ = 0.0f;
+            projectileSpawnTimer_ = 0.0f;
+            projectiles_.clear();
+            // カメラを初期位置に戻す
+            if (levelData_ && !levelData_->players.empty()) {
+                const auto& spawn = levelData_->players[0];
+                camera_->SetTranslate(spawn.translation);
+                camera_->SetRotate(spawn.rotation);
+                cameraYaw_ = spawn.rotation.y;
+            }
+            else {
+                camera_->SetTranslate({ 0.0f, 2.0f, -15.0f });
+                camera_->SetRotate({ 0.0f, 0.0f, 0.0f });
+                cameraYaw_ = 0.0f;
+            }
+            // スムージングを最大限（31）適用してリスタート
+            smoothingKernel_ = 31.0f;
+            PostProcessManager::SetMode(PostProcessManager::kModeSmoothing);
+            PostProcessManager::SetSmoothingParams(static_cast<int>(smoothingKernel_));
+            phase_ = Phase::RestartSmoothing;
+            phaseTimer_ = 0.0f;
+        }
+        ImGui::TreePop();
+    }
+}
+// ImGuiでゲームカメラのパラメータを調整するための関数
+void ShootingScene::UpdateImGui_GameCamera() {
+    ImGui::Separator();
+    if (ImGui::TreeNode("Game Camera")) {
+        Vector3 camPos = camera_->GetTranslate();
+        Vector3 camRot = camera_->GetRotate();
+        if (ImGui::DragFloat3("Position", &camPos.x, 0.1f)) {
+            camera_->SetTranslate(camPos);
+        }
+        if (ImGui::DragFloat3("Rotation", &camRot.x, 0.1f)) {
+            camera_->SetRotate(camRot);
+            cameraYaw_ = camRot.y;
+        }
+        ImGui::TreePop();
+    }
+}
+// ImGuiでObject3dのパラメータを調整するための関数
+void ShootingScene::UpdateImGui_Object3d() {
+    if (ImGui::TreeNode("Target Object")) {
+        Vector3 pos = target_->GetTranslate();
+        Vector3 rot = target_->GetRotation();
+        Vector3 scale = target_->GetScale();
+        if (ImGui::DragFloat3("Position", &pos.x, 0.1f)) {
+            target_->SetTranslate(pos);
+        }
+        if (ImGui::DragFloat3("Rotation", &rot.x, 0.1f)) {
+            target_->SetRotation(rot);
+        }
+        if (ImGui::DragFloat3("Scale", &scale.x, 0.1f)) {
+            target_->SetScale(scale);
+        }
+        ImGui::TreePop();
+    }
+}
+
+// ImGuiでSkyboxのパラメータを調整するための関数
+void ShootingScene::UpdateImGui_Skybox() {
+    ImGui::Separator();
+    if (ImGui::TreeNode("Skybox")) {
+        if (skybox_) {
+            ImGui::DragFloat3("scale", &skybox_->GetScale().x, 0.1f);
+            ImGui::DragFloat3("rotate", &skybox_->GetRotate().x, 0.01f);
+            ImGui::DragFloat3("translate", &skybox_->GetTranslate().x, 0.1f);
+        }
+        ImGui::TreePop();
+    }
+}
+#endif // USE_IMGUI
 
 void ShootingScene::Draw() {
     // 描画設定

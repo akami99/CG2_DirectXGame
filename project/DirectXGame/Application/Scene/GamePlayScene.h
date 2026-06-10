@@ -33,6 +33,9 @@ private:
     // レベルデータからオブジェクトを再帰的に生成
     void CreateObjects(const std::vector<LevelData::ObjectData>& data);
 
+    // プレイヤースポーンポイントの読み込み用ダミー関数
+    void CreatePlayerSpawns(const std::vector<LevelData::PlayerSpawnData>& data);
+
 #ifdef USE_IMGUI
     // ImGui操作の更新
     void UpdateImGui();

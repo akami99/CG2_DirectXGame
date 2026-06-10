@@ -182,6 +182,7 @@ void GamePlayScene::Initialize() {
 	// levelData_ = LevelLoader::LoadFile("testScene");
 	if (levelData_) {
 		CreateObjects(levelData_->objects);
+		CreatePlayerSpawns(levelData_->players);
 	}
 }
 
@@ -657,7 +658,7 @@ void GamePlayScene::UpdateImGui_Particle() {
 					}
 
 					// ============================================================
-					// 【新設計】形状切り替えコンボボックス
+					// 形状切り替えコンボボックス
 					// ============================================================
 					const char* shapeItems[] = { "Billboard", "Ring", "Cylinder", "Plane" };
 					int shapeIndex = static_cast<int>(emitter->GetShapeType());
@@ -891,3 +892,7 @@ void GamePlayScene::UpdateImGui_HelpWindow() {
 }
 
 #endif // USE_IMGUI
+
+void GamePlayScene::CreatePlayerSpawns(const std::vector<LevelData::PlayerSpawnData>& data) {
+	(void)data;
+}

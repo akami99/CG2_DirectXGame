@@ -27,8 +27,14 @@ struct LevelData {
 		std::vector<ObjectData> children;
 	};
 
+	struct PlayerSpawnData {
+		Vector3 translation;
+		Vector3 rotation;
+	};
+
 	// ルートオブジェクトの配列
 	std::vector<ObjectData> objects;
+	std::vector<PlayerSpawnData> players;
 };
 
 /// <summary>
