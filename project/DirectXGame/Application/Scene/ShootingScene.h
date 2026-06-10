@@ -61,6 +61,9 @@ private:
     // 的（Object3d）
     std::unique_ptr<Object3d> target_;
     
+    // レベルから読み取った敵オブジェクト群
+    std::vector<std::unique_ptr<Object3d>> levelEnemies_;
+    
     // ヒットエフェクト（Planeモデル）
     std::unique_ptr<Object3d> hitEffectPlane_;
     std::unique_ptr<Model> hitEffectPlaneModel_;

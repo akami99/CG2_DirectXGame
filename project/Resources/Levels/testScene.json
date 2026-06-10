@@ -45,15 +45,36 @@
         },
         {
             "type": "MESH",
-            "name": "player",
+            "name": "PrototypePlayerSpawn",
             "transform": {
                 "translation": [
                     0.0,
-                    20.0,
-                    4.0
+                    0.0,
+                    0.0
                 ],
                 "rotation": [
-                    18.489242553710938,
+                    90.00000762939453,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "PlayerSpawn",
+            "transform": {
+                "translation": [
+                    0.0,
+                    10.0,
+                    1.0
+                ],
+                "rotation": [
+                    0.0,
                     -0.0,
                     0.0
                 ],
@@ -63,7 +84,75 @@
                     1.0
                 ]
             },
-            "spawn": "PLAYER"
+            "spawn": "PLAYER",
+            "file_name": "player/player.obj"
+        },
+        {
+            "type": "MESH",
+            "name": "PrototypeEnemySpawn",
+            "transform": {
+                "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    90.00000762939453,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "EnemySpawn",
+            "transform": {
+                "translation": [
+                    3.0,
+                    0.0,
+                    0.5
+                ],
+                "rotation": [
+                    25.000003814697266,
+                    1.206497927341843e-06,
+                    30.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    0.9999999403953552
+                ]
+            },
+            "spawn": "ENEMY",
+            "file_name": "enemy/enemy.obj"
+        },
+        {
+            "type": "MESH",
+            "name": "EnemySpawn.001",
+            "transform": {
+                "translation": [
+                    -2.0,
+                    -10.0,
+                    1.5
+                ],
+                "rotation": [
+                    -10.000000953674316,
+                    1.8140262625365722e-07,
+                    -10.000000953674316
+                ],
+                "scaling": [
+                    0.9999999403953552,
+                    1.0,
+                    0.9999999403953552
+                ]
+            },
+            "spawn": "ENEMY",
+            "file_name": "enemy/enemy.obj"
         }
     ]
 }

@@ -52,6 +52,17 @@ std::unique_ptr<LevelData> LevelLoader::LoadFile(const std::string& fileName) {
 				levelData->players.back().rotation = temp.rotation;
 				continue;
 			}
+			else if (spawnType == "ENEMY") {
+				levelData->enemies.emplace_back(LevelData::EnemySpawnData{});
+				LevelData::ObjectData temp{};
+				ParseObject(temp, object);
+				levelData->enemies.back().translation = temp.translation;
+				levelData->enemies.back().rotation = temp.rotation;
+				if (object.contains("file_name")) {
+					levelData->enemies.back().fileName = object["file_name"].get<std::string>();
+				}
+				continue;
+			}
 		}
 
 		levelData->objects.emplace_back(LevelData::ObjectData{});
@@ -78,17 +89,17 @@ void LevelLoader::ParseObject(LevelData::ObjectData& objectData, const nlohmann:
 	// Blender: 右手系, Z-Up
 	// Engine:  左手系, Y-Up (DirectX標準)
 	
-	// Translation (X -> X, Z -> Y, Y -> Z)
-	objectData.translation.x = (float)transform["translation"][0];
+	// Translation (X -> -X, Z -> Y, Y -> -Z)
+	objectData.translation.x = -(float)transform["translation"][0];
 	objectData.translation.y = (float)transform["translation"][2];
 	objectData.translation.z = -(float)transform["translation"][1];
 
 	// Rotation (度数法からラジアンへ変換し、符号を反転)
 	// Blenderの回転軸(X,Y,Z)をEngineの回転軸(X,Z,Y)に変換し、右手系から左手系への変換のため符号を調整
 	float toRad = 3.1415926535f / 180.0f;
-	objectData.rotation.x = (float)transform["rotation"][0] * toRad;
+	objectData.rotation.x = -(float)transform["rotation"][0] * toRad;
 	objectData.rotation.y = -(float)transform["rotation"][2] * toRad;
-	objectData.rotation.z = -(float)transform["rotation"][1] * toRad;
+	objectData.rotation.z = (float)transform["rotation"][1] * toRad;
 
 	// Scaling (軸を入れ替え)
 	objectData.scaling.x = (float)transform["scaling"][0];

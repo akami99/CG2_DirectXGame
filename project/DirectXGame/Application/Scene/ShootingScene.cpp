@@ -64,6 +64,19 @@ void ShootingScene::Initialize() {
     target_->Initialize();
     target_->SetModel(sphereModel_);
     target_->SetCamera(camera_.get());
+
+    // レベルデータから敵キャラを生成・配置
+    if (levelData_) {
+        for (const auto& enemyData : levelData_->enemies) {
+            auto enemy = std::make_unique<Object3d>();
+            enemy->Initialize();
+            enemy->SetModel(sphereModel_);
+            enemy->SetTranslate(enemyData.translation);
+            enemy->SetRotation(enemyData.rotation);
+            enemy->SetCamera(camera_.get());
+            levelEnemies_.push_back(std::move(enemy));
+        }
+    }
     
     // プリミティブ平面モデルの動的生成
     hitEffectPlaneModel_ = std::make_unique<Model>();
@@ -162,6 +175,18 @@ void ShootingScene::Update() {
             damageEffectStrength_ = 0.0f;
             projectileSpawnTimer_ = 0.0f;
             projectiles_.clear();
+            levelEnemies_.clear();
+            if (levelData_) {
+                for (const auto& enemyData : levelData_->enemies) {
+                    auto enemy = std::make_unique<Object3d>();
+                    enemy->Initialize();
+                    enemy->SetModel(sphereModel_);
+                    enemy->SetTranslate(enemyData.translation);
+                    enemy->SetRotation(enemyData.rotation);
+                    enemy->SetCamera(camera_.get());
+                    levelEnemies_.push_back(std::move(enemy));
+                }
+            }
 
             // カメラを初期位置に戻す
             if (levelData_ && !levelData_->players.empty()) {
@@ -268,6 +293,12 @@ void ShootingScene::Update() {
     target_->Update(mainViewIndex_, camera_.get());
     target_->Update(leftViewIndex_, leftCamera_.get());
     target_->Update(rightViewIndex_, rightCamera_.get());
+
+    for (auto& enemy : levelEnemies_) {
+        enemy->Update(mainViewIndex_, camera_.get());
+        enemy->Update(leftViewIndex_, leftCamera_.get());
+        enemy->Update(rightViewIndex_, rightCamera_.get());
+    }
     
     if (hitFeedbackTimer_ > 0) {
         hitEffectPlane_->Update(mainViewIndex_, camera_.get());
@@ -420,6 +451,7 @@ void ShootingScene::DrawOffscreen() {
     if (isShowMaterial_) {
         target_->Draw(1);
         if (hitFeedbackTimer_ > 0 && hitEffectPlane_) hitEffectPlane_->Draw(1);
+        for (auto& enemy : levelEnemies_) enemy->Draw(1);
     }
     for (auto& p : projectiles_) p->Draw(1);
     if (isShowSkybox_) skybox_->Draw(1);
@@ -431,6 +463,7 @@ void ShootingScene::DrawOffscreen() {
     if (isShowMaterial_) {
         target_->Draw(2);
         if (hitFeedbackTimer_ > 0 && hitEffectPlane_) hitEffectPlane_->Draw(2);
+        for (auto& enemy : levelEnemies_) enemy->Draw(2);
     }
     for (auto& p : projectiles_) p->Draw(2);
     if (isShowSkybox_) skybox_->Draw(2);
@@ -488,6 +521,18 @@ void ShootingScene::UpdateImGui_GlobalSettings() {
             damageEffectStrength_ = 0.0f;
             projectileSpawnTimer_ = 0.0f;
             projectiles_.clear();
+            levelEnemies_.clear();
+            if (levelData_) {
+                for (const auto& enemyData : levelData_->enemies) {
+                    auto enemy = std::make_unique<Object3d>();
+                    enemy->Initialize();
+                    enemy->SetModel(sphereModel_);
+                    enemy->SetTranslate(enemyData.translation);
+                    enemy->SetRotation(enemyData.rotation);
+                    enemy->SetCamera(camera_.get());
+                    levelEnemies_.push_back(std::move(enemy));
+                }
+            }
             // カメラを初期位置に戻す
             if (levelData_ && !levelData_->players.empty()) {
                 const auto& spawn = levelData_->players[0];
@@ -567,6 +612,7 @@ void ShootingScene::Draw() {
     if (isShowMaterial_) {
         target_->Draw(0);
         if (hitFeedbackTimer_ > 0 && hitEffectPlane_) hitEffectPlane_->Draw(0);
+        for (auto& enemy : levelEnemies_) enemy->Draw(0);
     }
     for (auto& p : projectiles_) p->Draw(0);
     if (isShowSkybox_) skybox_->Draw(0);
@@ -582,4 +628,5 @@ void ShootingScene::Draw() {
 
 void ShootingScene::Finalize() {
     Object3dCommon::GetInstance()->SetDefaultCamera(nullptr);
+    levelEnemies_.clear();
 }
