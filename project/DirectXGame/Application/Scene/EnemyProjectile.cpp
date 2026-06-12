@@ -7,7 +7,7 @@ void EnemyProjectile::Initialize(const Vector3& position, const Vector3& velocit
     
     object_ = std::make_unique<Object3d>();
     object_->Initialize();
-    object_->SetModel("sphere.obj");
+    object_->SetModel("bullet.obj");
     object_->SetTranslate(position_);
     object_->SetScale({radius_, radius_, radius_});
 }

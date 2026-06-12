@@ -10,6 +10,12 @@
 // レベルデータ
 struct LevelData {
 
+	struct BezierControlPoint {
+		Vector3 co;
+		Vector3 handleLeft;
+		Vector3 handleRight;
+	};
+
 	struct ObjectData {
 		// 種類 (MESH, LIGHT, CAMERA, EMPTY etc...)
 		std::string type;
@@ -25,6 +31,8 @@ struct LevelData {
 		Vector3 scaling;
 		// 子要素
 		std::vector<ObjectData> children;
+		// ベジェ制御点 (CURVEのみ)
+		std::vector<BezierControlPoint> bezierPoints;
 	};
 
 	struct PlayerSpawnData {

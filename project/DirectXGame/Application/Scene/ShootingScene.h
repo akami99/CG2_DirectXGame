@@ -52,17 +52,23 @@ private:
 private:
     // カメラ
     std::unique_ptr<Camera> camera_;
-    std::unique_ptr<Camera> leftCamera_;
-    std::unique_ptr<Camera> rightCamera_;
+    /*std::unique_ptr<Camera> leftCamera_;
+    std::unique_ptr<Camera> rightCamera_;*/
     
     // スカイボックス
     std::unique_ptr<Skybox> skybox_;
 
-    // 的（Object3d）
-    std::unique_ptr<Object3d> target_;
+    struct EnemyInfo {
+        std::unique_ptr<Object3d> object;
+        Vector3 basePosition;
+        float distance = 0.0f;
+        bool isActive = false;
+        bool isDead = false;
+        float shootTimer = 0.0f;
+    };
     
     // レベルから読み取った敵オブジェクト群
-    std::vector<std::unique_ptr<Object3d>> levelEnemies_;
+    std::vector<EnemyInfo> enemies_;
     
     // ヒットエフェクト（Planeモデル）
     std::unique_ptr<Object3d> hitEffectPlane_;
@@ -72,15 +78,15 @@ private:
     std::unique_ptr<Sprite> crosshair_;
 
     // オフスクリーン用
-    std::unique_ptr<RenderTexture> leftRT_;
+    /*std::unique_ptr<RenderTexture> leftRT_;
     std::unique_ptr<RenderTexture> rightRT_;
     std::unique_ptr<Sprite> leftSideSprite_;
-    std::unique_ptr<Sprite> rightSideSprite_;
+    std::unique_ptr<Sprite> rightSideSprite_;*/
 
     // ビューのインデックス（0: Main, 1: Left, 2: Right）
     int mainViewIndex_ = 0;
-	int leftViewIndex_ = 1;
-	int rightViewIndex_ = 2;
+	/*int leftViewIndex_ = 1;
+	int rightViewIndex_ = 2;*/
 
     // ゲームロジック用変数
     float targetTimer_ = 0.0f;
@@ -131,4 +137,21 @@ private:
 
     // レベルデータ
     std::unique_ptr<LevelData> levelData_;
+
+    // レール移動用
+    std::vector<LevelData::BezierControlPoint> railPoints_;
+    float cameraProgress_ = 0.0f;
+    float maxProgress_ = 190.0f;
+    bool isMovementPaused_ = false;
+    const float kCameraSpeed = 0.5f;
+
+    // マガジン・隠れるアクション用
+    int ammo_ = 9;
+    static constexpr int kMaxAmmo = 9;
+    bool isCovering_ = false;
+    float reloadTimer_ = 0.0f;
+    static constexpr float kReloadDuration = 1.0f;
+
+    // レール座標計算用ヘルパー関数
+    Vector3 CalculateRailPosition(float progress);
 };

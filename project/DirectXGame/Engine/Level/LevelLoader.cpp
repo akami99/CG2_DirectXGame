@@ -118,6 +118,37 @@ void LevelLoader::ParseObject(LevelData::ObjectData& objectData, const nlohmann:
 	objectData.scaling.y = (float)transform["scaling"][2];
 	objectData.scaling.z = (float)transform["scaling"][1];
 
+	// --- ベジェ制御点のパース ---
+	if (jsonObject.contains("curve")) {
+		const auto& curve = jsonObject["curve"];
+		if (curve.contains("splines")) {
+			for (const auto& spline : curve["splines"]) {
+				if (spline.contains("bezier_points")) {
+					for (const auto& pt : spline["bezier_points"]) {
+						LevelData::BezierControlPoint controlPt;
+						
+						const auto& co = pt["co"];
+						controlPt.co.x = -(float)co[0];
+						controlPt.co.y = (float)co[2];
+						controlPt.co.z = -(float)co[1];
+
+						const auto& hl = pt["handle_left"];
+						controlPt.handleLeft.x = -(float)hl[0];
+						controlPt.handleLeft.y = (float)hl[2];
+						controlPt.handleLeft.z = -(float)hl[1];
+
+						const auto& hr = pt["handle_right"];
+						controlPt.handleRight.x = -(float)hr[0];
+						controlPt.handleRight.y = (float)hr[2];
+						controlPt.handleRight.z = -(float)hr[1];
+
+						objectData.bezierPoints.push_back(controlPt);
+					}
+				}
+			}
+		}
+	}
+
 	// --- 子要素の再帰パース ---
 	if (jsonObject.contains("children")) {
 		for (const auto& child : jsonObject["children"]) {
