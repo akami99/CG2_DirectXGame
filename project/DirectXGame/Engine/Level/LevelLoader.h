@@ -30,12 +30,16 @@ struct LevelData {
 	struct PlayerSpawnData {
 		Vector3 translation;
 		Vector3 rotation;
+		float distance = 0.0f;
+		int area = 0;
 	};
 
 	struct EnemySpawnData {
 		std::string fileName;
 		Vector3 translation;
 		Vector3 rotation;
+		float distance = 0.0f;
+		int area = 0;
 	};
 
 	// ルートオブジェクトの配列
