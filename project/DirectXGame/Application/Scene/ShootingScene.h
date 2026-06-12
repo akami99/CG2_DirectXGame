@@ -125,7 +125,7 @@ private:
 
     // パス定数
     // 3Dモデルのファイルパス
-    const std::string sphereModel_ = "sphere.obj";
+    const std::string enemyModel_ = "enemy.obj";
     // テクスチャファイルパスを保持
     const std::string crosshairPath_ = "crosshair.png";
 

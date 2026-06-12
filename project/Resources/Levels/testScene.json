@@ -2,76 +2,13 @@
     "name": "scene",
     "objects": [
         {
-            "type": "LIGHT",
-            "name": "Light",
-            "transform": {
-                "translation": [
-                    4.076245307922363,
-                    1.0054539442062378,
-                    5.903861999511719
-                ],
-                "rotation": [
-                    37.26104736328125,
-                    3.1637091636657715,
-                    106.93632507324219
-                ],
-                "scaling": [
-                    1.0,
-                    0.9999999403953552,
-                    1.0
-                ]
-            }
-        },
-        {
-            "type": "CAMERA",
-            "name": "Camera",
-            "transform": {
-                "translation": [
-                    7.358891487121582,
-                    -6.925790786743164,
-                    4.958309173583984
-                ],
-                "rotation": [
-                    63.559295654296875,
-                    2.2983238068263745e-07,
-                    46.69194412231445
-                ],
-                "scaling": [
-                    1.0,
-                    1.0,
-                    1.0
-                ]
-            }
-        },
-        {
-            "type": "MESH",
-            "name": "PrototypePlayerSpawn",
+            "type": "CURVE",
+            "name": "EventRail",
             "transform": {
                 "translation": [
                     0.0,
-                    0.0,
+                    -1.0,
                     0.0
-                ],
-                "rotation": [
-                    90.00000762939453,
-                    -0.0,
-                    0.0
-                ],
-                "scaling": [
-                    1.0,
-                    1.0,
-                    1.0
-                ]
-            }
-        },
-        {
-            "type": "MESH",
-            "name": "PlayerSpawn",
-            "transform": {
-                "translation": [
-                    0.0,
-                    10.0,
-                    1.0
                 ],
                 "rotation": [
                     0.0,
@@ -84,24 +21,316 @@
                     1.0
                 ]
             },
-            "spawn": "PLAYER",
-            "file_name": "player/player.obj"
+            "curve": {
+                "dimensions": "3D",
+                "splines": [
+                    {
+                        "type": "BEZIER",
+                        "use_cyclic_u": false,
+                        "bezier_points": [
+                            {
+                                "co": [
+                                    -15.0,
+                                    1.0,
+                                    5.0
+                                ],
+                                "handle_left": [
+                                    -16.952056884765625,
+                                    1.0,
+                                    5.0
+                                ],
+                                "handle_right": [
+                                    -13.047942161560059,
+                                    1.0,
+                                    5.0
+                                ],
+                                "handle_left_type": "AUTO",
+                                "handle_right_type": "AUTO"
+                            },
+                            {
+                                "co": [
+                                    -10.0,
+                                    1.0,
+                                    5.0
+                                ],
+                                "handle_left": [
+                                    -11.9063081741333,
+                                    1.0,
+                                    5.420140743255615
+                                ],
+                                "handle_right": [
+                                    -7.667319297790527,
+                                    1.0,
+                                    4.485888957977295
+                                ],
+                                "handle_left_type": "AUTO",
+                                "handle_right_type": "AUTO"
+                            },
+                            {
+                                "co": [
+                                    -4.448526859283447,
+                                    1.0,
+                                    2.4280359745025635
+                                ],
+                                "handle_left": [
+                                    -6.509790420532227,
+                                    0.9948573112487793,
+                                    3.4962923526763916
+                                ],
+                                "handle_right": [
+                                    -3.7674622535705566,
+                                    1.0016992092132568,
+                                    2.0750720500946045
+                                ],
+                                "handle_left_type": "ALIGNED",
+                                "handle_right_type": "ALIGNED"
+                            },
+                            {
+                                "co": [
+                                    -2.938659191131592,
+                                    0.10242080688476562,
+                                    1.5475611686706543
+                                ],
+                                "handle_left": [
+                                    -2.933504343032837,
+                                    1.2989563941955566,
+                                    1.5475611686706543
+                                ],
+                                "handle_right": [
+                                    -2.946242094039917,
+                                    -1.6577026844024658,
+                                    1.5475611686706543
+                                ],
+                                "handle_left_type": "ALIGNED",
+                                "handle_right_type": "ALIGNED"
+                            },
+                            {
+                                "co": [
+                                    -4.186791896820068,
+                                    -1.3041900396347046,
+                                    0.7033863663673401
+                                ],
+                                "handle_left": [
+                                    -3.541708469390869,
+                                    -1.3252992630004883,
+                                    1.2373738288879395
+                                ],
+                                "handle_right": [
+                                    -4.674077033996582,
+                                    -1.2882444858551025,
+                                    0.3000212013721466
+                                ],
+                                "handle_left_type": "ALIGNED",
+                                "handle_right_type": "ALIGNED"
+                            },
+                            {
+                                "co": [
+                                    -7.4954023361206055,
+                                    -1.3041900396347046,
+                                    0.5
+                                ],
+                                "handle_left": [
+                                    -6.203682899475098,
+                                    -1.3041900396347046,
+                                    0.4986695647239685
+                                ],
+                                "handle_right": [
+                                    -8.787121772766113,
+                                    -1.3041900396347046,
+                                    0.5013304352760315
+                                ],
+                                "handle_left_type": "ALIGNED",
+                                "handle_right_type": "ALIGNED"
+                            },
+                            {
+                                "co": [
+                                    -5.438564777374268,
+                                    -6.5663371086120605,
+                                    0.5
+                                ],
+                                "handle_left": [
+                                    -5.287850856781006,
+                                    -4.511935234069824,
+                                    0.5
+                                ],
+                                "handle_right": [
+                                    -5.599949359893799,
+                                    -8.766190528869629,
+                                    0.5
+                                ],
+                                "handle_left_type": "ALIGNED",
+                                "handle_right_type": "ALIGNED"
+                            },
+                            {
+                                "co": [
+                                    -8.033792495727539,
+                                    -12.515176773071289,
+                                    0.3873983919620514
+                                ],
+                                "handle_left": [
+                                    -8.200026512145996,
+                                    -9.986489295959473,
+                                    0.4121410548686981
+                                ],
+                                "handle_right": [
+                                    -7.896072864532471,
+                                    -14.610112190246582,
+                                    0.36689990758895874
+                                ],
+                                "handle_left_type": "AUTO",
+                                "handle_right_type": "AUTO"
+                            },
+                            {
+                                "co": [
+                                    -5.256981372833252,
+                                    -17.120620727539062,
+                                    0.3873983919620514
+                                ],
+                                "handle_left": [
+                                    -5.264298439025879,
+                                    -15.021077156066895,
+                                    0.3873983919620514
+                                ],
+                                "handle_right": [
+                                    -5.250715255737305,
+                                    -18.918638229370117,
+                                    0.3873983919620514
+                                ],
+                                "handle_left_type": "ALIGNED",
+                                "handle_right_type": "ALIGNED"
+                            },
+                            {
+                                "co": [
+                                    -7.9378461837768555,
+                                    -24.316625595092773,
+                                    0.3873983919620514
+                                ],
+                                "handle_left": [
+                                    -8.010899543762207,
+                                    -21.50722312927246,
+                                    0.3873983919620514
+                                ],
+                                "handle_right": [
+                                    -7.859914302825928,
+                                    -27.313648223876953,
+                                    0.3873983919620514
+                                ],
+                                "handle_left_type": "ALIGNED",
+                                "handle_right_type": "ALIGNED"
+                            },
+                            {
+                                "co": [
+                                    -7.9378461837768555,
+                                    -29.763898849487305,
+                                    2.532090187072754
+                                ],
+                                "handle_left": [
+                                    -7.9378461837768555,
+                                    -27.637222290039062,
+                                    2.459183931350708
+                                ],
+                                "handle_right": [
+                                    -7.9378461837768555,
+                                    -32.04814147949219,
+                                    2.610398054122925
+                                ],
+                                "handle_left_type": "ALIGNED",
+                                "handle_right_type": "ALIGNED"
+                            },
+                            {
+                                "co": [
+                                    -7.9378461837768555,
+                                    -35.64299011230469,
+                                    0.5
+                                ],
+                                "handle_left": [
+                                    -7.9378461837768555,
+                                    -33.214515686035156,
+                                    0.4871366620063782
+                                ],
+                                "handle_right": [
+                                    -7.9378461837768555,
+                                    -37.938255310058594,
+                                    0.5121577382087708
+                                ],
+                                "handle_left_type": "ALIGNED",
+                                "handle_right_type": "ALIGNED"
+                            },
+                            {
+                                "co": [
+                                    2.7968997955322266,
+                                    -31.17300033569336,
+                                    0.5
+                                ],
+                                "handle_left": [
+                                    -1.7428512573242188,
+                                    -31.19378662109375,
+                                    0.5
+                                ],
+                                "handle_right": [
+                                    6.987868309020996,
+                                    -31.153810501098633,
+                                    0.5
+                                ],
+                                "handle_left_type": "ALIGNED",
+                                "handle_right_type": "ALIGNED"
+                            },
+                            {
+                                "co": [
+                                    10.028180122375488,
+                                    -31.075016021728516,
+                                    0.5
+                                ],
+                                "handle_left": [
+                                    7.205005168914795,
+                                    -31.113269805908203,
+                                    0.5
+                                ],
+                                "handle_right": [
+                                    12.851354598999023,
+                                    -31.036762237548828,
+                                    0.5
+                                ],
+                                "handle_left_type": "AUTO",
+                                "handle_right_type": "AUTO"
+                            }
+                        ]
+                    }
+                ]
+            }
         },
         {
             "type": "MESH",
-            "name": "PrototypeEnemySpawn",
+            "name": "PlayerSpawn",
             "transform": {
                 "translation": [
-                    0.0,
-                    0.0,
-                    0.0
+                    -7.797804355621338,
+                    -30.59966278076172,
+                    2.3782455921173096
                 ],
                 "rotation": [
-                    90.00000762939453,
-                    -0.0,
-                    0.0
+                    -14.644074440002441,
+                    1.1518168449401855,
+                    8.946064949035645
                 ],
                 "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "file_name": "player/player.obj",
+            "spawn": "PLAYER",
+            "distance": 190.0,
+            "area": 1,
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "size": [
                     1.0,
                     1.0,
                     1.0
@@ -113,46 +342,456 @@
             "name": "EnemySpawn",
             "transform": {
                 "translation": [
-                    3.0,
-                    0.0,
-                    0.5
+                    -19.03400993347168,
+                    -15.89984130859375,
+                    1.0
                 ],
                 "rotation": [
-                    25.000003814697266,
-                    1.206497927341843e-06,
-                    30.0
+                    0.0,
+                    -0.0,
+                    0.0
                 ],
                 "scaling": [
                     1.0,
                     1.0,
-                    0.9999999403953552
+                    1.0
                 ]
             },
+            "file_name": "enemy/enemy.obj",
             "spawn": "ENEMY",
-            "file_name": "enemy/enemy.obj"
+            "distance": 5.0,
+            "area": 1,
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
         },
         {
             "type": "MESH",
             "name": "EnemySpawn.001",
             "transform": {
                 "translation": [
-                    -2.0,
-                    -10.0,
-                    1.5
+                    -9.32060432434082,
+                    -17.24473762512207,
+                    1.0
                 ],
                 "rotation": [
-                    -10.000000953674316,
-                    1.8140262625365722e-07,
-                    -10.000000953674316
+                    0.0,
+                    -0.0,
+                    0.0
                 ],
                 "scaling": [
-                    0.9999999403953552,
                     1.0,
-                    0.9999999403953552
+                    1.0,
+                    1.0
                 ]
             },
+            "file_name": "enemy/enemy.obj",
             "spawn": "ENEMY",
-            "file_name": "enemy/enemy.obj"
+            "distance": 5.0,
+            "area": 1,
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "EnemySpawn.002",
+            "transform": {
+                "translation": [
+                    -10.927297592163086,
+                    -10.773062705993652,
+                    1.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "file_name": "enemy/enemy.obj",
+            "spawn": "ENEMY",
+            "distance": 40.0,
+            "area": 1,
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "EnemySpawn.003",
+            "transform": {
+                "translation": [
+                    -1.366940975189209,
+                    -13.698554992675781,
+                    1.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "file_name": "enemy/enemy.obj",
+            "spawn": "ENEMY",
+            "distance": 40.0,
+            "area": 1,
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "EnemySpawn.004",
+            "transform": {
+                "translation": [
+                    0.0,
+                    -14.031034469604492,
+                    4.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "file_name": "enemy/enemy.obj",
+            "spawn": "ENEMY",
+            "distance": 80.0,
+            "area": 1,
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "EnemySpawn.005",
+            "transform": {
+                "translation": [
+                    -2.9835078716278076,
+                    -16.30649185180664,
+                    4.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "file_name": "enemy/enemy.obj",
+            "spawn": "ENEMY",
+            "distance": 80.0,
+            "area": 1,
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "EnemySpawn.006",
+            "transform": {
+                "translation": [
+                    -11.697830200195312,
+                    -16.46242904663086,
+                    1.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "file_name": "enemy/enemy.obj",
+            "spawn": "ENEMY",
+            "distance": 110.0,
+            "area": 1,
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "EnemySpawn.007",
+            "transform": {
+                "translation": [
+                    -8.81553840637207,
+                    -15.0,
+                    1.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "file_name": "enemy/enemy.obj",
+            "spawn": "ENEMY",
+            "distance": 110.0,
+            "area": 1,
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "EnemySpawn.008",
+            "transform": {
+                "translation": [
+                    -3.1903584003448486,
+                    -22.576013565063477,
+                    1.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "file_name": "enemy/enemy.obj",
+            "spawn": "ENEMY",
+            "distance": 150.0,
+            "area": 1,
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "EnemySpawn.009",
+            "transform": {
+                "translation": [
+                    -5.674449920654297,
+                    -22.581111907958984,
+                    1.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "file_name": "enemy/enemy.obj",
+            "spawn": "ENEMY",
+            "distance": 150.0,
+            "area": 1,
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "EnemySpawn.010",
+            "transform": {
+                "translation": [
+                    -4.83004093170166,
+                    -39.679203033447266,
+                    1.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "file_name": "enemy/enemy.obj",
+            "spawn": "ENEMY",
+            "distance": 190.0,
+            "area": 1,
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "type": "MESH",
+            "name": "EnemySpawn.011",
+            "transform": {
+                "translation": [
+                    -10.680231094360352,
+                    -38.47999954223633,
+                    1.0
+                ],
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "file_name": "enemy/enemy.obj",
+            "spawn": "ENEMY",
+            "distance": 190.0,
+            "area": 1,
+            "collider": {
+                "type": "BOX",
+                "center": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "size": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
         }
     ]
 }

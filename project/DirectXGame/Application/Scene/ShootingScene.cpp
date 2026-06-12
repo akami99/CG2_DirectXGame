@@ -50,7 +50,7 @@ void ShootingScene::Initialize() {
     TextureManager::GetInstance()->LoadTexture(crosshairPath_);
 
     // モデル読み込み
-    ModelManager::GetInstance()->LoadModel("sphere", sphereModel_);
+    ModelManager::GetInstance()->LoadModel("enemy", enemyModel_);
 
     // スカイボックスの初期化
     skybox_ = std::make_unique<Skybox>();
@@ -62,7 +62,7 @@ void ShootingScene::Initialize() {
     // --- 3Dオブジェクト生成 ---
     target_ = std::make_unique<Object3d>();
     target_->Initialize();
-    target_->SetModel(sphereModel_);
+    target_->SetModel(enemyModel_);
     target_->SetCamera(camera_.get());
 
     // レベルデータから敵キャラを生成・配置
@@ -70,7 +70,7 @@ void ShootingScene::Initialize() {
         for (const auto& enemyData : levelData_->enemies) {
             auto enemy = std::make_unique<Object3d>();
             enemy->Initialize();
-            enemy->SetModel(sphereModel_);
+            enemy->SetModel(enemyModel_);
             enemy->SetTranslate(enemyData.translation);
             enemy->SetRotation(enemyData.rotation);
             enemy->SetCamera(camera_.get());
@@ -180,7 +180,7 @@ void ShootingScene::Update() {
                 for (const auto& enemyData : levelData_->enemies) {
                     auto enemy = std::make_unique<Object3d>();
                     enemy->Initialize();
-                    enemy->SetModel(sphereModel_);
+                    enemy->SetModel(enemyModel_);
                     enemy->SetTranslate(enemyData.translation);
                     enemy->SetRotation(enemyData.rotation);
                     enemy->SetCamera(camera_.get());
@@ -526,7 +526,7 @@ void ShootingScene::UpdateImGui_GlobalSettings() {
                 for (const auto& enemyData : levelData_->enemies) {
                     auto enemy = std::make_unique<Object3d>();
                     enemy->Initialize();
-                    enemy->SetModel(sphereModel_);
+                    enemy->SetModel(enemyModel_);
                     enemy->SetTranslate(enemyData.translation);
                     enemy->SetRotation(enemyData.rotation);
                     enemy->SetCamera(camera_.get());
