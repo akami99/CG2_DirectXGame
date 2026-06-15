@@ -81,6 +81,15 @@ private:
     static float gaussianBlurSigmaNext_;
     int currentMode_ = kModeCopy;
 
+    // パラメータ適用最適化用（変更時のみ定数バッファを更新するため）
+    float currentStrength_ = -1.0f;
+    int currentColorFilterMode_ = -1;
+    float currentVignetteScale_ = -1.0f;
+    float currentVignetteExponent_ = -1.0f;
+    int currentSmoothingKernelSize_ = -1;
+    int currentGaussianBlurKernelSize_ = -1;
+    float currentGaussianBlurSigma_ = -1.0f;
+
     static std::unique_ptr<PostProcessManager> instance_;
 
 public:

@@ -84,39 +84,62 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
     if (currentMode_ == kModeCopy) {
         // パススルー
         commandList->SetPipelineState(postProcessPSO_.Get());
+        if (currentColorFilterMode_ != currentMode_) {
+            currentColorFilterMode_ = currentMode_;
+            paramsMapped_->colorScale[0] = 1.0f;
+            paramsMapped_->colorScale[1] = 1.0f;
+            paramsMapped_->colorScale[2] = 1.0f;
+            paramsMapped_->strength = 1.0f;
+        }
         commandList->SetGraphicsRootConstantBufferView(0, paramsResource_->GetGPUVirtualAddress());
     } else if (currentMode_ == kModeVignette) {
         // ビネット
         commandList->SetPipelineState(vignettePSO_.Get());
-        vignetteParamsMapped_->scale = vignetteScale;
-        vignetteParamsMapped_->exponent = vignetteExponent;
+        if (currentVignetteScale_ != vignetteScale || currentVignetteExponent_ != vignetteExponent) {
+            currentVignetteScale_ = vignetteScale;
+            currentVignetteExponent_ = vignetteExponent;
+            vignetteParamsMapped_->scale = vignetteScale;
+            vignetteParamsMapped_->exponent = vignetteExponent;
+        }
         commandList->SetGraphicsRootConstantBufferView(0, vignetteParamsResource_->GetGPUVirtualAddress());
     } else if (currentMode_ == kModeSmoothing) {
         // 平滑化
         commandList->SetPipelineState(smoothingPSO_.Get());
-        smoothingParamsMapped_->kernelSize = smoothingKernelSize;
+        if (currentSmoothingKernelSize_ != smoothingKernelSize) {
+            currentSmoothingKernelSize_ = smoothingKernelSize;
+            smoothingParamsMapped_->kernelSize = smoothingKernelSize;
+        }
         commandList->SetGraphicsRootConstantBufferView(0, smoothingParamsResource_->GetGPUVirtualAddress());
     } else if (currentMode_ == kModeGaussianBlur) {
         // ガウシアンフィルター
         commandList->SetPipelineState(gaussianBlurPSO_.Get());
-        gaussianBlurParamsMapped_->kernelSize = gaussianBlurKernelSize;
-        gaussianBlurParamsMapped_->sigma = gaussianBlurSigma;
+        if (currentGaussianBlurKernelSize_ != gaussianBlurKernelSize || currentGaussianBlurSigma_ != gaussianBlurSigma) {
+            currentGaussianBlurKernelSize_ = gaussianBlurKernelSize;
+            currentGaussianBlurSigma_ = gaussianBlurSigma;
+            gaussianBlurParamsMapped_->kernelSize = gaussianBlurKernelSize;
+            gaussianBlurParamsMapped_->sigma = gaussianBlurSigma;
+        }
         commandList->SetGraphicsRootConstantBufferView(0, gaussianBlurParamsResource_->GetGPUVirtualAddress());
     } else {
         // グレースケール or セピア
         commandList->SetPipelineState(colorFilterPSO_.Get());
 
-        if (currentMode_ == kModeGrayscale) {
-            paramsMapped_->colorScale[0] = 1.0f;
-            paramsMapped_->colorScale[1] = 1.0f;
-            paramsMapped_->colorScale[2] = 1.0f;
-        } else { // kModeSepia
-            // RGB (112, 74, 43) を 112 で正規化
-            paramsMapped_->colorScale[0] = 1.0f;
-            paramsMapped_->colorScale[1] = 74.0f / 112.0f;
-            paramsMapped_->colorScale[2] = 43.0f / 112.0f;
+        if (currentColorFilterMode_ != currentMode_ || currentStrength_ != strength) {
+            currentColorFilterMode_ = currentMode_;
+            currentStrength_ = strength;
+
+            if (currentMode_ == kModeGrayscale) {
+                paramsMapped_->colorScale[0] = 1.0f;
+                paramsMapped_->colorScale[1] = 1.0f;
+                paramsMapped_->colorScale[2] = 1.0f;
+            } else { // kModeSepia
+                // RGB (112, 74, 43) を 112 で正規化
+                paramsMapped_->colorScale[0] = 1.0f;
+                paramsMapped_->colorScale[1] = 74.0f / 112.0f;
+                paramsMapped_->colorScale[2] = 43.0f / 112.0f;
+            }
+            paramsMapped_->strength = strength;
         }
-        paramsMapped_->strength = strength;
         commandList->SetGraphicsRootConstantBufferView(0, paramsResource_->GetGPUVirtualAddress());
     }
 
