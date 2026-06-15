@@ -18,6 +18,7 @@ float PostProcessManager::vignetteExponentNext_ = 0.8f;
 int PostProcessManager::smoothingKernelSizeNext_ = 3;
 int PostProcessManager::gaussianBlurKernelSizeNext_ = 3;
 float PostProcessManager::gaussianBlurSigmaNext_ = 2.0f;
+float PostProcessManager::outlineEdgeMultiplierNext_ = 6.0f;
 
 PostProcessManager* PostProcessManager::GetInstance() {
     if (!instance_) {
@@ -69,6 +70,7 @@ void PostProcessManager::Initialize() {
     // アウトライン用の定数バッファの生成とマッピング
     outlineParamsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(OutlineParams));
     outlineParamsResource_->Map(0, nullptr, reinterpret_cast<void**>(&outlineParamsMapped_));
+    outlineParamsMapped_->edgeMultiplier = 6.0f;
     std::memset(&currentProjectionInverse_, 0, sizeof(currentProjectionInverse_));
 
     // 深度バッファ用の SRV を作成
@@ -93,6 +95,7 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
     const int smoothingKernelSize = smoothingKernelSizeNext_;
     const int gaussianBlurKernelSize = gaussianBlurKernelSizeNext_;
     const float gaussianBlurSigma = gaussianBlurSigmaNext_;
+    const float outlineEdgeMultiplier = outlineEdgeMultiplierNext_;
 
     // 深度バッファのリソースバリア（DEPTH_WRITE -> PIXEL_SHADER_RESOURCE）
     bool transitionDepth = (currentMode_ == kModeOutline);
@@ -162,9 +165,11 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
         if (camera) {
             Matrix4x4 proj = camera->GetProjectionMatrix();
             Matrix4x4 projInv = MathUtils::Inverse(proj);
-            if (std::memcmp(&currentProjectionInverse_, &projInv, sizeof(Matrix4x4)) != 0) {
+            if (std::memcmp(&currentProjectionInverse_, &projInv, sizeof(Matrix4x4)) != 0 || currentOutlineEdgeMultiplier_ != outlineEdgeMultiplier) {
                 currentProjectionInverse_ = projInv;
+                currentOutlineEdgeMultiplier_ = outlineEdgeMultiplier;
                 outlineParamsMapped_->projectionInverse = projInv;
+                outlineParamsMapped_->edgeMultiplier = outlineEdgeMultiplier;
             }
         }
         commandList->SetGraphicsRootConstantBufferView(0, outlineParamsResource_->GetGPUVirtualAddress());

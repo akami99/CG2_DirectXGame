@@ -59,6 +59,8 @@ private:
     // アウトライン用の定数バッファ構造体
     struct OutlineParams {
         Matrix4x4 projectionInverse;
+        float edgeMultiplier;
+        float padding[3]; // 16バイトアライメント
     };
 
     ComPtr<ID3D12PipelineState> postProcessPSO_; // CopyImage (passthrough)
@@ -91,6 +93,7 @@ private:
     static int smoothingKernelSizeNext_;
     static int gaussianBlurKernelSizeNext_;
     static float gaussianBlurSigmaNext_;
+    static float outlineEdgeMultiplierNext_;
     int currentMode_ = kModeCopy;
 
     // パラメータ適用最適化用（変更時のみ定数バッファを更新するため）
@@ -102,6 +105,7 @@ private:
     int currentGaussianBlurKernelSize_ = -1;
     float currentGaussianBlurSigma_ = -1.0f;
     Matrix4x4 currentProjectionInverse_{};
+    float currentOutlineEdgeMultiplier_ = -1.0f;
 
     static std::unique_ptr<PostProcessManager> instance_;
 
@@ -131,6 +135,9 @@ public:
     static void SetGaussianBlurParams(int kernelSize, float sigma) {
         gaussianBlurKernelSizeNext_ = kernelSize;
         gaussianBlurSigmaNext_ = sigma;
+    }
+    static void SetOutlineParams(float edgeMultiplier) {
+        outlineEdgeMultiplierNext_ = edgeMultiplier;
     }
     int GetCurrentMode() const            { return currentMode_; }
 
