@@ -447,6 +447,44 @@ ComPtr<ID3D12PipelineState> PipelineManager::CreateGaussianBlurPSO() {
 	return pso;
 }
 
+// アウトライン用 PSO
+ComPtr<ID3D12PipelineState> PipelineManager::CreateOutlinePSO() {
+	// RasterizerState (カリングなし)
+	D3D12_RASTERIZER_DESC rasterizerDesc{};
+	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+	rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
+
+	// DepthStencilState (無効)
+	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
+	depthStencilDesc.DepthEnable = FALSE;
+
+	// BlendState (不透明)
+	D3D12_BLEND_DESC blendDesc{};
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDesc.RenderTarget[0].BlendEnable = FALSE;
+
+	// PSO構築 (postProcess と同じ RootSignature を使用: b0=CBV, t0=SRV, t1=SRV)
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
+	psoDesc.pRootSignature = rootSignaturePostProcess_.Get();
+	psoDesc.VS = { vsBlobColorFilter_->GetBufferPointer(), vsBlobColorFilter_->GetBufferSize() };
+	psoDesc.PS = { psBlobOutline_->GetBufferPointer(), psBlobOutline_->GetBufferSize() };
+	psoDesc.InputLayout = { nullptr, 0 };
+	psoDesc.RasterizerState = rasterizerDesc;
+	psoDesc.DepthStencilState = depthStencilDesc;
+	psoDesc.BlendState = blendDesc;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	psoDesc.SampleDesc.Count = 1;
+	psoDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+
+	ComPtr<ID3D12PipelineState> pso;
+	HRESULT hr = DX12Context::GetInstance()->GetDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso));
+	assert(SUCCEEDED(hr));
+
+	return pso;
+}
+
 
 ComPtr<ID3D12PipelineState> PipelineManager::CreateObject3dPSO(
 	const D3D12_INPUT_ELEMENT_DESC* inputLayout, // Object3dCommonが決定
@@ -539,6 +577,10 @@ void PipelineManager::LoadShader() {
 	psBlobGaussianBlur_ = DX12Context::GetInstance()->CompileShader(L"GaussianBlur.PS.hlsl", L"ps_6_0");
 	assert(psBlobGaussianBlur_ != nullptr);
 
+	// Outline用
+	psBlobOutline_ = DX12Context::GetInstance()->CompileShader(L"Outline.PS.hlsl", L"ps_6_0");
+	assert(psBlobOutline_ != nullptr);
+
 }
 
 // ルートシグネチャの作成
@@ -547,7 +589,7 @@ void PipelineManager::CreateRootSignature() {
 
 #pragma region 共通のSampler設定
 	// 共通のSamplerの設定
-	D3D12_STATIC_SAMPLER_DESC staticSamplers[2] = {};
+	D3D12_STATIC_SAMPLER_DESC staticSamplers[3] = {};
 	
 	// s0: WRAPサンプラー
 	staticSamplers[0].Filter =
@@ -571,6 +613,16 @@ void PipelineManager::CreateRootSignature() {
 	staticSamplers[1].MaxLOD = D3D12_FLOAT32_MAX;
 	staticSamplers[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	staticSamplers[1].ShaderRegister = 1; // レジスタ番号1を使う
+
+	// s2: POINT_CLAMPサンプラー
+	staticSamplers[2].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT; // ポイントフィルタ
+	staticSamplers[2].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	staticSamplers[2].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	staticSamplers[2].AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+	staticSamplers[2].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+	staticSamplers[2].MaxLOD = D3D12_FLOAT32_MAX;
+	staticSamplers[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	staticSamplers[2].ShaderRegister = 2; // レジスタ番号2を使う
 
 #pragma endregion 共通のSampler設定ここまで
 
@@ -904,17 +956,29 @@ void PipelineManager::CreateRootSignature() {
 	postProcessTextureRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	postProcessTextureRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
+	// DescriptorRange (t1: Depth)
+	D3D12_DESCRIPTOR_RANGE postProcessDepthRange[1] = {};
+	postProcessDepthRange[0].BaseShaderRegister = 1; // t1
+	postProcessDepthRange[0].NumDescriptors = 1;
+	postProcessDepthRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	postProcessDepthRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
 	// RootParameter
-	D3D12_ROOT_PARAMETER postProcessRootParameters[2] = {};
+	D3D12_ROOT_PARAMETER postProcessRootParameters[3] = {};
 	// b0: Parameter
 	postProcessRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	postProcessRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	postProcessRootParameters[0].Descriptor.ShaderRegister = 0;
-	// t0: Texture
+	// t0: Texture (Color)
 	postProcessRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	postProcessRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	postProcessRootParameters[1].DescriptorTable.pDescriptorRanges = postProcessTextureRange;
 	postProcessRootParameters[1].DescriptorTable.NumDescriptorRanges = _countof(postProcessTextureRange);
+	// t1: Texture (Depth)
+	postProcessRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	postProcessRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	postProcessRootParameters[2].DescriptorTable.pDescriptorRanges = postProcessDepthRange;
+	postProcessRootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(postProcessDepthRange);
 
 	// RootSignatureDesc
 	D3D12_ROOT_SIGNATURE_DESC postProcessRootSignatureDesc{};

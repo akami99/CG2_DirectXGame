@@ -124,6 +124,11 @@ public: // メンバ関数
   // デバイスのゲッター
   ID3D12Device *GetDevice() const { return device_.Get(); }
 
+  // 深度バッファリソースのゲッター
+  ID3D12Resource *GetDepthStencilResource() const {
+    return depthStencilResource_.Get();
+  }
+
   // コマンドリストのゲッター
   ID3D12GraphicsCommandList *GetCommandList() const {
     return commandList_.Get();

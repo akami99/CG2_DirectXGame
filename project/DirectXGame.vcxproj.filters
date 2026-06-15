@@ -522,5 +522,6 @@
     <FxCompile Include="Resources\Shaders\Vignette.PS.hlsl" />
     <FxCompile Include="Resources\Shaders\Smoothing.PS.hlsl" />
     <FxCompile Include="Resources\Shaders\GaussianBlur.PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Outline.PS.hlsl" />
   </ItemGroup>
 </Project>

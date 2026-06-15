@@ -46,7 +46,7 @@ void MyGame::Initialize() {
 	SceneManager::GetInstance()->SetSceneFactory(std::move(sceneFactory));
 
 	// 文字列で指定(TITLE/GAMEPLAY/SHOOTINGなど)してシーン切り替え予約
-	SceneManager::GetInstance()->ChangeScene("SHOOTING");
+	SceneManager::GetInstance()->ChangeScene("GAMEPLAY");
 }
 
 void MyGame::Finalize() {
@@ -70,7 +70,7 @@ void MyGame::Update() {
 	ImGui::SetNextWindowSize(ImVec2(280.0f, 150.0f), ImGuiCond_Once);
 	ImGui::Begin("PostEffect");
 	int mode = PostProcessManager::GetInstance()->GetCurrentMode();
-	if (ImGui::Combo("Mode", &mode, "Copy (None)\0GrayScale\0Sepia\0Vignette\0Smoothing\0Gaussian Blur\0")) {
+	if (ImGui::Combo("Mode", &mode, "Copy (None)\0GrayScale\0Sepia\0Vignette\0Smoothing\0Gaussian Blur\0Outline\0")) {
 		PostProcessManager::SetMode(mode);
 	}
 	if (mode == PostProcessManager::kModeVignette) {

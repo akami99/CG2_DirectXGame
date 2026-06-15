@@ -3,6 +3,7 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 #include <memory>
+#include "Types/GraphicsTypes.h"
 
 class RenderTexture;
 
@@ -17,6 +18,7 @@ public:
     static constexpr int kModeVignette  = 3;
     static constexpr int kModeSmoothing = 4;
     static constexpr int kModeGaussianBlur = 5;
+    static constexpr int kModeOutline = 6;
 
     // ---- Passkey Idiom ----
     struct Token {
@@ -54,11 +56,17 @@ private:
         float padding[2]; // 16バイトアライメント
     };
 
+    // アウトライン用の定数バッファ構造体
+    struct OutlineParams {
+        Matrix4x4 projectionInverse;
+    };
+
     ComPtr<ID3D12PipelineState> postProcessPSO_; // CopyImage (passthrough)
     ComPtr<ID3D12PipelineState> colorFilterPSO_; // グレースケール/セピア
     ComPtr<ID3D12PipelineState> vignettePSO_;    // ビネット
     ComPtr<ID3D12PipelineState> smoothingPSO_;   // 平滑化
     ComPtr<ID3D12PipelineState> gaussianBlurPSO_; // ガウシアンフィルター
+    ComPtr<ID3D12PipelineState> outlinePSO_;      // アウトライン
     ComPtr<ID3D12Resource> paramsResource_;
     PostProcessParams* paramsMapped_ = nullptr;
 
@@ -70,6 +78,10 @@ private:
 
     ComPtr<ID3D12Resource> gaussianBlurParamsResource_;
     GaussianBlurParams* gaussianBlurParamsMapped_ = nullptr;
+
+    ComPtr<ID3D12Resource> outlineParamsResource_;
+    OutlineParams* outlineParamsMapped_ = nullptr;
+    uint32_t depthSrvIndex_ = 0;
 
     // 遅延適用用 (Update から Draw への橋渡し)
     static int modeNext_;
@@ -89,6 +101,7 @@ private:
     int currentSmoothingKernelSize_ = -1;
     int currentGaussianBlurKernelSize_ = -1;
     float currentGaussianBlurSigma_ = -1.0f;
+    Matrix4x4 currentProjectionInverse_{};
 
     static std::unique_ptr<PostProcessManager> instance_;
 

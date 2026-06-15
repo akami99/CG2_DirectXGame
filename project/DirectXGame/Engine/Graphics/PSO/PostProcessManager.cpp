@@ -4,6 +4,10 @@
 #include "DX12Context.h"
 #include "SrvManager.h"
 #include "PipelineManager.h"
+#include "Object3d/Object3dCommon.h"
+#include "Camera/Camera.h"
+#include "Math/Functions/MathUtils.h"
+#include <cstring>
 
 // 静的メンバの実体化
 std::unique_ptr<PostProcessManager> PostProcessManager::instance_;
@@ -33,6 +37,7 @@ void PostProcessManager::Initialize() {
     vignettePSO_     = PipelineManager::GetInstance()->CreateVignettePSO();
     smoothingPSO_    = PipelineManager::GetInstance()->CreateSmoothingPSO();
     gaussianBlurPSO_ = PipelineManager::GetInstance()->CreateGaussianBlurPSO();
+    outlinePSO_      = PipelineManager::GetInstance()->CreateOutlinePSO();
 
     // 定数バッファの生成とマッピング
     paramsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(PostProcessParams));
@@ -60,6 +65,21 @@ void PostProcessManager::Initialize() {
     gaussianBlurParamsResource_->Map(0, nullptr, reinterpret_cast<void**>(&gaussianBlurParamsMapped_));
     gaussianBlurParamsMapped_->kernelSize = 3;
     gaussianBlurParamsMapped_->sigma = 2.0f;
+
+    // アウトライン用の定数バッファの生成とマッピング
+    outlineParamsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(OutlineParams));
+    outlineParamsResource_->Map(0, nullptr, reinterpret_cast<void**>(&outlineParamsMapped_));
+    std::memset(&currentProjectionInverse_, 0, sizeof(currentProjectionInverse_));
+
+    // 深度バッファ用の SRV を作成
+    depthSrvIndex_ = SrvManager::GetInstance()->Allocate();
+    SrvManager::GetInstance()->CreateSRVForTexture(
+        depthSrvIndex_,
+        DX12Context::GetInstance()->GetDepthStencilResource(),
+        DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
+        1,
+        false
+    );
 }
 
 void PostProcessManager::Draw(RenderTexture* renderTexture) {
@@ -74,12 +94,27 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
     const int gaussianBlurKernelSize = gaussianBlurKernelSizeNext_;
     const float gaussianBlurSigma = gaussianBlurSigmaNext_;
 
+    // 深度バッファのリソースバリア（DEPTH_WRITE -> PIXEL_SHADER_RESOURCE）
+    bool transitionDepth = (currentMode_ == kModeOutline);
+    if (transitionDepth) {
+        ID3D12Resource* depthResource = DX12Context::GetInstance()->GetDepthStencilResource();
+        D3D12_RESOURCE_BARRIER barrierDepth{};
+        barrierDepth.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrierDepth.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrierDepth.Transition.pResource = depthResource;
+        barrierDepth.Transition.StateBefore = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+        barrierDepth.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        commandList->ResourceBarrier(1, &barrierDepth);
+    }
+
     // 共通ルートシグネチャのセット
     commandList->SetGraphicsRootSignature(
         PipelineManager::GetInstance()->GetPostProcessRootSignature());
 
     // オフスクリーン描画結果を t0 にセット
     SrvManager::GetInstance()->SetGraphicsRootDescriptorTable(1, renderTexture->GetSrvIndex());
+    // 深度描画結果を t1 にセット
+    SrvManager::GetInstance()->SetGraphicsRootDescriptorTable(2, depthSrvIndex_);
 
     if (currentMode_ == kModeCopy) {
         // パススルー
@@ -120,6 +155,19 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
             gaussianBlurParamsMapped_->sigma = gaussianBlurSigma;
         }
         commandList->SetGraphicsRootConstantBufferView(0, gaussianBlurParamsResource_->GetGPUVirtualAddress());
+    } else if (currentMode_ == kModeOutline) {
+        // アウトライン
+        commandList->SetPipelineState(outlinePSO_.Get());
+        Camera* camera = Object3dCommon::GetInstance()->GetDefaultCamera();
+        if (camera) {
+            Matrix4x4 proj = camera->GetProjectionMatrix();
+            Matrix4x4 projInv = MathUtils::Inverse(proj);
+            if (std::memcmp(&currentProjectionInverse_, &projInv, sizeof(Matrix4x4)) != 0) {
+                currentProjectionInverse_ = projInv;
+                outlineParamsMapped_->projectionInverse = projInv;
+            }
+        }
+        commandList->SetGraphicsRootConstantBufferView(0, outlineParamsResource_->GetGPUVirtualAddress());
     } else {
         // グレースケール or セピア
         commandList->SetPipelineState(colorFilterPSO_.Get());
@@ -146,4 +194,16 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
     // 全画面三角形の描画
     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     commandList->DrawInstanced(3, 1, 0, 0);
+
+    // 深度バッファのリソースバリア（PIXEL_SHADER_RESOURCE -> DEPTH_WRITE）
+    if (transitionDepth) {
+        ID3D12Resource* depthResource = DX12Context::GetInstance()->GetDepthStencilResource();
+        D3D12_RESOURCE_BARRIER barrierDepth{};
+        barrierDepth.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrierDepth.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrierDepth.Transition.pResource = depthResource;
+        barrierDepth.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        barrierDepth.Transition.StateAfter = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+        commandList->ResourceBarrier(1, &barrierDepth);
+    }
 }

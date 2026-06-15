@@ -62,6 +62,9 @@ private: // メンバ変数
     // --- Gaussian Blur用アセット ---
     ComPtr<IDxcBlob> psBlobGaussianBlur_; // Pixel Shader (GaussianBlur.PS.hlsl)
 
+    // --- アウトライン用アセット ---
+    ComPtr<IDxcBlob> psBlobOutline_;      // Pixel Shader (Outline.PS.hlsl)
+
 private: // シングルトン管理用メンバ変数
     static std::unique_ptr<PipelineManager> instance_;
 
@@ -108,6 +111,9 @@ public: // メンバ関数
 
     // Gaussian Blur用 PSOを生成して返す関数
     ComPtr<ID3D12PipelineState> CreateGaussianBlurPSO();
+
+    // アウトライン用 PSOを生成して返す関数
+    ComPtr<ID3D12PipelineState> CreateOutlinePSO();
 
     // ゲッター
 
