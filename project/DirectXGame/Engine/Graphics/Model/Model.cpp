@@ -428,6 +428,12 @@ void Model::Draw() {
   DX12Context::GetInstance()->GetCommandList()->SetGraphicsRootDescriptorTable(
       2, TextureManager::GetInstance()->GetSrvHandleGPU(
              modelData_.material.textureFilePath));
+
+  // Dissolve用のマスクテクスチャを設定。8はrootParameter[8]である。
+  DX12Context::GetInstance()->GetCommandList()->SetGraphicsRootDescriptorTable(
+      8, TextureManager::GetInstance()->GetSrvHandleGPU(
+             dissolveMaskFilePath_));
+
   // 描画コマンド
   // 引数: (インデックス数, インスタンス数, インデックス開始位置, 頂点オフセット, インスタンスオフセット)
   DX12Context::GetInstance()->GetCommandList()->DrawIndexedInstanced(
@@ -623,5 +629,25 @@ void Model::CreateMaterialResource() {
   // 環境マップ係数を設定
   materialData_->environmentCoefficient = 0.0f;
 
+  // Dissolveパラメータの初期化
+  materialData_->enableDissolve = 0;
+  materialData_->dissolveThreshold = 0.0f;
+  materialData_->dissolveEdgeRange = 0.02f;
+  materialData_->dissolveEdgeColor = Vector3(1.0f, 0.4f, 0.3f);
+
 #pragma endregion ここまで
+}
+
+void Model::SetDissolveMaskTexture(const std::string &filePath) {
+  dissolveMaskFilePath_ = filePath;
+  TextureManager::GetInstance()->LoadTexture(dissolveMaskFilePath_);
+}
+
+void Model::SetDissolveParams(int32_t enable, float threshold, float edgeRange, const Vector3 &edgeColor) {
+  if (materialData_) {
+    materialData_->enableDissolve = enable;
+    materialData_->dissolveThreshold = threshold;
+    materialData_->dissolveEdgeRange = edgeRange;
+    materialData_->dissolveEdgeColor = edgeColor;
+  }
 }

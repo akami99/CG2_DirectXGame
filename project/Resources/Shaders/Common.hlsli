@@ -20,6 +20,13 @@ struct Material {
     int isCylinder;
     float alphaReference;
     float padding2_1;
+
+    int enableDissolve;
+    float dissolveThreshold;
+    float dissolveEdgeRange;
+    float dissolvePadding;
+    float3 dissolveEdgeColor;
+    float dissolvePadding2;
 };
 
 struct TransformationMatrix {

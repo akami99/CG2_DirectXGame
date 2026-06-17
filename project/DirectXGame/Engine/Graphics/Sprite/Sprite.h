@@ -73,6 +73,9 @@ private: // メンバ変数
   bool useCustomSrv_ = false;
   uint32_t srvIndex_ = 0;
 
+  // Dissolveマスク用テクスチャパス
+  std::string dissolveMaskFilePath_ = "masks/noise0.png";
+
 public: // メンバ関数
   // 初期化
   void Initialize(const std::string &filePath);
@@ -154,6 +157,17 @@ public: // メンバ関数
   void SetTextureSize(const Vector2 &textureSize) {
     textureSize_ = textureSize;
   }
+
+  // Dissolveの設定
+  void SetDissolveMaskTexture(const std::string &filePath);
+  void SetDissolveParams(int32_t enable, float threshold, float edgeRange, const Vector3 &edgeColor);
+
+  // Dissolveのゲッター
+  int32_t GetDissolveEnable() const { return materialData_ ? materialData_->enableDissolve : 0; }
+  float GetDissolveThreshold() const { return materialData_ ? materialData_->dissolveThreshold : 0.0f; }
+  float GetDissolveEdgeRange() const { return materialData_ ? materialData_->dissolveEdgeRange : 0.0f; }
+  Vector3 GetDissolveEdgeColor() const { return materialData_ ? materialData_->dissolveEdgeColor : Vector3{0.0f,0.0f,0.0f}; }
+  const std::string& GetDissolveMaskTexturePath() const { return dissolveMaskFilePath_; }
 
 private: // メンバ関数
   // 頂点バッファとインデックスバッファの作成

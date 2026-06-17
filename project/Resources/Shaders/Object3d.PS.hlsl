@@ -8,6 +8,7 @@ ConstantBuffer<SpotLight> gSpotLight : register(b4);
 
 Texture2D<float4> gTexture : register(t0);
 TextureCube<float4> gEnvironmentTexture : register(t1);
+Texture2D<float4> gMaskTexture : register(t2); // Dissolve用マスク
 SamplerState gSampler : register(s0);
 
 struct PixelShaderOutput
@@ -17,6 +18,17 @@ struct PixelShaderOutput
 
 PixelShaderOutput main(VertexShaderOutput input) {
     PixelShaderOutput output;
+    
+    float edge = 0.0f;
+    if (gMaterial.enableDissolve != 0)
+    {
+        float mask = gMaskTexture.Sample(gSampler, input.texcoord).r;
+        if (mask <= gMaterial.dissolveThreshold)
+        {
+            discard;
+        }
+        edge = 1.0f - smoothstep(gMaterial.dissolveThreshold, gMaterial.dissolveThreshold + gMaterial.dissolveEdgeRange, mask);
+    }
     
     //float4 transformedUV = mul(float4(input.texcoord, 0.0f, 1.0f), gMaterial.uvTransform);
     //float4 textureColor = gTexture.Sample(gSampler, transformedUV.xy);
@@ -148,6 +160,11 @@ PixelShaderOutput main(VertexShaderOutput input) {
         
     } else { // Lightingしない場合。前回までと同じ演算
         output.color = gMaterial.color * textureColor * vertexColor;
+    }
+    
+    if (gMaterial.enableDissolve != 0)
+    {
+        output.color.rgb += edge * gMaterial.dissolveEdgeColor;
     }
     
     if (output.color.a <= gMaterial.alphaReference) {

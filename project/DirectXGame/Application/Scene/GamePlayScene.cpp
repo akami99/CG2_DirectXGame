@@ -531,6 +531,33 @@ void GamePlayScene::UpdateImGui_Object3d() {
 					object3d->GetModelDebug().SetEnvironmentCoefficient(environmentCoefficient);
 				}
 
+				ImGui::Separator();
+				ImGui::Text("Dissolve");
+				bool enableDissolve = object3d->GetModelDebug().GetDissolveEnable() != 0;
+				float dissolveThreshold = object3d->GetModelDebug().GetDissolveThreshold();
+				float dissolveEdgeRange = object3d->GetModelDebug().GetDissolveEdgeRange();
+				Vector3 dissolveEdgeColor = object3d->GetModelDebug().GetDissolveEdgeColor();
+				std::string currentMask = object3d->GetModelDebug().GetDissolveMaskTexturePath();
+				int maskIndex = (currentMask == "masks/noise1.png") ? 1 : 0;
+				const char* maskPaths[] = { "masks/noise0.png", "masks/noise1.png" };
+				const char* maskNames[] = { "noise0", "noise1" };
+
+				bool dissolveChanged = false;
+				if (ImGui::Checkbox("Enable Dissolve", &enableDissolve)) { dissolveChanged = true; }
+				if (ImGui::SliderFloat("Threshold", &dissolveThreshold, 0.0f, 1.0f)) { dissolveChanged = true; }
+				if (ImGui::SliderFloat("Edge Range", &dissolveEdgeRange, 0.0f, 0.2f)) { dissolveChanged = true; }
+				float colorArr[3] = { dissolveEdgeColor.x, dissolveEdgeColor.y, dissolveEdgeColor.z };
+				if (ImGui::ColorEdit3("Edge Color", colorArr)) {
+					dissolveEdgeColor = { colorArr[0], colorArr[1], colorArr[2] };
+					dissolveChanged = true;
+				}
+				if (ImGui::Combo("Mask Texture", &maskIndex, maskNames, 2)) {
+					object3d->GetModelDebug().SetDissolveMaskTexture(maskPaths[maskIndex]);
+				}
+				if (dissolveChanged) {
+					object3d->GetModelDebug().SetDissolveParams(enableDissolve ? 1 : 0, dissolveThreshold, dissolveEdgeRange, dissolveEdgeColor);
+				}
+
 				ImGui::TreePop();
 			}
 			ImGui::PopID();
@@ -824,6 +851,33 @@ void GamePlayScene::UpdateImGui_Sprite() {
 				if (ImGui::SliderFloat("rotateSprite", &spriteRotation, -6.28f, 6.28f)) { sprite->SetRotation(spriteRotation); }
 				if (ImGui::SliderFloat2("scaleSprite", &spriteScale.x, 1.0f, Win32Window::kClientWidth)) { sprite->SetScale(spriteScale); }
 				if (ImGui::ColorEdit4("colorSprite", &spriteColor.x)) { sprite->SetColor(spriteColor); }
+
+				ImGui::Separator();
+				ImGui::Text("Dissolve");
+				bool enableDissolve = sprite->GetDissolveEnable() != 0;
+				float dissolveThreshold = sprite->GetDissolveThreshold();
+				float dissolveEdgeRange = sprite->GetDissolveEdgeRange();
+				Vector3 dissolveEdgeColor = sprite->GetDissolveEdgeColor();
+				std::string currentMask = sprite->GetDissolveMaskTexturePath();
+				int maskIndex = (currentMask == "masks/noise1.png") ? 1 : 0;
+				const char* maskPaths[] = { "masks/noise0.png", "masks/noise1.png" };
+				const char* maskNames[] = { "noise0", "noise1" };
+
+				bool dissolveChanged = false;
+				if (ImGui::Checkbox("Enable Dissolve", &enableDissolve)) { dissolveChanged = true; }
+				if (ImGui::SliderFloat("Threshold", &dissolveThreshold, 0.0f, 1.0f)) { dissolveChanged = true; }
+				if (ImGui::SliderFloat("Edge Range", &dissolveEdgeRange, 0.0f, 0.2f)) { dissolveChanged = true; }
+				float colorArr[3] = { dissolveEdgeColor.x, dissolveEdgeColor.y, dissolveEdgeColor.z };
+				if (ImGui::ColorEdit3("Edge Color", colorArr)) {
+					dissolveEdgeColor = { colorArr[0], colorArr[1], colorArr[2] };
+					dissolveChanged = true;
+				}
+				if (ImGui::Combo("Mask Texture", &maskIndex, maskNames, 2)) {
+					sprite->SetDissolveMaskTexture(maskPaths[maskIndex]);
+				}
+				if (dissolveChanged) {
+					sprite->SetDissolveParams(enableDissolve ? 1 : 0, dissolveThreshold, dissolveEdgeRange, dissolveEdgeColor);
+				}
 
 				ImGui::Separator();
 				ImGui::Text("UV");

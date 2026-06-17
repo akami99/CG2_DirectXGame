@@ -176,6 +176,13 @@ void Sprite::Draw() {
       ->GetCommandList()
       ->SetGraphicsRootDescriptorTable(
           2, srvHandle);
+
+  // Dissolveマスク用のSRVをバインド。3はrootParameter[3]である。
+  DX12Context::GetInstance()
+      ->GetCommandList()
+      ->SetGraphicsRootDescriptorTable(
+          3, TextureManager::GetInstance()->GetSrvHandleGPU(dissolveMaskFilePath_));
+
   // 描画コマンド
     DX12Context::GetInstance()->GetCommandList()->DrawIndexedInstanced(
       6, 1, 0, 0, 0);
@@ -266,6 +273,12 @@ void Sprite::CreateMaterialResource() {
   // UV変換行列を単位行列に設定
   materialData_->uvTransform = MakeIdentity4x4();
 
+  // Dissolveパラメータの初期化
+  materialData_->enableDissolve = 0;
+  materialData_->dissolveThreshold = 0.0f;
+  materialData_->dissolveEdgeRange = 0.02f;
+  materialData_->dissolveEdgeColor = Vector3(1.0f, 0.4f, 0.3f);
+
 #pragma endregion ここまで
 }
 
@@ -304,4 +317,18 @@ void Sprite::AdjustTextureSize() {
   textureSize_.y = static_cast<float>(metadata.height);
   // 画像をテクスチャサイズに合わせる
   scale_ = textureSize_;
+}
+
+void Sprite::SetDissolveMaskTexture(const std::string &filePath) {
+  dissolveMaskFilePath_ = filePath;
+  TextureManager::GetInstance()->LoadTexture(dissolveMaskFilePath_);
+}
+
+void Sprite::SetDissolveParams(int32_t enable, float threshold, float edgeRange, const Vector3 &edgeColor) {
+  if (materialData_) {
+    materialData_->enableDissolve = enable;
+    materialData_->dissolveThreshold = threshold;
+    materialData_->dissolveEdgeRange = edgeRange;
+    materialData_->dissolveEdgeColor = edgeColor;
+  }
 }

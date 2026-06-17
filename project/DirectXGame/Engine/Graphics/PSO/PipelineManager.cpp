@@ -721,7 +721,8 @@ void PipelineManager::CreateRootSignature() {
 		D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	// RootParameter作成
-	D3D12_ROOT_PARAMETER spriteRootParameters[3] = {};
+	D3D12_ROOT_PARAMETER spriteRootParameters[4] = {};
+
 
 	// Root Parameter 0: Pixel Shader用 Material CBV (b0)
 	spriteRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -741,6 +742,22 @@ void PipelineManager::CreateRootSignature() {
 		spriteTextureSrvRange;
 	spriteRootParameters[2].DescriptorTable.NumDescriptorRanges =
 		_countof(spriteTextureSrvRange);
+
+	// Root Parameter 3: Pixel Shader用 Dissolve MaskTexture SRV (t1)
+	D3D12_DESCRIPTOR_RANGE spriteMaskTextureSrvRange[1] = {};
+	spriteMaskTextureSrvRange[0].BaseShaderRegister = 1; // t1
+	spriteMaskTextureSrvRange[0].NumDescriptors = 1;
+	spriteMaskTextureSrvRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	spriteMaskTextureSrvRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	spriteRootParameters[3].ParameterType =
+		D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	spriteRootParameters[3].ShaderVisibility =
+		D3D12_SHADER_VISIBILITY_PIXEL;
+	spriteRootParameters[3].DescriptorTable.pDescriptorRanges =
+		spriteMaskTextureSrvRange;
+	spriteRootParameters[3].DescriptorTable.NumDescriptorRanges =
+		_countof(spriteMaskTextureSrvRange);
 
 	// RootSignatureDesc
 	D3D12_ROOT_SIGNATURE_DESC spriteRootSignatureDesc{};
@@ -793,7 +810,7 @@ void PipelineManager::CreateRootSignature() {
 		D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	// RootParameter作成。PixelShaderのMaterialとVertexShaderのTransform
-	D3D12_ROOT_PARAMETER object3dRootParameters[8] = {};
+	D3D12_ROOT_PARAMETER object3dRootParameters[9] = {};
 
 	// Root Parameter 0: Pixel Shader用 Material CBV (b0)
 	object3dRootParameters[0].ParameterType =
@@ -861,6 +878,22 @@ void PipelineManager::CreateRootSignature() {
 		object3dEnvMapSrvRange;
 	object3dRootParameters[7].DescriptorTable.NumDescriptorRanges =
 		_countof(object3dEnvMapSrvRange);
+
+	// Root Parameter 8: Pixel Shader用 Dissolve MaskTexture SRV (t2)
+	D3D12_DESCRIPTOR_RANGE object3dMaskTextureSrvRange[1] = {};
+	object3dMaskTextureSrvRange[0].BaseShaderRegister = 2; // t2
+	object3dMaskTextureSrvRange[0].NumDescriptors = 1;
+	object3dMaskTextureSrvRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	object3dMaskTextureSrvRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	object3dRootParameters[8].ParameterType =
+		D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	object3dRootParameters[8].ShaderVisibility =
+		D3D12_SHADER_VISIBILITY_PIXEL;
+	object3dRootParameters[8].DescriptorTable.pDescriptorRanges =
+		object3dMaskTextureSrvRange;
+	object3dRootParameters[8].DescriptorTable.NumDescriptorRanges =
+		_countof(object3dMaskTextureSrvRange);
 
 	// object用のRootSignatureDesc
 	D3D12_ROOT_SIGNATURE_DESC object3dRootSignatureDesc{};

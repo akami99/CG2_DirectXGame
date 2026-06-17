@@ -5,6 +5,7 @@
 
 #include <d3d12.h>
 #include <wrl/client.h>
+#include <string>
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -41,6 +42,9 @@ private: // メンバ変数
   ComPtr<ID3D12Resource> materialResource_ = nullptr;
   // バッファリソース内のデータを指すポインタ
   Material *materialData_ = nullptr;
+
+  // Dissolveマスク用テクスチャパス
+  std::string dissolveMaskFilePath_ = "masks/noise0.png";
 
 public: // メンバ関数
   // 初期化(テクスチャロードでコマンドリスト積んでいるので注意)
@@ -104,6 +108,17 @@ public: // メンバ関数
   void SetEnvironmentCoefficient(const float coefficient) {
     materialData_->environmentCoefficient = coefficient;
   }
+
+  // Dissolveの設定
+  void SetDissolveMaskTexture(const std::string &filePath);
+  void SetDissolveParams(int32_t enable, float threshold, float edgeRange, const Vector3 &edgeColor);
+
+  // Dissolveのゲッター
+  int32_t GetDissolveEnable() const { return materialData_ ? materialData_->enableDissolve : 0; }
+  float GetDissolveThreshold() const { return materialData_ ? materialData_->dissolveThreshold : 0.0f; }
+  float GetDissolveEdgeRange() const { return materialData_ ? materialData_->dissolveEdgeRange : 0.0f; }
+  Vector3 GetDissolveEdgeColor() const { return materialData_ ? materialData_->dissolveEdgeColor : Vector3{0.0f,0.0f,0.0f}; }
+  const std::string& GetDissolveMaskTexturePath() const { return dissolveMaskFilePath_; }
 
 private: // メンバ関数
   // .objファイルの読み取り
