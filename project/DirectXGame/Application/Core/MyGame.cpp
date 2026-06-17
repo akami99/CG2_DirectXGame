@@ -33,6 +33,8 @@ void MyGame::Initialize() {
 
   // 後の初期化でメタデータを参照するため、先にロードしておく
   TextureManager::GetInstance()->LoadTexture("uvChecker.png");
+  TextureManager::GetInstance()->LoadTexture("masks/noise0.png");
+  TextureManager::GetInstance()->LoadTexture("masks/noise1.png");
 
   // ポストプロセスマネージャの初期化
   PostProcessManager::GetInstance()->Initialize();
@@ -72,7 +74,7 @@ void MyGame::Update() {
   if (ImGui::Combo(
           "Mode", &mode,
           "Copy (None)\0GrayScale\0Sepia\0Vignette\0Smoothing\0Gaussian "
-          "Blur\0Outline\0Radial Blur\0")) {
+          "Blur\0Outline\0Radial Blur\0Dissolve\0")) {
     PostProcessManager::SetMode(mode);
   }
   if (mode == PostProcessManager::kModeVignette) {
@@ -152,6 +154,29 @@ void MyGame::Update() {
     }
     if (changed) {
       PostProcessManager::SetRadialBlurParams(center[0], center[1], blurWidth, sampleCount);
+    }
+  } else if (mode == PostProcessManager::kModeDissolve) {
+    static float edgeColor[3] = { 1.0f, 0.4f, 0.3f };
+    static float threshold = 0.0f;
+    static float edgeRange = 0.02f;
+    static int maskIndex = 0;
+    const char* maskPaths[] = { "masks/noise0.png", "masks/noise1.png" };
+    const char* maskNames[] = { "noise0", "noise1" };
+    bool changed = false;
+    if (ImGui::SliderFloat("Threshold", &threshold, 0.0f, 1.0f)) {
+      changed = true;
+    }
+    if (ImGui::ColorEdit3("Edge Color", edgeColor)) {
+      changed = true;
+    }
+    if (ImGui::SliderFloat("Edge Range", &edgeRange, 0.0f, 0.2f)) {
+      changed = true;
+    }
+    if (ImGui::Combo("Mask Texture", &maskIndex, maskNames, 2)) {
+      PostProcessManager::SetDissolveMaskTexture(maskPaths[maskIndex]);
+    }
+    if (changed) {
+      PostProcessManager::SetDissolveParams(edgeColor, threshold, edgeRange);
     }
   }
   ImGui::End();

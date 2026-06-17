@@ -4,6 +4,7 @@
 #include "DX12Context.h"
 #include "SrvManager.h"
 #include "PipelineManager.h"
+#include "TextureManager.h"
 #include "Object3d/Object3dCommon.h"
 #include "Camera/Camera.h"
 #include "Math/Functions/MathUtils.h"
@@ -23,6 +24,10 @@ float PostProcessManager::radialBlurCenterXNext_ = 0.5f;
 float PostProcessManager::radialBlurCenterYNext_ = 0.5f;
 float PostProcessManager::radialBlurWidthNext_ = 0.01f;
 int PostProcessManager::radialBlurSampleCountNext_ = 10;
+float PostProcessManager::dissolveEdgeColorNext_[3] = { 1.0f, 0.4f, 0.3f };
+float PostProcessManager::dissolveThresholdNext_ = 0.0f;
+float PostProcessManager::dissolveEdgeRangeNext_ = 0.02f;
+std::string PostProcessManager::dissolveMaskPathNext_ = "masks/noise0.png";
 
 PostProcessManager* PostProcessManager::GetInstance() {
     if (!instance_) {
@@ -44,6 +49,7 @@ void PostProcessManager::Initialize() {
     gaussianBlurPSO_ = PipelineManager::GetInstance()->CreateGaussianBlurPSO();
     outlinePSO_      = PipelineManager::GetInstance()->CreateOutlinePSO();
     radialBlurPSO_   = PipelineManager::GetInstance()->CreateRadialBlurPSO();
+    dissolvePSO_     = PipelineManager::GetInstance()->CreateDissolvePSO();
 
     // 定数バッファの生成とマッピング
     paramsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(PostProcessParams));
@@ -86,6 +92,19 @@ void PostProcessManager::Initialize() {
     radialBlurParamsMapped_->blurWidth = 0.01f;
     radialBlurParamsMapped_->sampleCount = 10;
 
+    // Dissolve用の定数バッファの生成とマッピング
+    dissolveParamsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(DissolveParams));
+    dissolveParamsResource_->Map(0, nullptr, reinterpret_cast<void**>(&dissolveParamsMapped_));
+    dissolveParamsMapped_->edgeColor[0] = 1.0f;
+    dissolveParamsMapped_->edgeColor[1] = 0.4f;
+    dissolveParamsMapped_->edgeColor[2] = 0.3f;
+    dissolveParamsMapped_->threshold = 0.0f;
+    dissolveParamsMapped_->edgeRange = 0.02f;
+
+    // マスクテクスチャを事前にロード
+    TextureManager::GetInstance()->LoadTexture("masks/noise0.png");
+    TextureManager::GetInstance()->LoadTexture("masks/noise1.png");
+
     // 深度バッファ用の SRV を作成
     depthSrvIndex_ = SrvManager::GetInstance()->Allocate();
     SrvManager::GetInstance()->CreateSRVForTexture(
@@ -100,19 +119,29 @@ void PostProcessManager::Initialize() {
 void PostProcessManager::Draw(RenderTexture* renderTexture) {
     ID3D12GraphicsCommandList* commandList = DX12Context::GetInstance()->GetCommandList();
 
-    // モードとパラメータを遅延適用
+    /// モードとパラメータを遅延適用
     currentMode_ = modeNext_;
+    // パラメータの遅延適用
     const float strength = strengthNext_;
+    // ビネット用のパラメータ
     const float vignetteScale = vignetteScaleNext_;
     const float vignetteExponent = vignetteExponentNext_;
+    // 平滑化用のパラメータ
     const int smoothingKernelSize = smoothingKernelSizeNext_;
+    // Gaussian Blur用のパラメータ
     const int gaussianBlurKernelSize = gaussianBlurKernelSizeNext_;
     const float gaussianBlurSigma = gaussianBlurSigmaNext_;
     const float outlineEdgeMultiplier = outlineEdgeMultiplierNext_;
+    // Radial Blur用のパラメータ
     const float radialBlurCenterX = radialBlurCenterXNext_;
     const float radialBlurCenterY = radialBlurCenterYNext_;
     const float radialBlurWidth = radialBlurWidthNext_;
     const int radialBlurSampleCount = radialBlurSampleCountNext_;
+    // Dissolve用のパラメータ
+    const float dissolveThreshold = dissolveThresholdNext_;
+    const float dissolveEdgeRange = dissolveEdgeRangeNext_;
+    const float dissolveEdgeColor[3] = { dissolveEdgeColorNext_[0], dissolveEdgeColorNext_[1], dissolveEdgeColorNext_[2] };
+    const std::string dissolveMaskPath = dissolveMaskPathNext_;
 
     // 深度バッファのリソースバリア（DEPTH_WRITE -> PIXEL_SHADER_RESOURCE）
     bool transitionDepth = (currentMode_ == kModeOutline);
@@ -209,6 +238,35 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
             radialBlurParamsMapped_->sampleCount = radialBlurSampleCount;
         }
         commandList->SetGraphicsRootConstantBufferView(0, radialBlurParamsResource_->GetGPUVirtualAddress());
+    } else if (currentMode_ == kModeDissolve) {
+        // Dissolve
+        commandList->SetPipelineState(dissolvePSO_.Get());
+        
+        // t1 (Root Parameter 2) にマスクテクスチャの SRV をバインド
+        uint32_t maskSrvIndex = TextureManager::GetInstance()->GetSrvIndex(dissolveMaskPath);
+        SrvManager::GetInstance()->SetGraphicsRootDescriptorTable(2, maskSrvIndex);
+        
+        if (currentDissolveEdgeColor_[0] != dissolveEdgeColor[0] ||
+            currentDissolveEdgeColor_[1] != dissolveEdgeColor[1] ||
+            currentDissolveEdgeColor_[2] != dissolveEdgeColor[2] ||
+            currentDissolveThreshold_ != dissolveThreshold ||
+            currentDissolveEdgeRange_ != dissolveEdgeRange ||
+            currentDissolveMaskPath_ != dissolveMaskPath) {
+            
+            currentDissolveEdgeColor_[0] = dissolveEdgeColor[0];
+            currentDissolveEdgeColor_[1] = dissolveEdgeColor[1];
+            currentDissolveEdgeColor_[2] = dissolveEdgeColor[2];
+            currentDissolveThreshold_ = dissolveThreshold;
+            currentDissolveEdgeRange_ = dissolveEdgeRange;
+            currentDissolveMaskPath_ = dissolveMaskPath;
+            
+            dissolveParamsMapped_->edgeColor[0] = dissolveEdgeColor[0];
+            dissolveParamsMapped_->edgeColor[1] = dissolveEdgeColor[1];
+            dissolveParamsMapped_->edgeColor[2] = dissolveEdgeColor[2];
+            dissolveParamsMapped_->threshold = dissolveThreshold;
+            dissolveParamsMapped_->edgeRange = dissolveEdgeRange;
+        }
+        commandList->SetGraphicsRootConstantBufferView(0, dissolveParamsResource_->GetGPUVirtualAddress());
     } else {
         // グレースケール or セピア
         commandList->SetPipelineState(colorFilterPSO_.Get());

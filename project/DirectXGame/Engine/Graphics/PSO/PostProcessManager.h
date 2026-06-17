@@ -3,6 +3,7 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 #include <memory>
+#include <string>
 #include "Types/GraphicsTypes.h"
 
 class RenderTexture;
@@ -20,6 +21,7 @@ public:
     static constexpr int kModeGaussianBlur = 5;
     static constexpr int kModeOutline = 6;
     static constexpr int kModeRadialBlur = 7;
+    static constexpr int kModeDissolve = 8;
 
     // ---- Passkey Idiom ----
     struct Token {
@@ -71,6 +73,14 @@ private:
         int sampleCount;
     };
 
+    // Dissolve用の定数バッファ構造体
+    struct DissolveParams {
+        float edgeColor[3];
+        float threshold;
+        float edgeRange;
+        float padding[3];
+    };
+
     ComPtr<ID3D12PipelineState> postProcessPSO_; // CopyImage (passthrough)
     ComPtr<ID3D12PipelineState> colorFilterPSO_; // グレースケール/セピア
     ComPtr<ID3D12PipelineState> vignettePSO_;    // ビネット
@@ -78,6 +88,7 @@ private:
     ComPtr<ID3D12PipelineState> gaussianBlurPSO_; // ガウシアンフィルター
     ComPtr<ID3D12PipelineState> outlinePSO_;      // アウトライン
     ComPtr<ID3D12PipelineState> radialBlurPSO_;   // Radial Blur
+    ComPtr<ID3D12PipelineState> dissolvePSO_;     // Dissolve
     ComPtr<ID3D12Resource> paramsResource_;
     PostProcessParams* paramsMapped_ = nullptr;
 
@@ -95,6 +106,9 @@ private:
 
     ComPtr<ID3D12Resource> radialBlurParamsResource_;
     RadialBlurParams* radialBlurParamsMapped_ = nullptr;
+
+    ComPtr<ID3D12Resource> dissolveParamsResource_;
+    DissolveParams* dissolveParamsMapped_ = nullptr;
     uint32_t depthSrvIndex_ = 0;
 
     // 遅延適用用 (Update から Draw への橋渡し)
@@ -110,6 +124,10 @@ private:
     static float radialBlurCenterYNext_;
     static float radialBlurWidthNext_;
     static int radialBlurSampleCountNext_;
+    static float dissolveEdgeColorNext_[3];
+    static float dissolveThresholdNext_;
+    static float dissolveEdgeRangeNext_;
+    static std::string dissolveMaskPathNext_;
     int currentMode_ = kModeCopy;
 
     // パラメータ適用最適化用（変更時のみ定数バッファを更新するため）
@@ -126,6 +144,10 @@ private:
     float currentRadialBlurCenterY_ = -1.0f;
     float currentRadialBlurWidth_ = -1.0f;
     int currentRadialBlurSampleCount_ = -1;
+    float currentDissolveEdgeColor_[3];
+    float currentDissolveThreshold_ = -1.0f;
+    float currentDissolveEdgeRange_ = -1.0f;
+    std::string currentDissolveMaskPath_;
 
     static std::unique_ptr<PostProcessManager> instance_;
 
@@ -164,6 +186,16 @@ public:
         radialBlurCenterYNext_ = centerY;
         radialBlurWidthNext_ = width;
         radialBlurSampleCountNext_ = sampleCount;
+    }
+    static void SetDissolveParams(const float edgeColor[3], float threshold, float edgeRange) {
+        dissolveEdgeColorNext_[0] = edgeColor[0];
+        dissolveEdgeColorNext_[1] = edgeColor[1];
+        dissolveEdgeColorNext_[2] = edgeColor[2];
+        dissolveThresholdNext_ = threshold;
+        dissolveEdgeRangeNext_ = edgeRange;
+    }
+    static void SetDissolveMaskTexture(const std::string& maskPath) {
+        dissolveMaskPathNext_ = maskPath;
     }
     int GetCurrentMode() const            { return currentMode_; }
 

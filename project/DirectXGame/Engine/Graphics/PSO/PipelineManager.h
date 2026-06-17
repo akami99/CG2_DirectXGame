@@ -68,6 +68,9 @@ private: // メンバ変数
     // --- Radial Blur用アセット ---
     ComPtr<IDxcBlob> psBlobRadialBlur_;   // Pixel Shader (RadialBlur.PS.hlsl)
 
+    // --- Dissolve用アセット ---
+    ComPtr<IDxcBlob> psBlobDissolve_;     // Pixel Shader (Dissolve.PS.hlsl)
+
 private: // シングルトン管理用メンバ変数
     static std::unique_ptr<PipelineManager> instance_;
 
@@ -120,6 +123,9 @@ public: // メンバ関数
 
     // Radial Blur用 PSOを生成して返す関数
     ComPtr<ID3D12PipelineState> CreateRadialBlurPSO();
+
+    // Dissolve用 PSOを生成して返す関数
+    ComPtr<ID3D12PipelineState> CreateDissolvePSO();
 
     // ゲッター
 
