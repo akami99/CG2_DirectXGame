@@ -73,7 +73,7 @@ void MyGame::Update() {
   if (ImGui::Combo(
           "Mode", &mode,
           "Copy (None)\0GrayScale\0Sepia\0Vignette\0Smoothing\0Gaussian "
-          "Blur\0Outline\0")) {
+          "Blur\0Outline\0Radial Blur\0")) {
     PostProcessManager::SetMode(mode);
   }
   if (mode == PostProcessManager::kModeVignette) {
@@ -124,6 +124,35 @@ void MyGame::Update() {
         edgeMultiplier = 20.0f;
       }
       PostProcessManager::SetOutlineParams(edgeMultiplier);
+    }
+  } else if (mode == PostProcessManager::kModeRadialBlur) {
+    static float center[2] = { 0.5f, 0.5f };
+    static float blurWidth = 0.01f;
+    static int sampleCount = 10;
+    bool changed = false;
+    if (ImGui::SliderFloat2("Center", center, 0.0f, 1.0f)) {
+      changed = true;
+    }
+    if (ImGui::SliderFloat("Blur Width", &blurWidth, 0.0f, 0.1f)) {
+      if (blurWidth < 0.0f) {
+        blurWidth = 0.0f;
+      }
+      if (blurWidth > 0.1f) {
+        blurWidth = 0.1f;
+      }
+      changed = true;
+    }
+    if (ImGui::SliderInt("Sample Count", &sampleCount, 2, 50)) {
+      if (sampleCount < 2) {
+        sampleCount = 2;
+      }
+      if (sampleCount > 50) {
+        sampleCount = 50;
+      }
+      changed = true;
+    }
+    if (changed) {
+      PostProcessManager::SetRadialBlurParams(center[0], center[1], blurWidth, sampleCount);
     }
   }
   ImGui::End();

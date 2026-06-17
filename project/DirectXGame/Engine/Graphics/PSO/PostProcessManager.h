@@ -19,6 +19,7 @@ public:
     static constexpr int kModeSmoothing = 4;
     static constexpr int kModeGaussianBlur = 5;
     static constexpr int kModeOutline = 6;
+    static constexpr int kModeRadialBlur = 7;
 
     // ---- Passkey Idiom ----
     struct Token {
@@ -63,12 +64,20 @@ private:
         float padding[3]; // 16バイトアライメント
     };
 
+    // Radial Blur用の定数バッファ構造体
+    struct RadialBlurParams {
+        float center[2];
+        float blurWidth;
+        int sampleCount;
+    };
+
     ComPtr<ID3D12PipelineState> postProcessPSO_; // CopyImage (passthrough)
     ComPtr<ID3D12PipelineState> colorFilterPSO_; // グレースケール/セピア
     ComPtr<ID3D12PipelineState> vignettePSO_;    // ビネット
     ComPtr<ID3D12PipelineState> smoothingPSO_;   // 平滑化
     ComPtr<ID3D12PipelineState> gaussianBlurPSO_; // ガウシアンフィルター
     ComPtr<ID3D12PipelineState> outlinePSO_;      // アウトライン
+    ComPtr<ID3D12PipelineState> radialBlurPSO_;   // Radial Blur
     ComPtr<ID3D12Resource> paramsResource_;
     PostProcessParams* paramsMapped_ = nullptr;
 
@@ -83,6 +92,9 @@ private:
 
     ComPtr<ID3D12Resource> outlineParamsResource_;
     OutlineParams* outlineParamsMapped_ = nullptr;
+
+    ComPtr<ID3D12Resource> radialBlurParamsResource_;
+    RadialBlurParams* radialBlurParamsMapped_ = nullptr;
     uint32_t depthSrvIndex_ = 0;
 
     // 遅延適用用 (Update から Draw への橋渡し)
@@ -94,6 +106,10 @@ private:
     static int gaussianBlurKernelSizeNext_;
     static float gaussianBlurSigmaNext_;
     static float outlineEdgeMultiplierNext_;
+    static float radialBlurCenterXNext_;
+    static float radialBlurCenterYNext_;
+    static float radialBlurWidthNext_;
+    static int radialBlurSampleCountNext_;
     int currentMode_ = kModeCopy;
 
     // パラメータ適用最適化用（変更時のみ定数バッファを更新するため）
@@ -106,6 +122,10 @@ private:
     float currentGaussianBlurSigma_ = -1.0f;
     Matrix4x4 currentProjectionInverse_{};
     float currentOutlineEdgeMultiplier_ = -1.0f;
+    float currentRadialBlurCenterX_ = -1.0f;
+    float currentRadialBlurCenterY_ = -1.0f;
+    float currentRadialBlurWidth_ = -1.0f;
+    int currentRadialBlurSampleCount_ = -1;
 
     static std::unique_ptr<PostProcessManager> instance_;
 
@@ -138,6 +158,12 @@ public:
     }
     static void SetOutlineParams(float edgeMultiplier) {
         outlineEdgeMultiplierNext_ = edgeMultiplier;
+    }
+    static void SetRadialBlurParams(float centerX, float centerY, float width, int sampleCount) {
+        radialBlurCenterXNext_ = centerX;
+        radialBlurCenterYNext_ = centerY;
+        radialBlurWidthNext_ = width;
+        radialBlurSampleCountNext_ = sampleCount;
     }
     int GetCurrentMode() const            { return currentMode_; }
 

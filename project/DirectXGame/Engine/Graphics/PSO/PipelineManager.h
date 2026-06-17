@@ -65,6 +65,9 @@ private: // メンバ変数
     // --- アウトライン用アセット ---
     ComPtr<IDxcBlob> psBlobOutline_;      // Pixel Shader (Outline.PS.hlsl)
 
+    // --- Radial Blur用アセット ---
+    ComPtr<IDxcBlob> psBlobRadialBlur_;   // Pixel Shader (RadialBlur.PS.hlsl)
+
 private: // シングルトン管理用メンバ変数
     static std::unique_ptr<PipelineManager> instance_;
 
@@ -114,6 +117,9 @@ public: // メンバ関数
 
     // アウトライン用 PSOを生成して返す関数
     ComPtr<ID3D12PipelineState> CreateOutlinePSO();
+
+    // Radial Blur用 PSOを生成して返す関数
+    ComPtr<ID3D12PipelineState> CreateRadialBlurPSO();
 
     // ゲッター
 

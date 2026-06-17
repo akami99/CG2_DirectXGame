@@ -19,6 +19,10 @@ int PostProcessManager::smoothingKernelSizeNext_ = 3;
 int PostProcessManager::gaussianBlurKernelSizeNext_ = 3;
 float PostProcessManager::gaussianBlurSigmaNext_ = 2.0f;
 float PostProcessManager::outlineEdgeMultiplierNext_ = 6.0f;
+float PostProcessManager::radialBlurCenterXNext_ = 0.5f;
+float PostProcessManager::radialBlurCenterYNext_ = 0.5f;
+float PostProcessManager::radialBlurWidthNext_ = 0.01f;
+int PostProcessManager::radialBlurSampleCountNext_ = 10;
 
 PostProcessManager* PostProcessManager::GetInstance() {
     if (!instance_) {
@@ -39,6 +43,7 @@ void PostProcessManager::Initialize() {
     smoothingPSO_    = PipelineManager::GetInstance()->CreateSmoothingPSO();
     gaussianBlurPSO_ = PipelineManager::GetInstance()->CreateGaussianBlurPSO();
     outlinePSO_      = PipelineManager::GetInstance()->CreateOutlinePSO();
+    radialBlurPSO_   = PipelineManager::GetInstance()->CreateRadialBlurPSO();
 
     // 定数バッファの生成とマッピング
     paramsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(PostProcessParams));
@@ -73,6 +78,14 @@ void PostProcessManager::Initialize() {
     outlineParamsMapped_->edgeMultiplier = 6.0f;
     std::memset(&currentProjectionInverse_, 0, sizeof(currentProjectionInverse_));
 
+    // Radial Blur用の定数バッファの生成とマッピング
+    radialBlurParamsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(RadialBlurParams));
+    radialBlurParamsResource_->Map(0, nullptr, reinterpret_cast<void**>(&radialBlurParamsMapped_));
+    radialBlurParamsMapped_->center[0] = 0.5f;
+    radialBlurParamsMapped_->center[1] = 0.5f;
+    radialBlurParamsMapped_->blurWidth = 0.01f;
+    radialBlurParamsMapped_->sampleCount = 10;
+
     // 深度バッファ用の SRV を作成
     depthSrvIndex_ = SrvManager::GetInstance()->Allocate();
     SrvManager::GetInstance()->CreateSRVForTexture(
@@ -96,6 +109,10 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
     const int gaussianBlurKernelSize = gaussianBlurKernelSizeNext_;
     const float gaussianBlurSigma = gaussianBlurSigmaNext_;
     const float outlineEdgeMultiplier = outlineEdgeMultiplierNext_;
+    const float radialBlurCenterX = radialBlurCenterXNext_;
+    const float radialBlurCenterY = radialBlurCenterYNext_;
+    const float radialBlurWidth = radialBlurWidthNext_;
+    const int radialBlurSampleCount = radialBlurSampleCountNext_;
 
     // 深度バッファのリソースバリア（DEPTH_WRITE -> PIXEL_SHADER_RESOURCE）
     bool transitionDepth = (currentMode_ == kModeOutline);
@@ -173,6 +190,25 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
             }
         }
         commandList->SetGraphicsRootConstantBufferView(0, outlineParamsResource_->GetGPUVirtualAddress());
+    } else if (currentMode_ == kModeRadialBlur) {
+        // Radial Blur
+        commandList->SetPipelineState(radialBlurPSO_.Get());
+        if (currentRadialBlurCenterX_ != radialBlurCenterX ||
+            currentRadialBlurCenterY_ != radialBlurCenterY ||
+            currentRadialBlurWidth_ != radialBlurWidth ||
+            currentRadialBlurSampleCount_ != radialBlurSampleCount) {
+            
+            currentRadialBlurCenterX_ = radialBlurCenterX;
+            currentRadialBlurCenterY_ = radialBlurCenterY;
+            currentRadialBlurWidth_ = radialBlurWidth;
+            currentRadialBlurSampleCount_ = radialBlurSampleCount;
+            
+            radialBlurParamsMapped_->center[0] = radialBlurCenterX;
+            radialBlurParamsMapped_->center[1] = radialBlurCenterY;
+            radialBlurParamsMapped_->blurWidth = radialBlurWidth;
+            radialBlurParamsMapped_->sampleCount = radialBlurSampleCount;
+        }
+        commandList->SetGraphicsRootConstantBufferView(0, radialBlurParamsResource_->GetGPUVirtualAddress());
     } else {
         // グレースケール or セピア
         commandList->SetPipelineState(colorFilterPSO_.Get());
