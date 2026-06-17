@@ -24,9 +24,8 @@
 void MyGame::Initialize() {
   RAFramework::Initialize();
 
-  // 閉じているコマンドリストを再度開く（テクスチャロード等のために必要）
-  DX12Context::GetInstance()->GetCommandList()->Reset(
-      DX12Context::GetInstance()->GetCommandAllocator(), nullptr);
+  	// 閉じているコマンドリストを再度開く（テクスチャロード等のために必要）
+	DX12Context::GetInstance()->ResetCommandList();
 
   // オフスクリーンレンダリング用のリソース初期化
   renderTexture_ = std::make_unique<RenderTexture>();

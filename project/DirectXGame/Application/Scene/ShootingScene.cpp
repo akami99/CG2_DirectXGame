@@ -647,6 +647,8 @@ void ShootingScene::Update()
       UpdateImGui_Skybox();
     }
     ImGui::End();
+
+    UpdateImGui_GameStatus();
   }
 
   // ImGuiでグローバル設定のパラメータを調整するための関数
@@ -664,7 +666,7 @@ void ShootingScene::Update()
       }
       ImGui::Separator();
       // ヒットポイントのパラメータを確認
-      ImGui::Text("Hit Points: %d / %d", hitCount_, kMaxHits);
+      ImGui::Text("Hit Count: %d / %d", hitCount_, kMaxHits);
       if (ImGui::Button("Reset Hit Count")) {
         hitCount_ = 0;
       }
@@ -776,6 +778,38 @@ void ShootingScene::Update()
       }
       ImGui::TreePop();
     }
+  }
+
+  // ImGuiでゲームの進行状況やプレイヤーの状態を表示するための関数
+  void ShootingScene::UpdateImGui_GameStatus() {
+    ImGui::SetNextWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_Once);
+    ImGui::SetNextWindowSize(ImVec2(200.0f, 100.0f), ImGuiCond_Once);
+    ImGui::Begin("Game Status", nullptr,
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize);
+    if (phase_ == Phase::GameOverVignette || phase_ == Phase::GameOverWait) {
+      ImGui::Text("GAME OVER");
+    } else if (phase_ == Phase::RestartSmoothing) {
+      ImGui::Text("Restarting...");
+    }
+    else {
+        ImGui::ProgressBar(cameraProgress_ / maxProgress_, ImVec2(0.0f, 0.0f), "Progress");
+    }
+    ImGui::Separator();
+    ImGui::Text("Player Status");
+    ImGui::Separator();
+    ImGui::Text("Hit Count: %d / %d", hitCount_, kMaxHits);
+    ImGui::Text("Ammo: %d / %d", ammo_, kMaxAmmo);
+    ImGui::Text("Covering (SPACE): %s", isCovering_ ? "YES (Invincible)" : "NO");
+    if (isCovering_ && ammo_ < kMaxAmmo) {
+        ImGui::ProgressBar(reloadTimer_ / kReloadDuration, ImVec2(0.0f, 0.0f), "Reloading...");
+    }
+    ImGui::Separator();
+    ImGui::Text("Control");
+    ImGui::Separator();
+    ImGui::Text("Mouse: Aim");
+    ImGui::Text("LMB: Shoot");
+    ImGui::Text("SPACE: Cover (Reload)");
+    ImGui::End();
   }
 #endif // USE_IMGUI
 

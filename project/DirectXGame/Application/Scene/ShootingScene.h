@@ -46,6 +46,8 @@ private:
 	void UpdateImGui_Object3d();
 	// ImGuiでSkyboxのパラメータを調整するための関数
 	void UpdateImGui_Skybox();
+    // ImGuiでゲームの状態を確認するための関数
+    void UpdateImGui_GameStatus();
 #endif // USE_IMGUI
 
 

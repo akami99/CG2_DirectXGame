@@ -113,6 +113,12 @@ void TextureManager::LoadTexture(const std::string &filePath) {
     return;
   }
 
+  // コマンドリストが開いていない場合は、一時的にコマンドリストを開く
+  bool needSync = !DX12Context::GetInstance()->IsCommandListOpen();
+  if (needSync) {
+    DX12Context::GetInstance()->ResetCommandList();
+  }
+
   // テクスチャ枚数上限チェック
   assert(SrvManager::GetInstance()->AllocatableTexture());
 
@@ -163,6 +169,11 @@ void TextureManager::LoadTexture(const std::string &filePath) {
   // テクスチャリソースをアップロードし、コマンドリストに積む
   textureData.intermediateResource =
       DX12Context::GetInstance()->UploadTextureData(textureData.resource, mipImages);
+
+  // 一時的にコマンドリストを開いた場合は、即座に実行・同期して閉じる
+  if (needSync) {
+    DX12Context::GetInstance()->ExecuteInitialCommandAndSync();
+  }
 }
 
 // 中間リソースをまとめて解放する

@@ -76,18 +76,19 @@ void DX12Context::Initialize() {
   // DCXコンパイラの生成
   CreateDXCCompiler();
 
-  // ★ ここがポイント：生成直後に一度閉じる
-    // これにより「最初は Closed 状態」というルールが確定する
+  // 生成直後に一度閉じる
+  // これにより「最初は Closed 状態」というルールが確定する
   HRESULT hr;
   hr = commandList_->Close();
   assert(SUCCEEDED(hr));
+  isCommandListOpen_ = false;
 
   Log("INFO: Complete Initialize DX12Context!!!\n"); // 初期化完了のログをだす
 }
 
 // 終了
 void DX12Context::Finalize() {
-    // 1. まずGPUの処理完了を待つ
+    // まずGPUの処理完了を待つ
     WaitForGpu();
     // 1. コマンドリスト関連
     commandList_.Reset();
@@ -139,8 +140,7 @@ void DX12Context::PreDraw() {
   assert(SUCCEEDED(hr));
 
   // コマンドリストを記録可能な状態にリセット
-  hr = commandList_->Reset(commandAllocator_.Get(), nullptr);
-  assert(SUCCEEDED(hr));
+  ResetCommandList();
 
   // バックバッファのインデックスを取得
   UINT backBufferIndex = swapChain_->GetCurrentBackBufferIndex();
@@ -394,6 +394,7 @@ void DX12Context::InitializeCommand() {
                                   IID_PPV_ARGS(&commandList_));
   // コマンドリストの生成が上手くいかなかったので起動できない
   assert(SUCCEEDED(hr));
+  isCommandListOpen_ = true;
 }
 
 // スワップチェーンの初期化
@@ -637,6 +638,7 @@ void DX12Context::ExecuteInitialCommandAndSync() {
   // コマンドリストの内容を確定させる。すべてのコマンドを積んでからCloseすること
   hr = commandList_->Close();
   assert(SUCCEEDED(hr));
+  isCommandListOpen_ = false;
 
   // GPUにコマンドリストの実行を行わせる
   ID3D12CommandList *commandLists[] = {commandList_.Get()};
@@ -650,6 +652,12 @@ void DX12Context::ExecuteInitialCommandAndSync() {
 
   // 中間リソースの解放
   // intermediateResources_.clear();
+}
+
+void DX12Context::ResetCommandList() {
+  HRESULT hr = commandList_->Reset(commandAllocator_.Get(), nullptr);
+  assert(SUCCEEDED(hr));
+  isCommandListOpen_ = true;
 }
 
 void DX12Context::SetBackBufferAsRenderTarget() {

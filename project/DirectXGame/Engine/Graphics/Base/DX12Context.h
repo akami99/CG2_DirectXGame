@@ -83,6 +83,7 @@ private: // メンバ変数
   ComPtr<IDxcUtils> dxcUtils_ = nullptr;                // ユーティリティ
   ComPtr<IDxcCompiler3> dxcCompiler_ = nullptr;         // コンパイラ
   ComPtr<IDxcIncludeHandler> includeHandler_ = nullptr; // インクルードハンドラ
+  bool isCommandListOpen_ = false;                      // コマンドリストの開閉状態
 
 #pragma endregion privateメンバ変数
 
@@ -104,6 +105,11 @@ public: // メンバ関数
   void PreDraw();
   // 描画後処理
   void PostDraw();
+
+  // コマンドリストをリセットして記録可能状態にする
+  void ResetCommandList();
+  // コマンドリストが開いている（記録可能状態）か
+  bool IsCommandListOpen() const { return isCommandListOpen_; }
 
 #pragma region ゲッター
 

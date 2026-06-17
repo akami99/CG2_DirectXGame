@@ -50,7 +50,7 @@ void SceneManager::Update() {
         // 重要: MyGame::Initializeと同様に、コマンドリスト管理を行う
         if (currentScene_) {
             // (A) コマンドリストをリセット（書き込み可能に）
-            DX12Context::GetInstance()->GetCommandList()->Reset(DX12Context::GetInstance()->GetCommandAllocator(), nullptr);
+            DX12Context::GetInstance()->ResetCommandList();
 
             // (B) シーンの初期化（ロード命令の書き込み）
             currentScene_->Initialize();
