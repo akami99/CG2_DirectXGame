@@ -78,14 +78,10 @@ void ShootingScene::Initialize() {
 
   Object3dCommon::GetInstance()->SetDefaultCamera(camera_.get());
 
-  // サイドカメラの初期化
-  /* leftCamera_ = std::make_unique<Camera>();
-   leftCamera_->Initialize();
-   rightCamera_ = std::make_unique<Camera>();
-   rightCamera_->Initialize();*/
 
   // テクスチャの読み込み
   TextureManager::GetInstance()->LoadTexture(crosshairPath_);
+  TextureManager::GetInstance()->LoadTexture("Particles/circle.png");
 
   // モデル読み込み
   ModelManager::GetInstance()->LoadModel("enemy", enemyModel_);
@@ -96,6 +92,64 @@ void ShootingScene::Initialize() {
   if (enemyModel) {
     enemyModel->SetEnvironmentCoefficient(1.0f); // 反射強度を最大（1.0f）に設定
   }
+
+  // パーティクルグループの作成
+  ParticleManager::GetInstance()->CreateParticleGroup(ringParticleGroupName_, "Particles/circle.png");
+
+  // エミッター初期化（RingShapeEffect）
+  Transform ringEmitterTransform = {
+      { 1.000f, 1.000f, 1.000f }, // scale
+      { 0.300f, 0.000f, 0.000f }, // rotate
+      { -0.060f, 2.320f, 0.000f } // translate
+  };
+  ParticleEmitter ringEmitter(ringEmitterTransform, 32, 0.400f);
+  ringEmitter.isEmit = false;
+  ringEmitter.isEffectMode = true;
+  ringEmitter.isLoop = false;
+  
+  ringEmitter.generateSettings.isRandomScale = false;
+  ringEmitter.generateSettings.fixedScale = { 0.250f, 0.500f, 1.000f };
+  
+  ringEmitter.generateSettings.isRandomRotate = true;
+  ringEmitter.generateSettings.rotateMin = { 0.000f, 0.000f, -3.142f };
+  ringEmitter.generateSettings.rotateMax = { 0.000f, 0.000f, 3.142f };
+  
+  ringEmitter.generateSettings.isRandomVelocity = false;
+  ringEmitter.generateSettings.fixedVelocity = { 0.000f, -2.000f, 15.000f };
+  
+  ringEmitter.generateSettings.isRandomLifeTime = false;
+  ringEmitter.generateSettings.fixedLifeTime = 1.000f;
+  
+  ringEmitter.generateSettings.isRandomColor = true;
+  ringEmitter.generateSettings.colorMin = { 0.0f, 0.0f, 0.0f, 1.0f };
+  ringEmitter.generateSettings.colorMax = { 1.0f, 1.0f, 1.0f, 1.0f };
+  
+  ringEmitter.fieldSettings.isAccelerationFieldActive = false;
+  ringEmitter.fieldSettings.isGravityFieldActive = false;
+  
+  ringEmitter.uvAnimationSettings.isActive = true;
+  ringEmitter.uvAnimationSettings.isIndividual = false;
+  ringEmitter.uvAnimationSettings.scrollSpeed = { 2.000f, 0.000f };
+  ringEmitter.uvAnimationSettings.rotateSpeed = 0.180f;
+  ringEmitter.uvAnimationSettings.scaleSpeed = { 1.500f, -1.200f };
+  
+  ringEmitter.SetShapeType(ParticleShapeType::Ring);
+  if (auto* rs = ringEmitter.GetRingShape()) {
+      rs->settings.innerRadius = 0.010f;
+      rs->settings.startOuterRadius = 1.000f;
+      rs->settings.midOuterRadius = 1.200f;
+      rs->settings.endOuterRadius = 1.500f;
+      rs->settings.startAngle = 0.000f;
+      rs->settings.endAngle = 360.000f;
+      rs->settings.division = 32;
+      rs->settings.isUvSwap = false;
+      rs->settings.innerColor = { 1.000f, 1.000f, 1.000f, 1.000f };
+      rs->settings.outerColor = { 1.000f, 1.000f, 1.000f, 1.000f };
+      rs->settings.fadeStartAlpha = 1.000f;
+      rs->settings.fadeEndAlpha = 1.000f;
+      rs->settings.fadeRange = 0.000f;
+  }
+  ParticleManager::GetInstance()->SetEmitter(ringParticleGroupName_, ringEmitter);
 
   // スカイボックスの初期化
   skybox_ = std::make_unique<Skybox>();
@@ -134,7 +188,7 @@ void ShootingScene::Initialize() {
   }
 
   // プリミティブ平面モデルの動的生成
-  hitEffectPlaneModel_ = std::make_unique<Model>();
+  /*hitEffectPlaneModel_ = std::make_unique<Model>();
   PlaneSettings planeSettings;
   planeSettings.size = {3.0f, 3.0f};
   planeSettings.divisionX = 1;
@@ -145,7 +199,7 @@ void ShootingScene::Initialize() {
   hitEffectPlane_ = std::make_unique<Object3d>();
   hitEffectPlane_->Initialize();
   hitEffectPlane_->SetModel(hitEffectPlaneModel_.get());
-  hitEffectPlane_->SetCamera(camera_.get());
+  hitEffectPlane_->SetCamera(camera_.get());*/
 
   // --- スプライト生成 ---
   crosshair_ = std::make_unique<Sprite>();
@@ -153,23 +207,6 @@ void ShootingScene::Initialize() {
   crosshair_->SetAnchorPoint({0.5f, 0.5f});
   crosshair_->SetScale({64.0f, 64.0f});
 
-  // --- オフスクリーン用リソース ---
-  /* leftRT_ = std::make_unique<RenderTexture>();
-   leftRT_->Initialize(320, 180);
-   rightRT_ = std::make_unique<RenderTexture>();
-   rightRT_->Initialize(320, 180);
-
-   leftSideSprite_ = std::make_unique<Sprite>();
-   leftSideSprite_->Initialize(crosshairPath_);
-   leftSideSprite_->SetTexture(leftRT_->GetSrvIndex());
-   leftSideSprite_->SetTranslate({0.0f, 0.0f});
-   leftSideSprite_->SetScale({320.0f, 180.0f});
-
-   rightSideSprite_ = std::make_unique<Sprite>();
-   rightSideSprite_->Initialize(crosshairPath_);
-   rightSideSprite_->SetTexture(rightRT_->GetSrvIndex());
-   rightSideSprite_->SetTranslate({Win32Window::kClientWidth - 320.0f, 0.0f});
-   rightSideSprite_->SetScale({320.0f, 180.0f});*/
 
   // マガジンとカバーの初期化
   ammo_ = kMaxAmmo;
@@ -179,6 +216,75 @@ void ShootingScene::Initialize() {
   // 初期フェーズの設定
   phase_ = Phase::Playing;
   hitCount_ = 0;
+
+  // -----------------------------------------------------------------
+  // UIスプライトの初期化
+  // -----------------------------------------------------------------
+  TextureManager::GetInstance()->LoadTexture("white.png");
+
+  // 1. ライフUI
+  lifeBg_ = std::make_unique<Sprite>();
+  lifeBg_->Initialize("white.png");
+  lifeBg_->SetTranslate({ 1140.0f, 30.0f });
+  lifeBg_->SetScale({ 110.0f, 50.0f });
+  lifeBg_->SetColor({ 0.2f, 0.2f, 0.2f, 0.8f }); // 半透明グレー
+
+  lifeUnits_.clear();
+  lifeCurrentX_.clear();
+  lifeTargetX_.clear();
+  for (int i = 0; i < kMaxHits; ++i) {
+    auto unit = std::make_unique<Sprite>();
+    unit->Initialize("white.png");
+    unit->SetScale({ 16.0f, 36.0f });
+    unit->SetColor({ 1.0f, 0.0f, 0.0f, 1.0f }); // 赤色
+
+    float initX = 1214.0f - (kMaxHits - 1 - i) * 24.0f;
+    lifeUnits_.push_back(std::move(unit));
+    lifeCurrentX_.push_back(initX);
+    lifeTargetX_.push_back(initX);
+  }
+
+  // 2. 弾薬UI
+  ammoBg_ = std::make_unique<Sprite>();
+  ammoBg_->Initialize("white.png");
+  ammoBg_->SetTranslate({ 30.0f, 640.0f });
+  ammoBg_->SetScale({ 200.0f, 40.0f });
+  ammoBg_->SetColor({ 0.2f, 0.2f, 0.2f, 0.8f }); // 半透明グレー
+
+  ammoUnits_.clear();
+  ammoCurrentX_.clear();
+  ammoTargetX_.clear();
+  for (int i = 0; i < kMaxAmmo; ++i) {
+    auto unit = std::make_unique<Sprite>();
+    unit->Initialize("white.png");
+    unit->SetScale({ 12.0f, 24.0f });
+    unit->SetColor({ 183.0f/255.0f, 132.0f/255.0f, 48.0f/255.0f, 1.0f }); // 茶色系
+
+    float initX = 202.0f - i * 20.0f;
+    ammoUnits_.push_back(std::move(unit));
+    ammoCurrentX_.push_back(initX);
+    ammoTargetX_.push_back(initX);
+  }
+
+  // 3. プログレスバーUI
+  progressBg_ = std::make_unique<Sprite>();
+  progressBg_->Initialize("white.png");
+  progressBg_->SetTranslate({ 930.0f, 660.0f });
+  progressBg_->SetScale({ 300.0f, 20.0f });
+  progressBg_->SetColor({ 0.1f, 0.2f, 0.8f, 0.6f }); // 半透明青色
+
+  progressBar_ = std::make_unique<Sprite>();
+  progressBar_->Initialize("white.png");
+  progressBar_->SetTranslate({ 930.0f, 660.0f });
+  progressBar_->SetScale({ 0.0f, 20.0f }); // 最初は幅0
+  progressBar_->SetColor({ 1.0f, 0.9f, 0.0f, 1.0f }); // 黄色
+
+  // 4. カバー演出UI
+  coverOverlay_ = std::make_unique<Sprite>();
+  coverOverlay_->Initialize("white.png");
+  coverOverlay_->SetTranslate({ 0.0f, 470.0f });
+  coverOverlay_->SetScale({ 1280.0f, 250.0f });
+  coverOverlay_->SetColor({ 0.0f, 0.0f, 0.0f, 0.6f }); // 半透明黒
 }
 
 void ShootingScene::Update() {
@@ -213,9 +319,6 @@ void ShootingScene::Update() {
       phaseTimer_ = 0.0f;
     }
 
-    // 2Dスプライトの更新のみ実施（ゲームのメイン更新はスキップして一時停止）
-    /*leftSideSprite_->Update();
-    rightSideSprite_->Update();*/
     return;
   }
 
@@ -291,8 +394,6 @@ void ShootingScene::Update() {
       phaseTimer_ = 0.0f;
     }
 
-    /*leftSideSprite_->Update();
-    rightSideSprite_->Update();*/
     return;
   }
 
@@ -355,6 +456,7 @@ void ShootingScene::Update() {
   }
   camera_->SetTranslate(camPos);
 
+#ifdef USE_IMGUI
   // A/Dキーでカメラ回転
   if (Input::GetInstance()->IsKeyDown(DIK_A)) {
     cameraYaw_ -= kHalfPI / 100.0f;
@@ -364,6 +466,7 @@ void ShootingScene::Update() {
   }
   Vector3 currentRot = camera_->GetRotate();
   camera_->SetRotate({currentRot.x, cameraYaw_, currentRot.z});
+#endif // USE_IMGUI
 
   // エネミーの出現チェック (進行中のみ)
   if (!isMovementPaused_) {
@@ -400,10 +503,10 @@ void ShootingScene::Update() {
     hitFeedbackTimer_ -= kDeltaTime;
 
     // Planeの回転角を更新（Y軸/Z軸で回転）
-    Vector3 rot = hitEffectPlane_->GetRotation();
+    /*Vector3 rot = hitEffectPlane_->GetRotation();
     rot.y += 0.1f;
     rot.z += 0.1f;
-    hitEffectPlane_->SetRotation(rot);
+    hitEffectPlane_->SetRotation(rot);*/
     // 位置は当たり判定時に設定済み
   }
 
@@ -445,26 +548,18 @@ void ShootingScene::Update() {
 
     // オブジェクトの更新
     enemy.object->Update(mainViewIndex_, camera_.get());
-    /* enemy.object->Update(leftViewIndex_, leftCamera_.get());
-     enemy.object->Update(rightViewIndex_, rightCamera_.get());*/
   }
 
-  if (hitFeedbackTimer_ > 0) {
+  /*if (hitFeedbackTimer_ > 0) {
     hitEffectPlane_->Update(mainViewIndex_, camera_.get());
-    /* hitEffectPlane_->Update(leftViewIndex_, leftCamera_.get());
-     hitEffectPlane_->Update(rightViewIndex_, rightCamera_.get());*/
-  }
+  }*/
 
   skybox_->Update(mainViewIndex_, camera_.get());
-  /*skybox_->Update(leftViewIndex_, leftCamera_.get());
-  skybox_->Update(rightViewIndex_, rightCamera_.get());*/
 
   // プロジェクタイルの移動・行列更新
   for (auto &p : projectiles_) {
     p->Update();
     p->Update(mainViewIndex_, camera_.get());
-    /*p->Update(leftViewIndex_, leftCamera_.get());
-    p->Update(rightViewIndex_, rightCamera_.get());*/
   }
 
   // カメラとの当たり判定（プレイヤー被弾処理）
@@ -493,8 +588,6 @@ void ShootingScene::Update() {
                                                 vignetteExponent_);
           projectiles_.clear();
 
-          /*  leftSideSprite_->Update();
-            rightSideSprite_->Update();*/
           return; // ここでUpdateを抜けてゲームを一時停止させる
         }
       }
@@ -525,20 +618,6 @@ void ShootingScene::Update() {
   ScreenToClient(Win32Window::GetInstance()->GetHwnd(), &mousePos);
   crosshair_->SetTranslate({(float)mousePos.x, (float)mousePos.y});
   crosshair_->Update();
-  /*leftSideSprite_->Update();
-  rightSideSprite_->Update();*/
-
-  // カメラ更新
-  /*leftCamera_->SetTranslate(camera_->GetTranslate());
-  leftCamera_->SetRotate({ camera_->GetRotate().x,
-                          camera_->GetRotate().y - kHalfPI,
-                          camera_->GetRotate().z });
-  leftCamera_->Update();
-  rightCamera_->SetTranslate(camera_->GetTranslate());
-  rightCamera_->SetRotate({ camera_->GetRotate().x,
-                           camera_->GetRotate().y + kHalfPI,
-                           camera_->GetRotate().z });
-  rightCamera_->Update();*/
   camera_->Update();
 
   // 射撃（クリック）処理
@@ -571,47 +650,30 @@ void ShootingScene::Update() {
           enemy.isActive = false;
           hitAny = true;
           hitPos = enemyPos;
+          // 敵撃破時にリングパーティクルのUVアニメーション設定を初期化して放出
+          if (auto* emitter = ParticleManager::GetInstance()->GetEmitter(ringParticleGroupName_)) {
+            emitter->uvAnimationSettings.currentTranslate = { 0.0f, 0.0f };
+            emitter->uvAnimationSettings.currentRotate = 0.0f;
+            emitter->uvAnimationSettings.currentScale = { 1.0f, 1.0f };
+            emitter->isPlaying = true;
+          }
+          ParticleManager::GetInstance()->Emit(ringParticleGroupName_, enemyPos, 32);
           break; // 1回で1体倒す
-        }
-      }
-    }
-
-    if (hitAny) {
-      isHit_ = true;
-      hitFeedbackTimer_ = 0.2f;
-      hitEffectPlane_->SetTranslate(hitPos);
-      hitEffectPlane_->Update(mainViewIndex_, camera_.get());
-      /*hitEffectPlane_->Update(leftViewIndex_, leftCamera_.get());
-      hitEffectPlane_->Update(rightViewIndex_, rightCamera_.get());*/
-    }
-
-    // プロジェクタイルへの当たり判定（撃ち落とし）
-    for (auto &p : projectiles_) {
-      Vector3 pPos = p->GetPosition();
-      Vector3 toProjectile = Subtract(pPos, nearPos);
-      float tp = Dot(toProjectile, rayDir);
-      if (tp > 0) {
-        Vector3 closestPoint = Add(nearPos, Multiply(tp, rayDir));
-        float distance = Length(Subtract(pPos, closestPoint));
-        if (distance < p->GetRadius() * 2.0f) {
-          p->Kill();
         }
       }
     }
   }
 
-  // クリア判定 (終点到達かつ敵が全滅)
+  // クリア判定
   if (cameraProgress_ >= maxProgress_) {
-    bool allDead = true;
+    bool allEnemiesDead = true;
     for (const auto &enemy : enemies_) {
       if (!enemy.isDead) {
-        allDead = false;
+        allEnemiesDead = false;
         break;
       }
     }
-    if (allDead) {
-      // クリア時の暗転演出へ
-      // (ゲームオーバーの暗転処理を流用して初期状態からリスタート)
+    if (allEnemiesDead) {
       phase_ = Phase::GameOverVignette;
       phaseTimer_ = 0.0f;
       vignetteScale_ = 16.0f;
@@ -625,48 +687,102 @@ void ShootingScene::Update() {
       return;
     }
   }
-}
-void ShootingScene::DrawOffscreen() {
-  auto *cmd = DX12Context::GetInstance()->GetCommandList();
 
-  // 左側カメラの描画 (ViewIndex 1)
-  // leftRT_->PreDraw(cmd);
-  // Object3dCommon::GetInstance()->SetCommonDrawSettings(
-  //    static_cast<BlendState>(currentBlendMode_));
-  // if (isShowMaterial_) {
-  //  if (hitFeedbackTimer_ > 0 && hitEffectPlane_)
-  //    hitEffectPlane_->Draw(1);
-  //  for (auto &enemy : enemies_) {
-  //    if (enemy.isActive && !enemy.isDead) {
-  //      enemy.object->Draw(1);
-  //    }
-  //  }
-  //}
-  // for (auto &p : projectiles_)
-  //  p->Draw(1);
-  // if (isShowSkybox_)
-  //  skybox_->Draw(1);
-  // leftRT_->PostDraw(cmd);
+  // -----------------------------------------------------------------
+  // UIスプライトの更新処理
+  // -----------------------------------------------------------------
+  // 1. ライフUIの更新
+  {
+    int currentLife = kMaxHits - hitCount_;
+    if (currentLife < 0) currentLife = 0;
 
-  //// 右側カメラの描画 (ViewIndex 2)
-  // rightRT_->PreDraw(cmd);
-  // Object3dCommon::GetInstance()->SetCommonDrawSettings(
-  //     static_cast<BlendState>(currentBlendMode_));
-  // if (isShowMaterial_) {
-  //   if (hitFeedbackTimer_ > 0 && hitEffectPlane_)
-  //     hitEffectPlane_->Draw(2);
-  //   for (auto &enemy : enemies_) {
-  //     if (enemy.isActive && !enemy.isDead) {
-  //       enemy.object->Draw(2);
-  //     }
-  //   }
-  // }
-  // for (auto &p : projectiles_)
-  //   p->Draw(2);
-  // if (isShowSkybox_)
-  //   skybox_->Draw(2);
-  // rightRT_->PostDraw(cmd);
+    for (int i = 0; i < currentLife; ++i) {
+      lifeTargetX_[i] = 1214.0f - (currentLife - 1 - i) * 24.0f;
+      lifeCurrentX_[i] += (lifeTargetX_[i] - lifeCurrentX_[i]) * 0.15f;
+      lifeUnits_[i]->SetTranslate({ lifeCurrentX_[i], 37.0f });
+      lifeUnits_[i]->Update();
+    }
+    lifeBg_->Update();
+  }
+
+  // 2. 弾薬UIの更新
+  {
+    // リロード判定
+    bool isReloading = isCovering_ && (ammo_ < kMaxAmmo);
+
+    if (isReloading) {
+      // リロード中の補充アニメーション（全体の85%の時間で装填を完了させ、スライドの余裕を作る）
+      float t = reloadTimer_ / (kReloadDuration * 0.85f);
+      if (t > 1.0f) t = 1.0f;
+      int reloadCount = static_cast<int>(t * kMaxAmmo);
+
+      float blinkAlpha = 0.4f + 0.6f * std::abs(std::sin(reloadTimer_ * 20.0f));
+
+      // 新しく装填された弾の現在位置を右端(装填口)にする
+      if (reloadCount > lastReloadCount_) {
+        for (int i = 9 - reloadCount; i <= 9 - 1 - lastReloadCount_; ++i) {
+          if (i >= 0 && i < kMaxAmmo) {
+            ammoCurrentX_[i] = 202.0f;
+          }
+        }
+      }
+      lastReloadCount_ = reloadCount;
+
+      for (int i = 0; i < kMaxAmmo; ++i) {
+        if (i >= 9 - reloadCount) {
+          // 装填済みの弾
+          ammoTargetX_[i] = 202.0f - (i + reloadCount - 9) * 20.0f;
+          ammoCurrentX_[i] += (ammoTargetX_[i] - ammoCurrentX_[i]) * 0.15f;
+          ammoUnits_[i]->SetTranslate({ ammoCurrentX_[i], 648.0f });
+          ammoUnits_[i]->SetColor({ 183.0f/255.0f, 132.0f/255.0f, 48.0f/255.0f, blinkAlpha });
+        } else {
+          // まだ装填されていない弾（非表示）
+          ammoUnits_[i]->SetColor({ 0.0f, 0.0f, 0.0f, 0.0f });
+        }
+        ammoUnits_[i]->Update();
+      }
+    } else {
+      // 通常時
+      lastReloadCount_ = 0; // 通常時はカウントをリセット
+
+      int currentAmmo = ammo_;
+      for (int i = 0; i < kMaxAmmo; ++i) {
+        if (i >= 9 - currentAmmo) {
+          // 残っている弾
+          ammoTargetX_[i] = 202.0f - (i - 9 + currentAmmo) * 20.0f;
+          ammoCurrentX_[i] += (ammoTargetX_[i] - ammoCurrentX_[i]) * 0.15f;
+          ammoUnits_[i]->SetTranslate({ ammoCurrentX_[i], 648.0f });
+          ammoUnits_[i]->SetColor({ 183.0f/255.0f, 132.0f/255.0f, 48.0f/255.0f, 1.0f });
+        } else {
+          // 消費された弾（非表示）
+          ammoUnits_[i]->SetColor({ 0.0f, 0.0f, 0.0f, 0.0f });
+        }
+        ammoUnits_[i]->Update();
+      }
+    }
+    ammoBg_->Update();
+  }
+
+  // 3. プログレスバーの更新
+  {
+    float progressRatio = cameraProgress_ / maxProgress_;
+    if (progressRatio > 1.0f) progressRatio = 1.0f;
+    progressBar_->SetScale({ 300.0f * progressRatio, 20.0f });
+    progressBar_->Update();
+    progressBg_->Update();
+  }
+
+  // 4. カバー演出の更新
+  if (isCovering_) {
+    coverOverlay_->Update();
+  }
+
+  // パーティクルの更新
+  ParticleManager::GetInstance()->SetIsUpdate(true);
+  ParticleManager::GetInstance()->SetUseBillboard(false);
+  ParticleManager::GetInstance()->Update(*camera_, kDeltaTime);
 }
+
 
 #ifdef USE_IMGUI
 // ImGui操作の更新
@@ -872,8 +988,8 @@ void ShootingScene::Draw() {
 
   // メインカメラ (ViewIndex 0)
   if (isShowMaterial_) {
-    if (hitFeedbackTimer_ > 0 && hitEffectPlane_)
-      hitEffectPlane_->Draw(0);
+    /*if (hitFeedbackTimer_ > 0 && hitEffectPlane_)
+      hitEffectPlane_->Draw(0);*/
     for (auto &enemy : enemies_) {
       if (enemy.isActive && !enemy.isDead) {
         enemy.object->Draw(0);
@@ -885,14 +1001,53 @@ void ShootingScene::Draw() {
   if (isShowSkybox_)
     skybox_->Draw(0);
 
+  // パーティクルの描画 (加算合成)
+  ParticleManager::GetInstance()->Draw(BlendMode::BlendState::kBlendModeAdd);
+
   // スプライトの描画
   SpriteCommon::GetInstance()->SetCommonDrawSettings(
       static_cast<BlendState>(currentBlendMode_));
+
+  // 1. カバー演出
+  if (isCovering_ && coverOverlay_) {
+    coverOverlay_->Draw();
+  }
+
+  // 2. UIの下地
+  if (lifeBg_) lifeBg_->Draw();
+  if (ammoBg_) ammoBg_->Draw();
+  if (progressBg_) progressBg_->Draw();
+
+  // 3. UIのゲージ（メモリやバー）
+  // ライフメモリ
+  {
+    int currentLife = kMaxHits - hitCount_;
+    if (currentLife < 0) currentLife = 0;
+    for (int i = 0; i < currentLife; ++i) {
+      if (lifeUnits_[i]) {
+        lifeUnits_[i]->Draw();
+      }
+    }
+  }
+
+  // 弾薬メモリ
+  {
+    for (int i = 0; i < kMaxAmmo; ++i) {
+      if (ammoUnits_[i]) {
+        ammoUnits_[i]->Draw();
+      }
+    }
+  }
+
+  // プログレスバー
+  if (progressBar_) {
+    progressBar_->Draw();
+  }
+
+  // 4. 照準
   if (isShowSprite_) {
     if (crosshair_)
       crosshair_->Draw();
-    /*leftSideSprite_->Draw();
-    rightSideSprite_->Draw();*/
   }
 }
 

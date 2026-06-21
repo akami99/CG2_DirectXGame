@@ -21,7 +21,7 @@ public:
 
   void Initialize() override;
   void Update() override;
-  void DrawOffscreen() override;
+
   void Draw() override;
   void Finalize() override;
 
@@ -55,8 +55,6 @@ private:
 private:
   // カメラ
   std::unique_ptr<Camera> camera_;
-  /*std::unique_ptr<Camera> leftCamera_;
-  std::unique_ptr<Camera> rightCamera_;*/
 
   // スカイボックス
   std::unique_ptr<Skybox> skybox_;
@@ -76,22 +74,16 @@ private:
   std::vector<EnemyInfo> enemies_;
 
   // ヒットエフェクト（Planeモデル）
-  std::unique_ptr<Object3d> hitEffectPlane_;
-  std::unique_ptr<Model> hitEffectPlaneModel_;
+  /*std::unique_ptr<Object3d> hitEffectPlane_;
+  std::unique_ptr<Model> hitEffectPlaneModel_;*/
 
   // 照準（スプライト）
   std::unique_ptr<Sprite> crosshair_;
 
-  // オフスクリーン用
-  /*std::unique_ptr<RenderTexture> leftRT_;
-  std::unique_ptr<RenderTexture> rightRT_;
-  std::unique_ptr<Sprite> leftSideSprite_;
-  std::unique_ptr<Sprite> rightSideSprite_;*/
+  // オフスクリーン用分岐戦闘の際には記述する
 
-  // ビューのインデックス（0: Main, 1: Left, 2: Right）
+  // ビューのインデックス（0: Main）
   int mainViewIndex_ = 0;
-  /*int leftViewIndex_ = 1;
-  int rightViewIndex_ = 2;*/
 
   // ゲームロジック用変数
   float targetTimer_ = 0.0f;
@@ -139,6 +131,7 @@ private:
   const std::string enemyModel_ = "enemy.obj";
   // テクスチャファイルパスを保持
   const std::string crosshairPath_ = "crosshair.png";
+  const std::string ringParticleGroupName_ = "RingShapeGroup";
 
   // レベルデータ
   std::unique_ptr<LevelData> levelData_;
@@ -159,4 +152,25 @@ private:
 
   // レール座標計算用ヘルパー関数
   Vector3 CalculateRailPosition(float progress);
+
+  // UI用スプライト
+  // ライフUI
+  std::unique_ptr<Sprite> lifeBg_;
+  std::vector<std::unique_ptr<Sprite>> lifeUnits_;
+  std::vector<float> lifeCurrentX_;
+  std::vector<float> lifeTargetX_;
+
+  // 弾薬UI
+  std::unique_ptr<Sprite> ammoBg_;
+  std::vector<std::unique_ptr<Sprite>> ammoUnits_;
+  std::vector<float> ammoCurrentX_;
+  std::vector<float> ammoTargetX_;
+  int lastReloadCount_ = 0;
+
+  // プログレスバーUI
+  std::unique_ptr<Sprite> progressBg_;
+  std::unique_ptr<Sprite> progressBar_;
+
+  // カバー演出UI
+  std::unique_ptr<Sprite> coverOverlay_;
 };
