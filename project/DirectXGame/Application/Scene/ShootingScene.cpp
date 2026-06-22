@@ -21,6 +21,9 @@ ShootingScene::ShootingScene() = default;
 ShootingScene::~ShootingScene() = default;
 
 void ShootingScene::Initialize() {
+  // 完成版ではマウスカーソルを非表示にする
+  //ShowCursor(FALSE);
+
   // レベルデータのロード
   levelData_ = LevelLoader::LoadFile("testScene");
 
@@ -108,7 +111,7 @@ void ShootingScene::Initialize() {
   ringEmitter.isLoop = false;
   
   ringEmitter.generateSettings.isRandomScale = false;
-  ringEmitter.generateSettings.fixedScale = { 0.250f, 0.500f, 1.000f };
+  ringEmitter.generateSettings.fixedScale = { 1.000f, 2.000f, 4.000f };
   
   ringEmitter.generateSettings.isRandomRotate = true;
   ringEmitter.generateSettings.rotateMin = { 0.000f, 0.000f, -3.142f };
@@ -128,7 +131,7 @@ void ShootingScene::Initialize() {
   ringEmitter.fieldSettings.isGravityFieldActive = false;
   
   ringEmitter.uvAnimationSettings.isActive = true;
-  ringEmitter.uvAnimationSettings.isIndividual = false;
+  ringEmitter.uvAnimationSettings.isIndividual = true;
   ringEmitter.uvAnimationSettings.scrollSpeed = { 2.000f, 0.000f };
   ringEmitter.uvAnimationSettings.rotateSpeed = 0.180f;
   ringEmitter.uvAnimationSettings.scaleSpeed = { 1.500f, -1.200f };
@@ -150,6 +153,178 @@ void ShootingScene::Initialize() {
       rs->settings.fadeRange = 0.000f;
   }
   ParticleManager::GetInstance()->SetEmitter(ringParticleGroupName_, ringEmitter);
+
+  // 追加エフェクトグループの生成・初期化
+  // 1. シリンダー撃破エフェクト
+  ParticleManager::GetInstance()->CreateParticleGroup("CylinderGroup", "Particles/circle.png");
+  {
+    Transform cylinderTransform = {
+        { 1.000f, 1.000f, 1.000f }, // scale
+        { 0.000f, 0.000f, 0.000f }, // rotate
+        { 0.000f, 0.000f, 0.000f }  // translate
+    };
+    ParticleEmitter cylinderEmitter(cylinderTransform, 16, 0.400f);
+    cylinderEmitter.isEmit = false;
+    cylinderEmitter.isEffectMode = true;
+    cylinderEmitter.isLoop = false;
+    cylinderEmitter.generateSettings.isRandomScale = false;
+    cylinderEmitter.generateSettings.fixedScale = { 0.500f, 2.000f, 0.500f };
+    cylinderEmitter.generateSettings.isRandomRotate = false;
+    cylinderEmitter.generateSettings.fixedRotate = { 0.000f, 0.000f, 0.000f };
+    cylinderEmitter.generateSettings.isRandomVelocity = false;
+    cylinderEmitter.generateSettings.fixedVelocity = { 0.000f, 3.000f, 0.000f };
+    cylinderEmitter.generateSettings.isRandomLifeTime = false;
+    cylinderEmitter.generateSettings.fixedLifeTime = 0.800f;
+    cylinderEmitter.generateSettings.isRandomColor = true;
+    cylinderEmitter.generateSettings.colorMin = { 0.0f, 0.5f, 0.5f, 1.0f };
+    cylinderEmitter.generateSettings.colorMax = { 0.5f, 1.0f, 1.0f, 1.0f };
+    cylinderEmitter.fieldSettings.isAccelerationFieldActive = false;
+    cylinderEmitter.fieldSettings.isGravityFieldActive = false;
+    cylinderEmitter.uvAnimationSettings.isActive = true;
+    cylinderEmitter.uvAnimationSettings.isIndividual = true;
+    cylinderEmitter.uvAnimationSettings.scrollSpeed = { 0.000f, -2.000f };
+    cylinderEmitter.uvAnimationSettings.rotateSpeed = 0.000f;
+    cylinderEmitter.uvAnimationSettings.scaleSpeed = { 0.500f, 1.500f };
+    cylinderEmitter.SetShapeType(ParticleShapeType::Cylinder);
+    if (auto* cs = cylinderEmitter.GetCylinderShape()) {
+        cs->settings.height = 1.0f;
+        cs->settings.topRadius = { 0.1f, 0.1f };
+        cs->settings.bottomRadius = { 0.1f, 0.1f };
+        cs->settings.startAngle = 0.0f;
+        cs->settings.endAngle = 360.0f;
+        cs->settings.division = 32;
+        cs->settings.verticalDivision = 1;
+        cs->settings.flipV = false;
+        cs->settings.isUvSwap = false;
+        cs->settings.topColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+        cs->settings.bottomColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+        cs->settings.fadeStartAlpha = 1.000f;
+        cs->settings.fadeEndAlpha = 1.000f;
+        cs->settings.fadeRange = 0.000f;
+        cs->settings.alphaReference = 0.0f;
+    }
+    ParticleManager::GetInstance()->SetEmitter("CylinderGroup", cylinderEmitter);
+  }
+
+  // 2. スパーク撃破エフェクト
+  ParticleManager::GetInstance()->CreateParticleGroup("SparkGroup", "white.png");
+  {
+    Transform sparkTransform = {
+        { 1.000f, 1.000f, 1.000f }, // scale
+        { 0.000f, 0.000f, 0.000f }, // rotate
+        { 0.000f, 0.000f, 0.000f }  // translate
+    };
+    ParticleEmitter sparkEmitter(sparkTransform, 30, 0.400f);
+    sparkEmitter.isEmit = false;
+    sparkEmitter.isEffectMode = true;
+    sparkEmitter.isLoop = false;
+    sparkEmitter.generateSettings.isRandomScale = true;
+    sparkEmitter.generateSettings.scaleMin = { 0.05f, 0.05f, 0.05f };
+    sparkEmitter.generateSettings.scaleMax = { 0.20f, 0.20f, 0.20f };
+    sparkEmitter.generateSettings.isRandomRotate = true;
+    sparkEmitter.generateSettings.rotateMin = { 0.0f, 0.0f, -3.14f };
+    sparkEmitter.generateSettings.rotateMax = { 0.0f, 0.0f, 3.14f };
+    sparkEmitter.generateSettings.isRandomVelocity = true;
+    sparkEmitter.generateSettings.velocityMin = { -3.0f, 1.0f, -3.0f };
+    sparkEmitter.generateSettings.velocityMax = { 3.0f, 6.0f, 3.0f };
+    sparkEmitter.generateSettings.isRandomLifeTime = true;
+    sparkEmitter.generateSettings.lifeTimeMin = 0.3f;
+    sparkEmitter.generateSettings.lifeTimeMax = 0.6f;
+    sparkEmitter.generateSettings.isRandomColor = true;
+    sparkEmitter.generateSettings.colorMin = { 1.0f, 0.4f, 0.0f, 1.0f };
+    sparkEmitter.generateSettings.colorMax = { 1.0f, 1.0f, 0.0f, 1.0f };
+    sparkEmitter.fieldSettings.isAccelerationFieldActive = false;
+    sparkEmitter.fieldSettings.isGravityFieldActive = true;
+    sparkEmitter.fieldSettings.gravity = { 0.0f, -9.8f, 0.0f };
+    sparkEmitter.uvAnimationSettings.isActive = false;
+    sparkEmitter.SetShapeType(ParticleShapeType::Billboard);
+    ParticleManager::GetInstance()->SetEmitter("SparkGroup", sparkEmitter);
+  }
+
+  // 3. リロード完了サークルエフェクト
+  ParticleManager::GetInstance()->CreateParticleGroup("ReloadCompleteGroup", "Particles/circle.png");
+  {
+    Transform reloadCompleteTransform = {
+        { 1.000f, 1.000f, 1.000f }, // scale
+        { 0.000f, 0.000f, 0.000f }, // rotate
+        { 0.000f, 0.000f, 0.000f }  // translate
+    };
+    ParticleEmitter reloadCompleteEmitter(reloadCompleteTransform, 8, 0.400f);
+    reloadCompleteEmitter.isEmit = false;
+    reloadCompleteEmitter.isEffectMode = true;
+    reloadCompleteEmitter.isLoop = false;
+    reloadCompleteEmitter.generateSettings.isRandomScale = false;
+    reloadCompleteEmitter.generateSettings.fixedScale = { 0.500f, 0.500f, 1.000f };
+    reloadCompleteEmitter.generateSettings.isRandomRotate = true;
+    reloadCompleteEmitter.generateSettings.rotateMin = { 0.0f, 0.0f, -3.14f };
+    reloadCompleteEmitter.generateSettings.rotateMax = { 0.0f, 0.0f, 3.14f };
+    reloadCompleteEmitter.generateSettings.isRandomVelocity = false;
+    reloadCompleteEmitter.generateSettings.fixedVelocity = { 0.000f, 0.000f, 0.000f };
+    reloadCompleteEmitter.generateSettings.isRandomLifeTime = false;
+    reloadCompleteEmitter.generateSettings.fixedLifeTime = 0.600f;
+    reloadCompleteEmitter.generateSettings.isRandomColor = true;
+    reloadCompleteEmitter.generateSettings.colorMin = { 0.0f, 0.8f, 0.2f, 1.0f };
+    reloadCompleteEmitter.generateSettings.colorMax = { 0.5f, 1.0f, 0.5f, 1.0f };
+    reloadCompleteEmitter.fieldSettings.isAccelerationFieldActive = false;
+    reloadCompleteEmitter.fieldSettings.isGravityFieldActive = false;
+    reloadCompleteEmitter.uvAnimationSettings.isActive = true;
+    reloadCompleteEmitter.uvAnimationSettings.isIndividual = true;
+    reloadCompleteEmitter.uvAnimationSettings.scrollSpeed = { 1.500f, 0.000f };
+    reloadCompleteEmitter.uvAnimationSettings.rotateSpeed = 0.100f;
+    reloadCompleteEmitter.uvAnimationSettings.scaleSpeed = { 2.500f, -2.000f };
+    reloadCompleteEmitter.SetShapeType(ParticleShapeType::Ring);
+    if (auto* rs = reloadCompleteEmitter.GetRingShape()) {
+        rs->settings.innerRadius = 0.010f;
+        rs->settings.startOuterRadius = 0.500f;
+        rs->settings.midOuterRadius = 1.500f;
+        rs->settings.endOuterRadius = 3.000f;
+        rs->settings.startAngle = 0.000f;
+        rs->settings.endAngle = 360.000f;
+        rs->settings.division = 32;
+        rs->settings.isUvSwap = false;
+        rs->settings.innerColor = { 1.000f, 1.000f, 1.000f, 1.000f };
+        rs->settings.outerColor = { 1.000f, 1.000f, 1.000f, 1.000f };
+        rs->settings.fadeStartAlpha = 1.000f;
+        rs->settings.fadeEndAlpha = 1.000f;
+        rs->settings.fadeRange = 0.000f;
+    }
+    ParticleManager::GetInstance()->SetEmitter("ReloadCompleteGroup", reloadCompleteEmitter);
+  }
+
+  // 4. アモUI消費スパークエフェクト
+  ParticleManager::GetInstance()->CreateParticleGroup("AmmoSparkGroup", "white.png");
+  {
+    Transform ammoSparkTransform = {
+        { 1.000f, 1.000f, 1.000f }, // scale
+        { 0.000f, 0.000f, 0.000f }, // rotate
+        { 0.000f, 0.000f, 0.000f }  // translate
+    };
+    ParticleEmitter ammoSparkEmitter(ammoSparkTransform, 10, 0.400f);
+    ammoSparkEmitter.isEmit = false;
+    ammoSparkEmitter.isEffectMode = true;
+    ammoSparkEmitter.isLoop = false;
+    ammoSparkEmitter.generateSettings.isRandomScale = true;
+    ammoSparkEmitter.generateSettings.scaleMin = { 0.01f, 0.01f, 0.01f };
+    ammoSparkEmitter.generateSettings.scaleMax = { 0.02f, 0.02f, 0.02f };
+    ammoSparkEmitter.generateSettings.isRandomRotate = true;
+    ammoSparkEmitter.generateSettings.rotateMin = { 0.0f, 0.0f, -3.14f };
+    ammoSparkEmitter.generateSettings.rotateMax = { 0.0f, 0.0f, 3.14f };
+    ammoSparkEmitter.generateSettings.isRandomVelocity = true;
+    ammoSparkEmitter.generateSettings.velocityMin = { -0.5f, -1.5f, 0.2f };
+    ammoSparkEmitter.generateSettings.velocityMax = { 1.5f, -0.2f, 1.0f };
+    ammoSparkEmitter.generateSettings.isRandomLifeTime = true;
+    ammoSparkEmitter.generateSettings.lifeTimeMin = 0.15f;
+    ammoSparkEmitter.generateSettings.lifeTimeMax = 0.35f;
+    ammoSparkEmitter.generateSettings.isRandomColor = true;
+    ammoSparkEmitter.generateSettings.colorMin = { 1.0f, 0.6f, 0.1f, 1.0f };
+    ammoSparkEmitter.generateSettings.colorMax = { 1.0f, 0.8f, 0.2f, 1.0f };
+    ammoSparkEmitter.fieldSettings.isAccelerationFieldActive = false;
+    ammoSparkEmitter.fieldSettings.isGravityFieldActive = true;
+    ammoSparkEmitter.fieldSettings.gravity = { 0.0f, -4.0f, 0.0f };
+    ammoSparkEmitter.uvAnimationSettings.isActive = false;
+    ammoSparkEmitter.SetShapeType(ParticleShapeType::Billboard);
+    ParticleManager::GetInstance()->SetEmitter("AmmoSparkGroup", ammoSparkEmitter);
+  }
 
   // スカイボックスの初期化
   skybox_ = std::make_unique<Skybox>();
@@ -437,6 +612,19 @@ void ShootingScene::Update() {
       if (reloadTimer_ >= kReloadDuration) {
         ammo_ = kMaxAmmo;
         reloadTimer_ = 0.0f;
+
+        // リロード完了エフェクトをカメラの目の前に発生させる
+        Vector3 camPos = camera_->GetTranslate();
+        Vector3 camRot = camera_->GetRotate();
+        float sinY = std::sin(camRot.y);
+        float cosY = std::cos(camRot.y);
+        Vector3 forward = { sinY, 0.0f, cosY };
+        Vector3 spawnPos = Add(camPos, Multiply(1.5f, forward));
+        
+        if (auto* emitter = ParticleManager::GetInstance()->GetEmitter("ReloadCompleteGroup")) {
+          emitter->isPlaying = true;
+        }
+        ParticleManager::GetInstance()->Emit("ReloadCompleteGroup", spawnPos, 8);
       }
     }
   } else {
@@ -624,6 +812,22 @@ void ShootingScene::Update() {
   if (!isCovering_ && ammo_ > 0 &&
       Input::GetInstance()->IsMouseButtonTriggered(0)) {
     ammo_--; // 弾数を減らす
+
+    // アモUI消費エフェクトをカメラの左下前方に発生させる
+    Vector3 camPos = camera_->GetTranslate();
+    Vector3 camRot = camera_->GetRotate();
+    float sinY = std::sin(camRot.y);
+    float cosY = std::cos(camRot.y);
+    Vector3 forward = { sinY, 0.0f, cosY };
+    Vector3 right = { cosY, 0.0f, -sinY };
+    Vector3 up = { 0.0f, 1.0f, 0.0f };
+    Vector3 spawnPos = Add(camPos, Add(Multiply(1.5f, forward), Add(Multiply(-0.4f, right), Multiply(-0.3f, up))));
+    
+    if (auto* emitter = ParticleManager::GetInstance()->GetEmitter("AmmoSparkGroup")) {
+      emitter->isPlaying = true;
+    }
+    ParticleManager::GetInstance()->Emit("AmmoSparkGroup", spawnPos, 1);
+
     float x = (float)mousePos.x / Win32Window::kClientWidth * 2.0f - 1.0f;
     float y = 1.0f - (float)mousePos.y / Win32Window::kClientHeight * 2.0f;
     Matrix4x4 vp = camera_->GetViewProjectionMatrix();
@@ -650,14 +854,23 @@ void ShootingScene::Update() {
           enemy.isActive = false;
           hitAny = true;
           hitPos = enemyPos;
-          // 敵撃破時にリングパーティクルのUVアニメーション設定を初期化して放出
-          if (auto* emitter = ParticleManager::GetInstance()->GetEmitter(ringParticleGroupName_)) {
-            emitter->uvAnimationSettings.currentTranslate = { 0.0f, 0.0f };
-            emitter->uvAnimationSettings.currentRotate = 0.0f;
-            emitter->uvAnimationSettings.currentScale = { 1.0f, 1.0f };
+
+          // 敵のインデックスに応じて再生する撃破エフェクトを決定
+          std::string effectName = ringParticleGroupName_; // デフォルトは1体目のリング
+          if (!enemies_.empty()) {
+            size_t idx = &enemy - &enemies_[0];
+            if (idx % 3 == 1) {
+              effectName = "CylinderGroup"; // 2体目：シリンダー
+            } else if (idx % 3 == 2) {
+              effectName = "SparkGroup";    // 3体目：火花
+            }
+          }
+
+          // 敵撃破時にパーティクルを放出
+          if (auto* emitter = ParticleManager::GetInstance()->GetEmitter(effectName)) {
             emitter->isPlaying = true;
           }
-          ParticleManager::GetInstance()->Emit(ringParticleGroupName_, enemyPos, 32);
+          ParticleManager::GetInstance()->Emit(effectName, enemyPos, 32);
           break; // 1回で1体倒す
         }
       }
@@ -673,7 +886,25 @@ void ShootingScene::Update() {
         break;
       }
     }
-    if (allEnemiesDead) {
+
+    // 撃破エフェクトや完了エフェクトが完全に消えるのを待つ
+    bool isEffectFinished = true;
+    std::vector<std::string> clearWaitEffects = {
+        ringParticleGroupName_,
+        "CylinderGroup",
+        "SparkGroup",
+        "ReloadCompleteGroup"
+    };
+    for (const auto& name : clearWaitEffects) {
+      if (auto* emitter = ParticleManager::GetInstance()->GetEmitter(name)) {
+        if (emitter->isPlaying) {
+          isEffectFinished = false;
+          break;
+        }
+      }
+    }
+
+    if (allEnemiesDead && isEffectFinished) {
       phase_ = Phase::GameOverVignette;
       phaseTimer_ = 0.0f;
       vignetteScale_ = 16.0f;
