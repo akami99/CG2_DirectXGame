@@ -73,10 +73,6 @@ private:
   // レベルから読み取った敵オブジェクト群
   std::vector<EnemyInfo> enemies_;
 
-  // ヒットエフェクト（Planeモデル）
-  /*std::unique_ptr<Object3d> hitEffectPlane_;
-  std::unique_ptr<Model> hitEffectPlaneModel_;*/
-
   // 照準（スプライト）
   std::unique_ptr<Sprite> crosshair_;
 

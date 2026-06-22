@@ -362,20 +362,6 @@ void ShootingScene::Initialize() {
     }
   }
 
-  // プリミティブ平面モデルの動的生成
-  /*hitEffectPlaneModel_ = std::make_unique<Model>();
-  PlaneSettings planeSettings;
-  planeSettings.size = {3.0f, 3.0f};
-  planeSettings.divisionX = 1;
-  planeSettings.divisionY = 1;
-  planeSettings.color = {1.0f, 1.0f, 1.0f, 1.0f};
-  hitEffectPlaneModel_->CreatePlane(crosshairPath_, planeSettings);
-
-  hitEffectPlane_ = std::make_unique<Object3d>();
-  hitEffectPlane_->Initialize();
-  hitEffectPlane_->SetModel(hitEffectPlaneModel_.get());
-  hitEffectPlane_->SetCamera(camera_.get());*/
-
   // --- スプライト生成 ---
   crosshair_ = std::make_unique<Sprite>();
   crosshair_->Initialize(crosshairPath_);
@@ -689,13 +675,6 @@ void ShootingScene::Update() {
   // ヒットフィードバックのタイマー更新
   if (hitFeedbackTimer_ > 0) {
     hitFeedbackTimer_ -= kDeltaTime;
-
-    // Planeの回転角を更新（Y軸/Z軸で回転）
-    /*Vector3 rot = hitEffectPlane_->GetRotation();
-    rot.y += 0.1f;
-    rot.z += 0.1f;
-    hitEffectPlane_->SetRotation(rot);*/
-    // 位置は当たり判定時に設定済み
   }
 
   // 各エネミーの更新と射撃処理
@@ -737,10 +716,6 @@ void ShootingScene::Update() {
     // オブジェクトの更新
     enemy.object->Update(mainViewIndex_, camera_.get());
   }
-
-  /*if (hitFeedbackTimer_ > 0) {
-    hitEffectPlane_->Update(mainViewIndex_, camera_.get());
-  }*/
 
   skybox_->Update(mainViewIndex_, camera_.get());
 
@@ -1219,8 +1194,6 @@ void ShootingScene::Draw() {
 
   // メインカメラ (ViewIndex 0)
   if (isShowMaterial_) {
-    /*if (hitFeedbackTimer_ > 0 && hitEffectPlane_)
-      hitEffectPlane_->Draw(0);*/
     for (auto &enemy : enemies_) {
       if (enemy.isActive && !enemy.isDead) {
         enemy.object->Draw(0);
