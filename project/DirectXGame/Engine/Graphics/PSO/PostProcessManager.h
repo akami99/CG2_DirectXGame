@@ -63,8 +63,9 @@ private:
     // アウトライン用の定数バッファ構造体
     struct OutlineParams {
         Matrix4x4 projectionInverse;
-        float edgeMultiplier;
-        float padding[3]; // 16バイトアライメント
+        float depthEdgeMultiplier;
+        float colorEdgeMultiplier;
+        float padding[2]; // 16バイトアライメント
     };
 
     // Radial Blur用の定数バッファ構造体
@@ -132,7 +133,8 @@ private:
     static int smoothingKernelSizeNext_;
     static int gaussianBlurKernelSizeNext_;
     static float gaussianBlurSigmaNext_;
-    static float outlineEdgeMultiplierNext_;
+    static float outlineDepthEdgeMultiplierNext_;
+    static float outlineColorEdgeMultiplierNext_;
     static float radialBlurCenterXNext_;
     static float radialBlurCenterYNext_;
     static float radialBlurWidthNext_;
@@ -153,7 +155,8 @@ private:
     int currentGaussianBlurKernelSize_ = -1;
     float currentGaussianBlurSigma_ = -1.0f;
     Matrix4x4 currentProjectionInverse_{};
-    float currentOutlineEdgeMultiplier_ = -1.0f;
+    float currentOutlineDepthEdgeMultiplier_ = -1.0f;
+    float currentOutlineColorEdgeMultiplier_ = -1.0f;
     float currentRadialBlurCenterX_ = -1.0f;
     float currentRadialBlurCenterY_ = -1.0f;
     float currentRadialBlurWidth_ = -1.0f;
@@ -194,8 +197,9 @@ public:
         gaussianBlurKernelSizeNext_ = kernelSize;
         gaussianBlurSigmaNext_ = sigma;
     }
-    static void SetOutlineParams(float edgeMultiplier) {
-        outlineEdgeMultiplierNext_ = edgeMultiplier;
+    static void SetOutlineParams(float depthEdgeMultiplier, float colorEdgeMultiplier) {
+        outlineDepthEdgeMultiplierNext_ = depthEdgeMultiplier;
+        outlineColorEdgeMultiplierNext_ = colorEdgeMultiplier;
     }
     static void SetRadialBlurParams(float centerX, float centerY, float width, int sampleCount) {
         radialBlurCenterXNext_ = centerX;

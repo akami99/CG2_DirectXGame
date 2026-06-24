@@ -116,15 +116,29 @@ void MyGame::Update() {
       PostProcessManager::SetGaussianBlurParams(kernelSize, sigma);
     }
   } else if (mode == PostProcessManager::kModeOutline) {
-    static float edgeMultiplier = 6.0f;
-    if (ImGui::SliderFloat("Edge Multiplier", &edgeMultiplier, 0.1f, 20.0f)) {
-      if (edgeMultiplier < 0.1f) {
-        edgeMultiplier = 0.1f;
+    static float depthEdgeMultiplier = 6.0f;
+    static float colorEdgeMultiplier = 1.0f;
+    bool changed = false;
+    if (ImGui::SliderFloat("Depth Edge Multiplier", &depthEdgeMultiplier, 0.0f, 20.0f)) {
+      if (depthEdgeMultiplier < 0.0f) {
+        depthEdgeMultiplier = 0.0f;
       }
-      if (edgeMultiplier > 20.0f) {
-        edgeMultiplier = 20.0f;
+      else if (depthEdgeMultiplier > 20.0f) {
+        depthEdgeMultiplier = 20.0f;
       }
-      PostProcessManager::SetOutlineParams(edgeMultiplier);
+      changed = true;
+    }
+    if (ImGui::SliderFloat("Color Edge Multiplier", &colorEdgeMultiplier, 0.0f, 5.0f)) {
+      if (colorEdgeMultiplier < 0.0f) {
+        colorEdgeMultiplier = 0.0f;
+      }
+      else if (colorEdgeMultiplier > 5.0f) {
+        colorEdgeMultiplier = 5.0f;
+      }
+      changed = true;
+    }
+    if (changed) {
+      PostProcessManager::SetOutlineParams(depthEdgeMultiplier, colorEdgeMultiplier);
     }
   } else if (mode == PostProcessManager::kModeRadialBlur) {
     static float center[2] = { 0.5f, 0.5f };
