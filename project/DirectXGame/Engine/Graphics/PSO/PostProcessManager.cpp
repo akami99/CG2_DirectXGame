@@ -28,6 +28,7 @@ float PostProcessManager::dissolveEdgeColorNext_[3] = { 1.0f, 0.4f, 0.3f };
 float PostProcessManager::dissolveThresholdNext_ = 0.0f;
 float PostProcessManager::dissolveEdgeRangeNext_ = 0.02f;
 std::string PostProcessManager::dissolveMaskPathNext_ = "masks/noise0.png";
+float PostProcessManager::randomStrengthNext_ = 0.0f;
 
 PostProcessManager* PostProcessManager::GetInstance() {
     if (!instance_) {
@@ -50,6 +51,7 @@ void PostProcessManager::Initialize() {
     outlinePSO_      = PipelineManager::GetInstance()->CreateOutlinePSO();
     radialBlurPSO_   = PipelineManager::GetInstance()->CreateRadialBlurPSO();
     dissolvePSO_     = PipelineManager::GetInstance()->CreateDissolvePSO();
+    randomPSO_       = PipelineManager::GetInstance()->CreateRandomPSO();
 
     // 定数バッファの生成とマッピング
     paramsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(PostProcessParams));
@@ -101,6 +103,12 @@ void PostProcessManager::Initialize() {
     dissolveParamsMapped_->threshold = 0.0f;
     dissolveParamsMapped_->edgeRange = 0.02f;
 
+    // Random用の定数バッファの生成とマッピング
+    randomParamsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(RandomParams));
+    randomParamsResource_->Map(0, nullptr, reinterpret_cast<void**>(&randomParamsMapped_));
+    randomParamsMapped_->time = 0.0f;
+    randomParamsMapped_->strength = 0.0f;
+
     // マスクテクスチャを事前にロード
     TextureManager::GetInstance()->LoadTexture("masks/noise0.png");
     TextureManager::GetInstance()->LoadTexture("masks/noise1.png");
@@ -142,6 +150,8 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
     const float dissolveEdgeRange = dissolveEdgeRangeNext_;
     const float dissolveEdgeColor[3] = { dissolveEdgeColorNext_[0], dissolveEdgeColorNext_[1], dissolveEdgeColorNext_[2] };
     const std::string dissolveMaskPath = dissolveMaskPathNext_;
+    // Random用のパラメータ
+    const float randomStrength = randomStrengthNext_;
 
     // 深度バッファのリソースバリア（DEPTH_WRITE -> PIXEL_SHADER_RESOURCE）
     bool transitionDepth = (currentMode_ == kModeOutline);
@@ -267,6 +277,18 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
             dissolveParamsMapped_->edgeRange = dissolveEdgeRange;
         }
         commandList->SetGraphicsRootConstantBufferView(0, dissolveParamsResource_->GetGPUVirtualAddress());
+    } else if (currentMode_ == kModeRandom) {
+        // Random (砂嵐ノイズ)
+        commandList->SetPipelineState(randomPSO_.Get());
+
+        // 毎フレーム時間を進める
+        currentRandomTime_ += 1.0f / 60.0f;
+
+        // 時間経過を伴うため毎フレーム更新する
+        randomParamsMapped_->time = currentRandomTime_;
+        randomParamsMapped_->strength = randomStrength;
+
+        commandList->SetGraphicsRootConstantBufferView(0, randomParamsResource_->GetGPUVirtualAddress());
     } else {
         // グレースケール or セピア
         commandList->SetPipelineState(colorFilterPSO_.Get());

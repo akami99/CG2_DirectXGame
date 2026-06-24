@@ -525,5 +525,6 @@
     <FxCompile Include="Resources\Shaders\Outline.PS.hlsl" />
     <FxCompile Include="Resources\Shaders\RadialBlur.PS.hlsl" />
     <FxCompile Include="Resources\Shaders\Dissolve.PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Random.PS.hlsl" />
   </ItemGroup>
 </Project>

@@ -22,6 +22,7 @@ public:
     static constexpr int kModeOutline = 6;
     static constexpr int kModeRadialBlur = 7;
     static constexpr int kModeDissolve = 8;
+    static constexpr int kModeRandom = 9;
 
     // ---- Passkey Idiom ----
     struct Token {
@@ -81,6 +82,13 @@ private:
         float padding[3];
     };
 
+    // Random用の定数バッファ構造体
+    struct RandomParams {
+        float time;
+        float strength;
+        float padding[2]; // 16バイトアライメント
+    };
+
     ComPtr<ID3D12PipelineState> postProcessPSO_; // CopyImage (passthrough)
     ComPtr<ID3D12PipelineState> colorFilterPSO_; // グレースケール/セピア
     ComPtr<ID3D12PipelineState> vignettePSO_;    // ビネット
@@ -109,6 +117,11 @@ private:
 
     ComPtr<ID3D12Resource> dissolveParamsResource_;
     DissolveParams* dissolveParamsMapped_ = nullptr;
+    
+    ComPtr<ID3D12PipelineState> randomPSO_;
+    ComPtr<ID3D12Resource> randomParamsResource_;
+    RandomParams* randomParamsMapped_ = nullptr;
+
     uint32_t depthSrvIndex_ = 0;
 
     // 遅延適用用 (Update から Draw への橋渡し)
@@ -128,6 +141,7 @@ private:
     static float dissolveThresholdNext_;
     static float dissolveEdgeRangeNext_;
     static std::string dissolveMaskPathNext_;
+    static float randomStrengthNext_;
     int currentMode_ = kModeCopy;
 
     // パラメータ適用最適化用（変更時のみ定数バッファを更新するため）
@@ -148,6 +162,8 @@ private:
     float currentDissolveThreshold_ = -1.0f;
     float currentDissolveEdgeRange_ = -1.0f;
     std::string currentDissolveMaskPath_;
+    float currentRandomStrength_ = -1.0f;
+    float currentRandomTime_ = 0.0f;
 
     static std::unique_ptr<PostProcessManager> instance_;
 
@@ -196,6 +212,9 @@ public:
     }
     static void SetDissolveMaskTexture(const std::string& maskPath) {
         dissolveMaskPathNext_ = maskPath;
+    }
+    static void SetRandomParams(float strength) {
+        randomStrengthNext_ = strength;
     }
     int GetCurrentMode() const            { return currentMode_; }
 

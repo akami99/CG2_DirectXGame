@@ -47,7 +47,7 @@ void MyGame::Initialize() {
   SceneManager::GetInstance()->SetSceneFactory(std::move(sceneFactory));
 
   // 文字列で指定(TITLE/GAMEPLAY/SHOOTINGなど)してシーン切り替え予約
-  SceneManager::GetInstance()->ChangeScene("SHOOTING");
+  SceneManager::GetInstance()->ChangeScene("GAMEPLAY");
 }
 
 void MyGame::Finalize() {
@@ -74,7 +74,7 @@ void MyGame::Update() {
   if (ImGui::Combo(
           "Mode", &mode,
           "Copy (None)\0GrayScale\0Sepia\0Vignette\0Smoothing\0Gaussian "
-          "Blur\0Outline\0Radial Blur\0Dissolve\0")) {
+          "Blur\0Outline\0Radial Blur\0Dissolve\0Random\0")) {
     PostProcessManager::SetMode(mode);
   }
   if (mode == PostProcessManager::kModeVignette) {
@@ -177,6 +177,17 @@ void MyGame::Update() {
     }
     if (changed) {
       PostProcessManager::SetDissolveParams(edgeColor, threshold, edgeRange);
+    }
+  } else if (mode == PostProcessManager::kModeRandom) {
+    static float randomStrength = 0.0f;
+    if (ImGui::SliderFloat("Random Strength", &randomStrength, 0.0f, 1.0f)) {
+      if (randomStrength < 0.0f) {
+        randomStrength = 0.0f;
+      }
+      if (randomStrength > 1.0f) {
+        randomStrength = 1.0f;
+      }
+      PostProcessManager::SetRandomParams(randomStrength);
     }
   }
   ImGui::End();

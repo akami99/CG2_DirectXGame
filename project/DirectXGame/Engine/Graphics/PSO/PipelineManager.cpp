@@ -561,6 +561,44 @@ ComPtr<ID3D12PipelineState> PipelineManager::CreateDissolvePSO() {
 	return pso;
 }
 
+// Random用 PSO
+ComPtr<ID3D12PipelineState> PipelineManager::CreateRandomPSO() {
+	// RasterizerState (カリングなし)
+	D3D12_RASTERIZER_DESC rasterizerDesc{};
+	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+	rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
+
+	// DepthStencilState (無効)
+	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
+	depthStencilDesc.DepthEnable = FALSE;
+
+	// BlendState (不透明)
+	D3D12_BLEND_DESC blendDesc{};
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDesc.RenderTarget[0].BlendEnable = FALSE;
+
+	// PSO構築 (postProcess と同じ RootSignature を使用: b0=CBV, t0=SRV)
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
+	psoDesc.pRootSignature = rootSignaturePostProcess_.Get();
+	psoDesc.VS = { vsBlobColorFilter_->GetBufferPointer(), vsBlobColorFilter_->GetBufferSize() };
+	psoDesc.PS = { psBlobRandom_->GetBufferPointer(), psBlobRandom_->GetBufferSize() };
+	psoDesc.InputLayout = { nullptr, 0 };
+	psoDesc.RasterizerState = rasterizerDesc;
+	psoDesc.DepthStencilState = depthStencilDesc;
+	psoDesc.BlendState = blendDesc;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	psoDesc.SampleDesc.Count = 1;
+	psoDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+
+	ComPtr<ID3D12PipelineState> pso;
+	HRESULT hr = DX12Context::GetInstance()->GetDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso));
+	assert(SUCCEEDED(hr));
+
+	return pso;
+}
+
 
 ComPtr<ID3D12PipelineState> PipelineManager::CreateObject3dPSO(
 	const D3D12_INPUT_ELEMENT_DESC* inputLayout, // Object3dCommonが決定
@@ -664,6 +702,10 @@ void PipelineManager::LoadShader() {
 	// Dissolve用
 	psBlobDissolve_ = DX12Context::GetInstance()->CompileShader(L"Dissolve.PS.hlsl", L"ps_6_0");
 	assert(psBlobDissolve_ != nullptr);
+
+	// Random用
+	psBlobRandom_ = DX12Context::GetInstance()->CompileShader(L"Random.PS.hlsl", L"ps_6_0");
+	assert(psBlobRandom_ != nullptr);
 }
 
 // ルートシグネチャの作成
