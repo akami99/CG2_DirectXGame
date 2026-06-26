@@ -131,30 +131,6 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
 
     /// モードとパラメータを遅延適用
     currentMode_ = modeNext_;
-    // パラメータの遅延適用
-    const float strength = strengthNext_;
-    // ビネット用のパラメータ
-    const float vignetteScale = vignetteScaleNext_;
-    const float vignetteExponent = vignetteExponentNext_;
-    // 平滑化用のパラメータ
-    const int smoothingKernelSize = smoothingKernelSizeNext_;
-    // Gaussian Blur用のパラメータ
-    const int gaussianBlurKernelSize = gaussianBlurKernelSizeNext_;
-    const float gaussianBlurSigma = gaussianBlurSigmaNext_;
-    const float outlineDepthEdgeMultiplier = outlineDepthEdgeMultiplierNext_;
-    const float outlineColorEdgeMultiplier = outlineColorEdgeMultiplierNext_;
-    // Radial Blur用のパラメータ
-    const float radialBlurCenterX = radialBlurCenterXNext_;
-    const float radialBlurCenterY = radialBlurCenterYNext_;
-    const float radialBlurWidth = radialBlurWidthNext_;
-    const int radialBlurSampleCount = radialBlurSampleCountNext_;
-    // Dissolve用のパラメータ
-    const float dissolveThreshold = dissolveThresholdNext_;
-    const float dissolveEdgeRange = dissolveEdgeRangeNext_;
-    const float dissolveEdgeColor[3] = { dissolveEdgeColorNext_[0], dissolveEdgeColorNext_[1], dissolveEdgeColorNext_[2] };
-    const std::string dissolveMaskPath = dissolveMaskPathNext_;
-    // Random用のパラメータ
-    const float randomStrength = randomStrengthNext_;
 
     // 深度バッファのリソースバリア（DEPTH_WRITE -> PIXEL_SHADER_RESOURCE）
     bool transitionDepth = (currentMode_ == kModeOutline);
@@ -178,146 +154,26 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
     // 深度描画結果を t1 にセット
     SrvManager::GetInstance()->SetGraphicsRootDescriptorTable(2, depthSrvIndex_);
 
+    // 各モードの描画処理呼び出し
     if (currentMode_ == kModeCopy) {
-        // パススルー
-        commandList->SetPipelineState(postProcessPSO_.Get());
-        if (currentColorFilterMode_ != currentMode_) {
-            currentColorFilterMode_ = currentMode_;
-            paramsMapped_->colorScale[0] = 1.0f;
-            paramsMapped_->colorScale[1] = 1.0f;
-            paramsMapped_->colorScale[2] = 1.0f;
-            paramsMapped_->strength = 1.0f;
-        }
-        commandList->SetGraphicsRootConstantBufferView(0, paramsResource_->GetGPUVirtualAddress());
+        DrawCopy(commandList);
     } else if (currentMode_ == kModeVignette) {
-        // ビネット
-        commandList->SetPipelineState(vignettePSO_.Get());
-        if (currentVignetteScale_ != vignetteScale || currentVignetteExponent_ != vignetteExponent) {
-            currentVignetteScale_ = vignetteScale;
-            currentVignetteExponent_ = vignetteExponent;
-            vignetteParamsMapped_->scale = vignetteScale;
-            vignetteParamsMapped_->exponent = vignetteExponent;
-        }
-        commandList->SetGraphicsRootConstantBufferView(0, vignetteParamsResource_->GetGPUVirtualAddress());
+        DrawVignette(commandList, vignetteScaleNext_, vignetteExponentNext_);
     } else if (currentMode_ == kModeSmoothing) {
-        // 平滑化
-        commandList->SetPipelineState(smoothingPSO_.Get());
-        if (currentSmoothingKernelSize_ != smoothingKernelSize) {
-            currentSmoothingKernelSize_ = smoothingKernelSize;
-            smoothingParamsMapped_->kernelSize = smoothingKernelSize;
-        }
-        commandList->SetGraphicsRootConstantBufferView(0, smoothingParamsResource_->GetGPUVirtualAddress());
+        DrawSmoothing(commandList, smoothingKernelSizeNext_);
     } else if (currentMode_ == kModeGaussianBlur) {
-        // ガウシアンフィルター
-        commandList->SetPipelineState(gaussianBlurPSO_.Get());
-        if (currentGaussianBlurKernelSize_ != gaussianBlurKernelSize || currentGaussianBlurSigma_ != gaussianBlurSigma) {
-            currentGaussianBlurKernelSize_ = gaussianBlurKernelSize;
-            currentGaussianBlurSigma_ = gaussianBlurSigma;
-            gaussianBlurParamsMapped_->kernelSize = gaussianBlurKernelSize;
-            gaussianBlurParamsMapped_->sigma = gaussianBlurSigma;
-        }
-        commandList->SetGraphicsRootConstantBufferView(0, gaussianBlurParamsResource_->GetGPUVirtualAddress());
+        DrawGaussianBlur(commandList, gaussianBlurKernelSizeNext_, gaussianBlurSigmaNext_);
     } else if (currentMode_ == kModeOutline) {
-        // アウトライン
-        commandList->SetPipelineState(outlinePSO_.Get());
-        Camera* camera = Object3dCommon::GetInstance()->GetDefaultCamera();
-        if (camera) {
-            Matrix4x4 proj = camera->GetProjectionMatrix();
-            Matrix4x4 projInv = MathUtils::Inverse(proj);
-            if (std::memcmp(&currentProjectionInverse_, &projInv, sizeof(Matrix4x4)) != 0 || 
-                currentOutlineDepthEdgeMultiplier_ != outlineDepthEdgeMultiplier ||
-                currentOutlineColorEdgeMultiplier_ != outlineColorEdgeMultiplier) {
-                
-                currentProjectionInverse_ = projInv;
-                currentOutlineDepthEdgeMultiplier_ = outlineDepthEdgeMultiplier;
-                currentOutlineColorEdgeMultiplier_ = outlineColorEdgeMultiplier;
-                outlineParamsMapped_->projectionInverse = projInv;
-                outlineParamsMapped_->depthEdgeMultiplier = outlineDepthEdgeMultiplier;
-                outlineParamsMapped_->colorEdgeMultiplier = outlineColorEdgeMultiplier;
-            }
-        }
-        commandList->SetGraphicsRootConstantBufferView(0, outlineParamsResource_->GetGPUVirtualAddress());
+        DrawOutline(commandList, outlineDepthEdgeMultiplierNext_, outlineColorEdgeMultiplierNext_);
     } else if (currentMode_ == kModeRadialBlur) {
-        // Radial Blur
-        commandList->SetPipelineState(radialBlurPSO_.Get());
-        if (currentRadialBlurCenterX_ != radialBlurCenterX ||
-            currentRadialBlurCenterY_ != radialBlurCenterY ||
-            currentRadialBlurWidth_ != radialBlurWidth ||
-            currentRadialBlurSampleCount_ != radialBlurSampleCount) {
-            
-            currentRadialBlurCenterX_ = radialBlurCenterX;
-            currentRadialBlurCenterY_ = radialBlurCenterY;
-            currentRadialBlurWidth_ = radialBlurWidth;
-            currentRadialBlurSampleCount_ = radialBlurSampleCount;
-            
-            radialBlurParamsMapped_->center[0] = radialBlurCenterX;
-            radialBlurParamsMapped_->center[1] = radialBlurCenterY;
-            radialBlurParamsMapped_->blurWidth = radialBlurWidth;
-            radialBlurParamsMapped_->sampleCount = radialBlurSampleCount;
-        }
-        commandList->SetGraphicsRootConstantBufferView(0, radialBlurParamsResource_->GetGPUVirtualAddress());
+        DrawRadialBlur(commandList, radialBlurCenterXNext_, radialBlurCenterYNext_, radialBlurWidthNext_, radialBlurSampleCountNext_);
     } else if (currentMode_ == kModeDissolve) {
-        // Dissolve
-        commandList->SetPipelineState(dissolvePSO_.Get());
-        
-        // t1 (Root Parameter 2) にマスクテクスチャの SRV をバインド
-        uint32_t maskSrvIndex = TextureManager::GetInstance()->GetSrvIndex(dissolveMaskPath);
-        SrvManager::GetInstance()->SetGraphicsRootDescriptorTable(2, maskSrvIndex);
-        
-        if (currentDissolveEdgeColor_[0] != dissolveEdgeColor[0] ||
-            currentDissolveEdgeColor_[1] != dissolveEdgeColor[1] ||
-            currentDissolveEdgeColor_[2] != dissolveEdgeColor[2] ||
-            currentDissolveThreshold_ != dissolveThreshold ||
-            currentDissolveEdgeRange_ != dissolveEdgeRange ||
-            currentDissolveMaskPath_ != dissolveMaskPath) {
-            
-            currentDissolveEdgeColor_[0] = dissolveEdgeColor[0];
-            currentDissolveEdgeColor_[1] = dissolveEdgeColor[1];
-            currentDissolveEdgeColor_[2] = dissolveEdgeColor[2];
-            currentDissolveThreshold_ = dissolveThreshold;
-            currentDissolveEdgeRange_ = dissolveEdgeRange;
-            currentDissolveMaskPath_ = dissolveMaskPath;
-            
-            dissolveParamsMapped_->edgeColor[0] = dissolveEdgeColor[0];
-            dissolveParamsMapped_->edgeColor[1] = dissolveEdgeColor[1];
-            dissolveParamsMapped_->edgeColor[2] = dissolveEdgeColor[2];
-            dissolveParamsMapped_->threshold = dissolveThreshold;
-            dissolveParamsMapped_->edgeRange = dissolveEdgeRange;
-        }
-        commandList->SetGraphicsRootConstantBufferView(0, dissolveParamsResource_->GetGPUVirtualAddress());
+        float edgeColor[3] = { dissolveEdgeColorNext_[0], dissolveEdgeColorNext_[1], dissolveEdgeColorNext_[2] };
+        DrawDissolve(commandList, dissolveThresholdNext_, dissolveEdgeRangeNext_, edgeColor, dissolveMaskPathNext_);
     } else if (currentMode_ == kModeRandom) {
-        // Random (砂嵐ノイズ)
-        commandList->SetPipelineState(randomPSO_.Get());
-
-        // 毎フレーム時間を進める
-        currentRandomTime_ += 1.0f / 60.0f;
-
-        // 時間経過を伴うため毎フレーム更新する
-        randomParamsMapped_->time = currentRandomTime_;
-        randomParamsMapped_->strength = randomStrength;
-
-        commandList->SetGraphicsRootConstantBufferView(0, randomParamsResource_->GetGPUVirtualAddress());
+        DrawRandom(commandList, randomStrengthNext_);
     } else {
-        // グレースケール or セピア
-        commandList->SetPipelineState(colorFilterPSO_.Get());
-
-        if (currentColorFilterMode_ != currentMode_ || currentStrength_ != strength) {
-            currentColorFilterMode_ = currentMode_;
-            currentStrength_ = strength;
-
-            if (currentMode_ == kModeGrayscale) {
-                paramsMapped_->colorScale[0] = 1.0f;
-                paramsMapped_->colorScale[1] = 1.0f;
-                paramsMapped_->colorScale[2] = 1.0f;
-            } else { // kModeSepia
-                // RGB (112, 74, 43) を 112 で正規化
-                paramsMapped_->colorScale[0] = 1.0f;
-                paramsMapped_->colorScale[1] = 74.0f / 112.0f;
-                paramsMapped_->colorScale[2] = 43.0f / 112.0f;
-            }
-            paramsMapped_->strength = strength;
-        }
-        commandList->SetGraphicsRootConstantBufferView(0, paramsResource_->GetGPUVirtualAddress());
+        DrawColorFilter(commandList, strengthNext_);
     }
 
     // 全画面三角形の描画
@@ -335,4 +191,153 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
         barrierDepth.Transition.StateAfter = D3D12_RESOURCE_STATE_DEPTH_WRITE;
         commandList->ResourceBarrier(1, &barrierDepth);
     }
+}
+
+void PostProcessManager::DrawCopy(ID3D12GraphicsCommandList* commandList) {
+    commandList->SetPipelineState(postProcessPSO_.Get());
+    if (currentColorFilterMode_ != currentMode_) {
+        currentColorFilterMode_ = currentMode_;
+        paramsMapped_->colorScale[0] = 1.0f;
+        paramsMapped_->colorScale[1] = 1.0f;
+        paramsMapped_->colorScale[2] = 1.0f;
+        paramsMapped_->strength = 1.0f;
+    }
+    commandList->SetGraphicsRootConstantBufferView(0, paramsResource_->GetGPUVirtualAddress());
+}
+
+void PostProcessManager::DrawVignette(ID3D12GraphicsCommandList* commandList, float scale, float exponent) {
+    commandList->SetPipelineState(vignettePSO_.Get());
+    if (currentVignetteScale_ != scale || currentVignetteExponent_ != exponent) {
+        currentVignetteScale_ = scale;
+        currentVignetteExponent_ = exponent;
+        vignetteParamsMapped_->scale = scale;
+        vignetteParamsMapped_->exponent = exponent;
+    }
+    commandList->SetGraphicsRootConstantBufferView(0, vignetteParamsResource_->GetGPUVirtualAddress());
+}
+
+void PostProcessManager::DrawSmoothing(ID3D12GraphicsCommandList* commandList, int kernelSize) {
+    commandList->SetPipelineState(smoothingPSO_.Get());
+    if (currentSmoothingKernelSize_ != kernelSize) {
+        currentSmoothingKernelSize_ = kernelSize;
+        smoothingParamsMapped_->kernelSize = kernelSize;
+    }
+    commandList->SetGraphicsRootConstantBufferView(0, smoothingParamsResource_->GetGPUVirtualAddress());
+}
+
+void PostProcessManager::DrawGaussianBlur(ID3D12GraphicsCommandList* commandList, int kernelSize, float sigma) {
+    commandList->SetPipelineState(gaussianBlurPSO_.Get());
+    if (currentGaussianBlurKernelSize_ != kernelSize || currentGaussianBlurSigma_ != sigma) {
+        currentGaussianBlurKernelSize_ = kernelSize;
+        currentGaussianBlurSigma_ = sigma;
+        gaussianBlurParamsMapped_->kernelSize = kernelSize;
+        gaussianBlurParamsMapped_->sigma = sigma;
+    }
+    commandList->SetGraphicsRootConstantBufferView(0, gaussianBlurParamsResource_->GetGPUVirtualAddress());
+}
+
+void PostProcessManager::DrawOutline(ID3D12GraphicsCommandList* commandList, float depthEdgeMultiplier, float colorEdgeMultiplier) {
+    commandList->SetPipelineState(outlinePSO_.Get());
+    Camera* camera = Object3dCommon::GetInstance()->GetDefaultCamera();
+    if (camera) {
+        Matrix4x4 proj = camera->GetProjectionMatrix();
+        Matrix4x4 projInv = MathUtils::Inverse(proj);
+        if (std::memcmp(&currentProjectionInverse_, &projInv, sizeof(Matrix4x4)) != 0 || 
+            currentOutlineDepthEdgeMultiplier_ != depthEdgeMultiplier ||
+            currentOutlineColorEdgeMultiplier_ != colorEdgeMultiplier) {
+            
+            currentProjectionInverse_ = projInv;
+            currentOutlineDepthEdgeMultiplier_ = depthEdgeMultiplier;
+            currentOutlineColorEdgeMultiplier_ = colorEdgeMultiplier;
+            outlineParamsMapped_->projectionInverse = projInv;
+            outlineParamsMapped_->depthEdgeMultiplier = depthEdgeMultiplier;
+            outlineParamsMapped_->colorEdgeMultiplier = colorEdgeMultiplier;
+        }
+    }
+    commandList->SetGraphicsRootConstantBufferView(0, outlineParamsResource_->GetGPUVirtualAddress());
+}
+
+void PostProcessManager::DrawRadialBlur(ID3D12GraphicsCommandList* commandList, float centerX, float centerY, float width, int sampleCount) {
+    commandList->SetPipelineState(radialBlurPSO_.Get());
+    if (currentRadialBlurCenterX_ != centerX ||
+        currentRadialBlurCenterY_ != centerY ||
+        currentRadialBlurWidth_ != width ||
+        currentRadialBlurSampleCount_ != sampleCount) {
+        
+        currentRadialBlurCenterX_ = centerX;
+        currentRadialBlurCenterY_ = centerY;
+        currentRadialBlurWidth_ = width;
+        currentRadialBlurSampleCount_ = sampleCount;
+        
+        radialBlurParamsMapped_->center[0] = centerX;
+        radialBlurParamsMapped_->center[1] = centerY;
+        radialBlurParamsMapped_->blurWidth = width;
+        radialBlurParamsMapped_->sampleCount = sampleCount;
+    }
+    commandList->SetGraphicsRootConstantBufferView(0, radialBlurParamsResource_->GetGPUVirtualAddress());
+}
+
+void PostProcessManager::DrawDissolve(ID3D12GraphicsCommandList* commandList, float threshold, float edgeRange, const float edgeColor[3], const std::string& maskPath) {
+    commandList->SetPipelineState(dissolvePSO_.Get());
+    
+    // t1 (Root Parameter 2) にマスクテクスチャの SRV をバインド
+    uint32_t maskSrvIndex = TextureManager::GetInstance()->GetSrvIndex(maskPath);
+    SrvManager::GetInstance()->SetGraphicsRootDescriptorTable(2, maskSrvIndex);
+    
+    if (currentDissolveEdgeColor_[0] != edgeColor[0] ||
+        currentDissolveEdgeColor_[1] != edgeColor[1] ||
+        currentDissolveEdgeColor_[2] != edgeColor[2] ||
+        currentDissolveThreshold_ != threshold ||
+        currentDissolveEdgeRange_ != edgeRange ||
+        currentDissolveMaskPath_ != maskPath) {
+        
+        currentDissolveEdgeColor_[0] = edgeColor[0];
+        currentDissolveEdgeColor_[1] = edgeColor[1];
+        currentDissolveEdgeColor_[2] = edgeColor[2];
+        currentDissolveThreshold_ = threshold;
+        currentDissolveEdgeRange_ = edgeRange;
+        currentDissolveMaskPath_ = maskPath;
+        
+        dissolveParamsMapped_->edgeColor[0] = edgeColor[0];
+        dissolveParamsMapped_->edgeColor[1] = edgeColor[1];
+        dissolveParamsMapped_->edgeColor[2] = edgeColor[2];
+        dissolveParamsMapped_->threshold = threshold;
+        dissolveParamsMapped_->edgeRange = edgeRange;
+    }
+    commandList->SetGraphicsRootConstantBufferView(0, dissolveParamsResource_->GetGPUVirtualAddress());
+}
+
+void PostProcessManager::DrawRandom(ID3D12GraphicsCommandList* commandList, float strength) {
+    commandList->SetPipelineState(randomPSO_.Get());
+
+    // 毎フレーム時間を進める
+    currentRandomTime_ += 1.0f / 60.0f;
+
+    // 時間経過を伴うため毎フレーム更新する
+    randomParamsMapped_->time = currentRandomTime_;
+    randomParamsMapped_->strength = strength;
+
+    commandList->SetGraphicsRootConstantBufferView(0, randomParamsResource_->GetGPUVirtualAddress());
+}
+
+void PostProcessManager::DrawColorFilter(ID3D12GraphicsCommandList* commandList, float strength) {
+    commandList->SetPipelineState(colorFilterPSO_.Get());
+
+    if (currentColorFilterMode_ != currentMode_ || currentStrength_ != strength) {
+        currentColorFilterMode_ = currentMode_;
+        currentStrength_ = strength;
+
+        if (currentMode_ == kModeGrayscale) {
+            paramsMapped_->colorScale[0] = 1.0f;
+            paramsMapped_->colorScale[1] = 1.0f;
+            paramsMapped_->colorScale[2] = 1.0f;
+        } else { // kModeSepia
+            // RGB (112, 74, 43) を 112 で正規化
+            paramsMapped_->colorScale[0] = 1.0f;
+            paramsMapped_->colorScale[1] = 74.0f / 112.0f;
+            paramsMapped_->colorScale[2] = 43.0f / 112.0f;
+        }
+        paramsMapped_->strength = strength;
+    }
+    commandList->SetGraphicsRootConstantBufferView(0, paramsResource_->GetGPUVirtualAddress());
 }
