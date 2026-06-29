@@ -4,6 +4,7 @@ Texture2D<float4> gTexture : register(t0);       // 元画像
 Texture2D<float4> gMaskTexture : register(t1);   // マスクテクスチャ
 
 SamplerState gSamplerLinear : register(s0);       // LINEARサンプラー
+SamplerState gSamplerClamp : register(s1);        // CLAMPサンプラー
 
 cbuffer DissolveParams : register(b0)
 {
@@ -21,8 +22,8 @@ PixelShaderOutput main(VertexShaderOutput input)
 {
     PixelShaderOutput output;
     
-    // マスクテクスチャから値をサンプリング（Rチャンネルを利用）
-    float mask = gMaskTexture.Sample(gSamplerLinear, input.texcoord).r;
+    // マスクテクスチャから値をサンプリング（Rチャンネルを利用、クランプサンプラーを使用）
+    float mask = gMaskTexture.Sample(gSamplerClamp, input.texcoord).r;
     
     // 閾値以下はdiscardして切り抜く
     if (mask <= gThreshold)

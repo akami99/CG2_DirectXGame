@@ -7,6 +7,7 @@ ConstantBuffer<Material> gMaterial : register(b0);
 Texture2D<float4> gTexture : register(t0);
 Texture2D<float4> gMaskTexture : register(t1); // Dissolve用マスク
 SamplerState gSampler : register(s0);
+SamplerState gSamplerClamp : register(s1);
 
 struct PixelShaderOutput
 {
@@ -22,7 +23,7 @@ PixelShaderOutput main(VertexShaderOutput input) {
     float edge = 0.0f;
     if (gMaterial.enableDissolve != 0)
     {
-        float mask = gMaskTexture.Sample(gSampler, uv).r;
+        float mask = gMaskTexture.Sample(gSamplerClamp, uv).r;
         if (mask <= gMaterial.dissolveThreshold)
         {
             discard;

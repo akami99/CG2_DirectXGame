@@ -10,6 +10,7 @@ Texture2D<float4> gTexture : register(t0);
 TextureCube<float4> gEnvironmentTexture : register(t1);
 Texture2D<float4> gMaskTexture : register(t2); // Dissolve用マスク
 SamplerState gSampler : register(s0);
+SamplerState gSamplerClamp : register(s1);
 
 struct PixelShaderOutput
 {
@@ -22,7 +23,7 @@ PixelShaderOutput main(VertexShaderOutput input) {
     float edge = 0.0f;
     if (gMaterial.enableDissolve != 0)
     {
-        float mask = gMaskTexture.Sample(gSampler, input.texcoord).r;
+        float mask = gMaskTexture.Sample(gSamplerClamp, input.texcoord).r;
         if (mask <= gMaterial.dissolveThreshold)
         {
             discard;
