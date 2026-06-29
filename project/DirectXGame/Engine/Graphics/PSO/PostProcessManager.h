@@ -228,6 +228,12 @@ public:
     /// <param name="renderTexture">オフスクリーンレンダリング結果</param>
     void Draw(RenderTexture* renderTexture);
 
+    /// <summary>
+    /// 更新処理を行う（ロジックの更新）
+    /// </summary>
+    /// <param name="deltaTime">経過時間</param>
+    void Update(float deltaTime);
+
     // --- 静的セッター (外部から呼び出す) ---
 
     /// <summary>

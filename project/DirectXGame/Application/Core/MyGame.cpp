@@ -1,4 +1,5 @@
 #include "MyGame.h"
+#include <chrono>
 
 // フレームワーク基盤
 #include "RAFramework.h"
@@ -56,6 +57,16 @@ void MyGame::Finalize() {
 }
 
 void MyGame::Update() {
+  // DeltaTimeの計算 (フレームレート非依存)
+  static auto lastTime = std::chrono::steady_clock::now();
+  auto currentTime = std::chrono::steady_clock::now();
+  std::chrono::duration<float> elapsed = currentTime - lastTime;
+  lastTime = currentTime;
+  float deltaTime = elapsed.count();
+
+  // ポストプロセス更新 (ロジック更新)
+  PostProcessManager::GetInstance()->Update(deltaTime);
+
   // ImGuiの受付開始
   imGuiManager_->Begin();
 

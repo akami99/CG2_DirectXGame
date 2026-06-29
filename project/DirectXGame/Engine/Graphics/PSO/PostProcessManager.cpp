@@ -193,6 +193,13 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
     }
 }
 
+void PostProcessManager::Update(float deltaTime) {
+    // Randomエフェクト用の時間を更新
+    if (modeNext_ == kModeRandom) {
+        currentRandomTime_ += deltaTime;
+    }
+}
+
 void PostProcessManager::DrawCopy(ID3D12GraphicsCommandList* commandList) {
     commandList->SetPipelineState(postProcessPSO_.Get());
     if (currentColorFilterMode_ != currentMode_) {
@@ -310,10 +317,7 @@ void PostProcessManager::DrawDissolve(ID3D12GraphicsCommandList* commandList, fl
 void PostProcessManager::DrawRandom(ID3D12GraphicsCommandList* commandList, float strength) {
     commandList->SetPipelineState(randomPSO_.Get());
 
-    // 毎フレーム時間を進める
-    currentRandomTime_ += 1.0f / 60.0f;
-
-    // 時間経過を伴うため毎フレーム更新する
+    // 時間経過を伴うため毎フレーム定数バッファを更新する
     randomParamsMapped_->time = currentRandomTime_;
     randomParamsMapped_->strength = strength;
 
