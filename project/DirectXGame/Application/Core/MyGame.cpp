@@ -85,7 +85,7 @@ void MyGame::Update() {
   if (ImGui::Combo(
           "Mode", &mode,
           "Copy (None)\0GrayScale\0Sepia\0Vignette\0Smoothing\0Gaussian "
-          "Blur\0Outline\0Radial Blur\0Dissolve\0Random\0")) {
+          "Blur\0Outline\0Radial Blur\0Dissolve\0Random\0HSV\0")) {
     PostProcessManager::SetMode(mode);
   }
   if (mode == PostProcessManager::kModeVignette) {
@@ -194,6 +194,26 @@ void MyGame::Update() {
     if (ImGui::SliderFloat("Random Strength", &randomStrength, PostProcessManager::kMinRandomStrength, PostProcessManager::kMaxRandomStrength)) {
       PostProcessManager::SetRandomParams(randomStrength);
       randomStrength = PostProcessManager::GetRandomStrength();
+    }
+  } else if (mode == PostProcessManager::kModeHSV) {
+    static float hue = 0.0f;
+    static float saturation = 0.0f;
+    static float value = 0.0f;
+    bool changed = false;
+    if (ImGui::SliderFloat("Hue", &hue, PostProcessManager::kMinHSVHue, PostProcessManager::kMaxHSVHue)) {
+      changed = true;
+    }
+    if (ImGui::SliderFloat("Saturation", &saturation, PostProcessManager::kMinHSVSaturation, PostProcessManager::kMaxHSVSaturation)) {
+      changed = true;
+    }
+    if (ImGui::SliderFloat("Value", &value, PostProcessManager::kMinHSVValue, PostProcessManager::kMaxHSVValue)) {
+      changed = true;
+    }
+    if (changed) {
+      PostProcessManager::SetHSVParams(hue, saturation, value);
+      hue = PostProcessManager::GetHSVHue();
+      saturation = PostProcessManager::GetHSVSaturation();
+      value = PostProcessManager::GetHSVValue();
     }
   }
   ImGui::End();

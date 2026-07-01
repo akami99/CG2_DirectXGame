@@ -25,6 +25,7 @@ public:
     static constexpr int kModeRadialBlur = 7;
     static constexpr int kModeDissolve = 8;
     static constexpr int kModeRandom = 9;
+    static constexpr int kModeHSV = 10;
 #pragma endregion
 
     // ---- Passkey Idiom ----
@@ -70,6 +71,13 @@ public:
 
     static constexpr float kMinRandomStrength = 0.0f;
     static constexpr float kMaxRandomStrength = 1.0f;
+
+    static constexpr float kMinHSVHue = -1.0f;
+    static constexpr float kMaxHSVHue = 1.0f;
+    static constexpr float kMinHSVSaturation = -1.0f;
+    static constexpr float kMaxHSVSaturation = 1.0f;
+    static constexpr float kMinHSVValue = -1.0f;
+    static constexpr float kMaxHSVValue = 1.0f;
 #pragma endregion
 
 private:
@@ -131,6 +139,14 @@ private:
         float padding[2]; // 16バイトアライメント
     };
 
+    // HSV用の定数バッファ構造体
+    struct HSVParams {
+        float hue;
+        float saturation;
+        float value;
+        float padding; // 16バイトアライメント
+    };
+
     ComPtr<ID3D12PipelineState> postProcessPSO_; // CopyImage (passthrough)
     ComPtr<ID3D12PipelineState> colorFilterPSO_; // グレースケール/セピア
     ComPtr<ID3D12PipelineState> vignettePSO_;    // ビネット
@@ -164,6 +180,10 @@ private:
     ComPtr<ID3D12Resource> randomParamsResource_;
     RandomParams* randomParamsMapped_ = nullptr;
 
+    ComPtr<ID3D12PipelineState> hsvPSO_;
+    ComPtr<ID3D12Resource> hsvParamsResource_;
+    HSVParams* hsvParamsMapped_ = nullptr;
+
     uint32_t depthSrvIndex_ = 0;
 
     // 遅延適用用 (Update から Draw への橋渡し)
@@ -185,6 +205,9 @@ private:
     static float dissolveEdgeRangeNext_;
     static std::string dissolveMaskPathNext_;
     static float randomStrengthNext_;
+    static float hsvHueNext_;
+    static float hsvSaturationNext_;
+    static float hsvValueNext_;
     int currentMode_ = kModeCopy;
 
     // パラメータ適用最適化用（変更時のみ定数バッファを更新するため）
@@ -208,6 +231,9 @@ private:
     std::string currentDissolveMaskPath_;
     float currentRandomStrength_ = -1.0f;
     float currentRandomTime_ = 0.0f;
+    float currentHSVHue_ = -2.0f;
+    float currentHSVSaturation_ = -2.0f;
+    float currentHSVValue_ = -2.0f;
 
     static std::unique_ptr<PostProcessManager> instance_;
 
@@ -338,6 +364,18 @@ public:
         randomStrengthNext_ = std::clamp(strength, kMinRandomStrength, kMaxRandomStrength);
     }
 
+    /// <summary>
+    /// HSV効果のパラメータを設定する
+    /// </summary>
+    /// <param name="hue">色相</param>
+    /// <param name="saturation">彩度</param>
+    /// <param name="value">明度</param>
+    static void SetHSVParams(float hue, float saturation, float value) {
+        hsvHueNext_ = std::clamp(hue, kMinHSVHue, kMaxHSVHue);
+        hsvSaturationNext_ = std::clamp(saturation, kMinHSVSaturation, kMaxHSVSaturation);
+        hsvValueNext_ = std::clamp(value, kMinHSVValue, kMaxHSVValue);
+    }
+
     // --- パラメータ取得用静的ゲッター (双方向同期用) ---
     static float GetVignetteScale() { return vignetteScaleNext_; }
     static float GetVignetteExponent() { return vignetteExponentNext_; }
@@ -354,6 +392,9 @@ public:
     static float GetDissolveEdgeRange() { return dissolveEdgeRangeNext_; }
     static const float* GetDissolveEdgeColor() { return dissolveEdgeColorNext_; }
     static float GetRandomStrength() { return randomStrengthNext_; }
+    static float GetHSVHue() { return hsvHueNext_; }
+    static float GetHSVSaturation() { return hsvSaturationNext_; }
+    static float GetHSVValue() { return hsvValueNext_; }
 
     /// <summary>
     /// 現在のポストエフェクトモードを取得する
@@ -371,6 +412,7 @@ private:
     void DrawDissolve(ID3D12GraphicsCommandList* commandList, float threshold, float edgeRange, const float edgeColor[3], const std::string& maskPath);
     void DrawRandom(ID3D12GraphicsCommandList* commandList, float strength);
     void DrawColorFilter(ID3D12GraphicsCommandList* commandList, float strength);
+    void DrawHSV(ID3D12GraphicsCommandList* commandList, float hue, float saturation, float value);
 
     ~PostProcessManager() = default;
     PostProcessManager(const PostProcessManager&) = delete;

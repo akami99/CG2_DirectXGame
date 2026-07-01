@@ -427,6 +427,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <None Include="Resources\Shaders\Particle.hlsli" />
     <None Include="Resources\Shaders\Skybox.hlsli" />
     <None Include="Resources\Shaders\SpriteCommon.hlsli" />
+    <None Include="Resources\Shaders\Utility\HSV.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

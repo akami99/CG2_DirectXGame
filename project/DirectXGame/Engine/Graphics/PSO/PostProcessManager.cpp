@@ -30,6 +30,9 @@ float PostProcessManager::dissolveThresholdNext_ = 0.0f;
 float PostProcessManager::dissolveEdgeRangeNext_ = 0.02f;
 std::string PostProcessManager::dissolveMaskPathNext_ = "masks/noise0.png";
 float PostProcessManager::randomStrengthNext_ = 0.0f;
+float PostProcessManager::hsvHueNext_ = 0.0f;
+float PostProcessManager::hsvSaturationNext_ = 0.0f;
+float PostProcessManager::hsvValueNext_ = 0.0f;
 
 PostProcessManager* PostProcessManager::GetInstance() {
     if (!instance_) {
@@ -53,6 +56,7 @@ void PostProcessManager::Initialize() {
     radialBlurPSO_   = PipelineManager::GetInstance()->CreateRadialBlurPSO();
     dissolvePSO_     = PipelineManager::GetInstance()->CreateDissolvePSO();
     randomPSO_       = PipelineManager::GetInstance()->CreateRandomPSO();
+    hsvPSO_          = PipelineManager::GetInstance()->CreateHSVPSO();
 
     // 定数バッファの生成とマッピング
     paramsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(PostProcessParams));
@@ -110,6 +114,13 @@ void PostProcessManager::Initialize() {
     randomParamsResource_->Map(0, nullptr, reinterpret_cast<void**>(&randomParamsMapped_));
     randomParamsMapped_->time = 0.0f;
     randomParamsMapped_->strength = 0.0f;
+
+    // HSV用の定数バッファの生成とマッピング
+    hsvParamsResource_ = DX12Context::GetInstance()->CreateBufferResource(sizeof(HSVParams));
+    hsvParamsResource_->Map(0, nullptr, reinterpret_cast<void**>(&hsvParamsMapped_));
+    hsvParamsMapped_->hue = 0.0f;
+    hsvParamsMapped_->saturation = 0.0f;
+    hsvParamsMapped_->value = 0.0f;
 
     // マスクテクスチャを事前にロード
     TextureManager::GetInstance()->LoadTexture("masks/noise0.png");
@@ -172,6 +183,8 @@ void PostProcessManager::Draw(RenderTexture* renderTexture) {
         DrawDissolve(commandList, dissolveThresholdNext_, dissolveEdgeRangeNext_, edgeColor, dissolveMaskPathNext_);
     } else if (currentMode_ == kModeRandom) {
         DrawRandom(commandList, randomStrengthNext_);
+    } else if (currentMode_ == kModeHSV) {
+        DrawHSV(commandList, hsvHueNext_, hsvSaturationNext_, hsvValueNext_);
     } else {
         DrawColorFilter(commandList, strengthNext_);
     }
@@ -344,4 +357,19 @@ void PostProcessManager::DrawColorFilter(ID3D12GraphicsCommandList* commandList,
         paramsMapped_->strength = strength;
     }
     commandList->SetGraphicsRootConstantBufferView(0, paramsResource_->GetGPUVirtualAddress());
+}
+
+void PostProcessManager::DrawHSV(ID3D12GraphicsCommandList* commandList, float hue, float saturation, float value) {
+    commandList->SetPipelineState(hsvPSO_.Get());
+
+    if (currentHSVHue_ != hue || currentHSVSaturation_ != saturation || currentHSVValue_ != value) {
+        currentHSVHue_ = hue;
+        currentHSVSaturation_ = saturation;
+        currentHSVValue_ = value;
+
+        hsvParamsMapped_->hue = hue;
+        hsvParamsMapped_->saturation = saturation;
+        hsvParamsMapped_->value = value;
+    }
+    commandList->SetGraphicsRootConstantBufferView(0, hsvParamsResource_->GetGPUVirtualAddress());
 }

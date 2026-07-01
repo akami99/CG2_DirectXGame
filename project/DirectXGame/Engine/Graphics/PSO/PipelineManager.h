@@ -74,6 +74,9 @@ private: // メンバ変数
     // --- Random用アセット ---
     ComPtr<IDxcBlob> psBlobRandom_;       // Pixel Shader (Random.PS.hlsl)
 
+    // --- HSV用アセット ---
+    ComPtr<IDxcBlob> psBlobHSV_;          // Pixel Shader (HSV.PS.hlsl)
+
 private: // シングルトン管理用メンバ変数
     static std::unique_ptr<PipelineManager> instance_;
 
@@ -132,6 +135,9 @@ public: // メンバ関数
 
     // Random用 PSOを生成して返す関数
     ComPtr<ID3D12PipelineState> CreateRandomPSO();
+
+    // HSV用 PSOを生成して返す関数
+    ComPtr<ID3D12PipelineState> CreateHSVPSO();
 
     // ゲッター
 

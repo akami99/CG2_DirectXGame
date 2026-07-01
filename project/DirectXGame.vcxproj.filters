@@ -478,6 +478,7 @@
     <None Include="Resources\Shaders\Skybox.hlsli">
       <Filter>シェーダー ファイル\Object3d</Filter>
     </None>
+    <None Include="Resources\Shaders\Utility\HSV.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Object3d.PS.hlsl">
