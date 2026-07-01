@@ -353,6 +353,8 @@ void ShootingScene::Initialize() {
       enemy.object->SetTranslate(enemyData.translation);
       enemy.object->SetRotation(enemyData.rotation);
       enemy.object->SetCamera(camera_.get());
+      enemy.basePosition = enemyData.translation;
+      enemy.baseRotation = enemyData.rotation;
       enemy.distance = enemyData.distance;
       enemy.isActive = false;
       enemy.isDead = false;
@@ -500,35 +502,43 @@ void ShootingScene::Update() {
       damageEffectStrength_ = 0.0f;
       projectileSpawnTimer_ = 0.0f;
       projectiles_.clear();
-      enemies_.clear();
+
+      // 敵の論理リセット（モデルのリロードは行わない）
+      for (auto &enemy : enemies_) {
+        enemy.isDead = false;
+        enemy.isActive = false;
+        enemy.shootTimer = 0.0f;
+        enemy.spawnTimer = 0.0f;
+        enemy.object->SetTranslate(enemy.basePosition);
+        enemy.object->SetRotation(enemy.baseRotation);
+        // 初期状態として完全に消去された状態（Threshold = 1.0f）を設定
+        enemy.model->SetDissolveParams(1, 1.0f, 0.05f, Vector3(1.0f, 0.4f, 0.3f));
+        enemy.object->Update(mainViewIndex_, camera_.get());
+      }
+
       ammo_ = kMaxAmmo;
       isCovering_ = false;
       reloadTimer_ = 0.0f;
-      if (levelData_) {
-        for (const auto &enemyData : levelData_->enemies) {
-          EnemyInfo enemy;
-          enemy.object = std::make_unique<Object3d>();
-          enemy.object->Initialize();
 
-          // 個別のモデルインスタンスを生成・ロード
-          enemy.model = std::make_unique<Model>();
-          enemy.model->Initialize("Resources/Assets/Models/enemy", enemyModel_);
-          // 初期状態として完全に消去された状態（Threshold = 1.0f）を設定
-          enemy.model->SetDissolveMaskTexture("masks/noise0.png");
-          enemy.model->SetDissolveParams(1, 1.0f, 0.05f,
-                                         Vector3(1.0f, 0.4f, 0.3f));
-
-          enemy.object->SetModel(enemy.model.get());
-          enemy.object->SetTranslate(enemyData.translation);
-          enemy.object->SetRotation(enemyData.rotation);
-          enemy.object->SetCamera(camera_.get());
-          enemy.distance = enemyData.distance;
-          enemy.isActive = false;
-          enemy.isDead = false;
-          enemy.shootTimer = 0.0f;
-          enemy.spawnTimer = 0.0f;
-          enemies_.push_back(std::move(enemy));
+      // UIのイージング座標を強制初期化（ちらつき防止）
+      int currentLife = kMaxHits - hitCount_;
+      for (int i = 0; i < kMaxHits; ++i) {
+        float initX = 1214.0f - (kMaxHits - 1 - i) * 24.0f;
+        lifeCurrentX_[i] = initX;
+        lifeTargetX_[i] = initX;
+        if (i < currentLife) {
+          lifeUnits_[i]->SetTranslate({ initX, 37.0f });
+          lifeUnits_[i]->Update();
         }
+      }
+
+      for (int i = 0; i < kMaxAmmo; ++i) {
+        float initX = 202.0f - i * 20.0f;
+        ammoCurrentX_[i] = initX;
+        ammoTargetX_[i] = initX;
+        ammoUnits_[i]->SetTranslate({ initX, 648.0f });
+        ammoUnits_[i]->SetColor({ 183.0f/255.0f, 132.0f/255.0f, 48.0f/255.0f, 1.0f });
+        ammoUnits_[i]->Update();
       }
 
       // カメラを初期位置に戻す
@@ -1053,32 +1063,45 @@ void ShootingScene::UpdateImGui_GlobalSettings() {
       damageEffectStrength_ = 0.0f;
       projectileSpawnTimer_ = 0.0f;
       projectiles_.clear();
-      enemies_.clear();
-      if (levelData_) {
-        for (const auto &enemyData : levelData_->enemies) {
-          EnemyInfo enemy;
-          enemy.object = std::make_unique<Object3d>();
-          enemy.object->Initialize();
-          
-          // 個別のモデルインスタンスを生成・ロード
-          enemy.model = std::make_unique<Model>();
-          enemy.model->Initialize("Resources/Assets/Models/enemy", enemyModel_);
-          // 初期状態として完全に消去された状態（Threshold = 1.0f）を設定
-          enemy.model->SetDissolveMaskTexture("masks/noise0.png");
-          enemy.model->SetDissolveParams(1, 1.0f, 0.05f, Vector3(1.0f, 0.4f, 0.3f));
-          
-          enemy.object->SetModel(enemy.model.get());
-          enemy.object->SetTranslate(enemyData.translation);
-          enemy.object->SetRotation(enemyData.rotation);
-          enemy.object->SetCamera(camera_.get());
-          enemy.distance = enemyData.distance;
-          enemy.isActive = false;
-          enemy.isDead = false;
-          enemy.shootTimer = 0.0f;
-          enemy.spawnTimer = 0.0f;
-          enemies_.push_back(std::move(enemy));
+
+      // 敵の論理リセット（モデルのリロードは行わない）
+      for (auto &enemy : enemies_) {
+        enemy.isDead = false;
+        enemy.isActive = false;
+        enemy.shootTimer = 0.0f;
+        enemy.spawnTimer = 0.0f;
+        enemy.object->SetTranslate(enemy.basePosition);
+        enemy.object->SetRotation(enemy.baseRotation);
+        // 初期状態として完全に消去された状態（Threshold = 1.0f）を設定
+        enemy.model->SetDissolveParams(1, 1.0f, 0.05f, Vector3(1.0f, 0.4f, 0.3f));
+        enemy.object->Update(mainViewIndex_, camera_.get());
+      }
+
+      ammo_ = kMaxAmmo;
+      isCovering_ = false;
+      reloadTimer_ = 0.0f;
+
+      // UIのイージング座標を強制初期化（ちらつき防止）
+      int currentLife = kMaxHits - hitCount_;
+      for (int i = 0; i < kMaxHits; ++i) {
+        float initX = 1214.0f - (kMaxHits - 1 - i) * 24.0f;
+        lifeCurrentX_[i] = initX;
+        lifeTargetX_[i] = initX;
+        if (i < currentLife) {
+          lifeUnits_[i]->SetTranslate({ initX, 37.0f });
+          lifeUnits_[i]->Update();
         }
       }
+
+      for (int i = 0; i < kMaxAmmo; ++i) {
+        float initX = 202.0f - i * 20.0f;
+        ammoCurrentX_[i] = initX;
+        ammoTargetX_[i] = initX;
+        ammoUnits_[i]->SetTranslate({ initX, 648.0f });
+        ammoUnits_[i]->SetColor({ 183.0f/255.0f, 132.0f/255.0f, 48.0f/255.0f, 1.0f });
+        ammoUnits_[i]->Update();
+      }
+
       // カメラを初期位置に戻す
       cameraProgress_ = 0.0f;
       isMovementPaused_ = false;

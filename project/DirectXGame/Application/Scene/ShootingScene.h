@@ -63,6 +63,7 @@ private:
     std::unique_ptr<Object3d> object;
     std::unique_ptr<Model> model; // 個別モデル
     Vector3 basePosition;
+    Vector3 baseRotation;
     float distance = 0.0f;
     bool isActive = false;
     bool isDead = false;
