@@ -48,6 +48,8 @@ private:
   void UpdateImGui_Object3d();
   // ImGuiでSkyboxのパラメータを調整するための関数
   void UpdateImGui_Skybox();
+  // ImGuiでパーティクルのパラメータを調整するための関数
+  void UpdateImGui_Particle();
   // ImGuiでゲームの状態を確認するための関数
   void UpdateImGui_GameStatus();
 #endif // USE_IMGUI
@@ -59,6 +61,17 @@ private:
   // スカイボックス
   std::unique_ptr<Skybox> skybox_;
 
+  // フロアオブジェクト
+  std::unique_ptr<Object3d> floorObject_;
+  // フロア設定
+  struct FloorSettings {
+    Vector3 position;
+    Vector3 rotation;
+    Vector3 scale;
+  };
+  FloorSettings floorSettings_ = { {0.0f, 0.0f, 100.0f}, {0.0f, 0.0f, 0.0f}, {5.0f, 1.0f, 25.0f} };
+
+  // 敵情報構造体
   struct EnemyInfo {
     std::unique_ptr<Object3d> object;
     std::unique_ptr<Model> model; // 個別モデル
@@ -99,6 +112,7 @@ private:
 
   // プロジェクタイル管理
   std::vector<std::unique_ptr<EnemyProjectile>> projectiles_;
+  float speed_ = 0.1f;
   float projectileSpawnTimer_ = 0.0f;
   const float kProjectileSpawnInterval = 120.0f; // 2秒おき
 
@@ -126,6 +140,7 @@ private:
   // パス定数
   // 3Dモデルのファイルパス
   const std::string enemyModel_ = "enemy.obj";
+  const std::string floorModel_ = "floor.obj";
   // テクスチャファイルパスを保持
   const std::string crosshairPath_ = "crosshair.png";
   const std::string ringParticleGroupName_ = "RingShapeGroup";
@@ -170,4 +185,16 @@ private:
 
   // カバー演出UI
   std::unique_ptr<Sprite> coverOverlay_;
+
+  // デバッグ用ポーズと区間選択
+  bool isDebugPaused_ = false;
+  std::vector<float> sectionProgresses_;
+  int currentSectionIndex_ = 0;
+  bool isDebugInfiniteAmmo_ = false;
+  bool isDebugInvincible_ = false;
+  float sectionJumpInvincibleTimer_ = 0.0f;
+  static constexpr float kSectionJumpInvincibleDuration = 3.0f;
+
+  // 区間ジャンプ処理
+  void JumpToSection(int index);
 };

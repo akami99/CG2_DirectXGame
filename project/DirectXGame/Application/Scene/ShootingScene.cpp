@@ -310,8 +310,8 @@ void ShootingScene::Initialize() {
     ammoSparkEmitter.generateSettings.rotateMin = { 0.0f, 0.0f, -3.14f };
     ammoSparkEmitter.generateSettings.rotateMax = { 0.0f, 0.0f, 3.14f };
     ammoSparkEmitter.generateSettings.isRandomVelocity = true;
-    ammoSparkEmitter.generateSettings.velocityMin = { -0.5f, -1.5f, 0.2f };
-    ammoSparkEmitter.generateSettings.velocityMax = { 1.5f, -0.2f, 1.0f };
+    ammoSparkEmitter.generateSettings.velocityMin = { -0.5f, 0.4f, 0.2f };
+    ammoSparkEmitter.generateSettings.velocityMax = { 0.2f, 1.0f, 1.0f };
     ammoSparkEmitter.generateSettings.isRandomLifeTime = true;
     ammoSparkEmitter.generateSettings.lifeTimeMin = 0.15f;
     ammoSparkEmitter.generateSettings.lifeTimeMax = 0.35f;
@@ -333,6 +333,18 @@ void ShootingScene::Initialize() {
 
   Object3dCommon::GetInstance()->SetEnvironmentMap(
       TextureManager::GetInstance()->GetSrvIndex("skybox.dds"));
+
+  // フロアモデルをロード
+  ModelManager::GetInstance()->LoadModel("floor", floorModel_);
+
+  // フロアオブジェクトの初期化
+  floorObject_ = std::make_unique<Object3d>();
+  floorObject_->Initialize();
+  floorObject_->SetModel(floorModel_);
+  floorObject_->SetTranslate(floorSettings_.position);
+  floorObject_->SetRotation(floorSettings_.rotation);
+  floorObject_->SetScale(floorSettings_.scale);
+  floorObject_->SetCamera(camera_.get());
 
   // レベルデータから敵キャラを生成・配置
   enemies_.clear();
@@ -363,6 +375,22 @@ void ShootingScene::Initialize() {
       enemies_.push_back(std::move(enemy));
     }
   }
+
+  // --- デバッグ用区間リストの構築 ---
+  sectionProgresses_.clear();
+  sectionProgresses_.push_back(0.0f); // スタート地点
+  if (levelData_) {
+    for (const auto &enemyData : levelData_->enemies) {
+      // 重複しないように追加
+      if (std::find(sectionProgresses_.begin(), sectionProgresses_.end(), enemyData.distance) == sectionProgresses_.end()) {
+        sectionProgresses_.push_back(enemyData.distance);
+      }
+    }
+  }
+  // 昇順ソート
+  std::sort(sectionProgresses_.begin(), sectionProgresses_.end());
+  currentSectionIndex_ = 0;
+  isDebugPaused_ = false;
 
   // --- スプライト生成 ---
   crosshair_ = std::make_unique<Sprite>();
@@ -458,6 +486,27 @@ void ShootingScene::Update() {
   // UI処理 (ImGuiの定義)
   UpdateImGui();
 #endif // USE_IMGUI
+
+  if (isDebugPaused_) {
+    camera_->Update();
+    return;
+  }
+
+  // 現在の cameraProgress_ から currentSectionIndex_ を更新
+  for (int i = static_cast<int>(sectionProgresses_.size()) - 1; i >= 0; --i) {
+    if (cameraProgress_ >= sectionProgresses_[i]) {
+      currentSectionIndex_ = i;
+      break;
+    }
+  }
+
+  // 無敵タイマーの更新
+  if (sectionJumpInvincibleTimer_ > 0.0f) {
+    sectionJumpInvincibleTimer_ -= kDeltaTime;
+    if (sectionJumpInvincibleTimer_ < 0.0f) {
+      sectionJumpInvincibleTimer_ = 0.0f;
+    }
+  }
 
   const float kHalfPI = std::numbers::pi_v<float> / 2.0f;
 
@@ -713,10 +762,9 @@ void ShootingScene::Update() {
       if (enemy.shootTimer >= kProjectileSpawnInterval) {
         enemy.shootTimer = 0.0f;
         Vector3 startPos = enemy.object->GetTranslate();
-        Vector3 targetPos = camera_->GetTranslate();
+        Vector3 targetPos = CalculateRailPosition(cameraProgress_);
         Vector3 dir = Normalize(Subtract(targetPos, startPos));
-        float speed = 0.1f;
-        Vector3 velocity = Multiply(speed, dir);
+        Vector3 velocity = Multiply(speed_, dir);
         auto newProjectile = std::make_unique<EnemyProjectile>();
         newProjectile->Initialize(startPos, velocity);
         projectiles_.push_back(std::move(newProjectile));
@@ -727,7 +775,11 @@ void ShootingScene::Update() {
     enemy.object->Update(mainViewIndex_, camera_.get());
   }
 
+  // スカイボックスの更新
   skybox_->Update(mainViewIndex_, camera_.get());
+
+  // フロアオブジェクトの更新
+  floorObject_->Update(mainViewIndex_, camera_.get());
 
   // プロジェクタイルの移動・行列更新
   for (auto &p : projectiles_) {
@@ -742,27 +794,42 @@ void ShootingScene::Update() {
         continue;
       float dist = Length(Subtract(p->GetPosition(), camera_->GetTranslate()));
       if (dist < 1.0f) {
-        p->Kill();
-        hitCount_++;
-        damageEffectStrength_ = 1.0f;
-        MyGame::SetPostEffectMode(PostProcessManager::kModeGrayscale);
+        p->Kill(); // 当たった弾は必ず消す
 
-        // 3回ヒットしたらゲームオーバー演出開始
-        if (hitCount_ >= kMaxHits) {
-          phase_ = Phase::GameOverVignette;
-          phaseTimer_ = 0.0f;
-          vignetteScale_ = 16.0f;
-          vignetteExponent_ = 0.8f;
-          damageEffectStrength_ = 0.0f;
+        // 無敵状態でなければダメージを受ける
+        if (!isDebugInvincible_ && sectionJumpInvincibleTimer_ <= 0.0f) {
+          hitCount_++;
+          damageEffectStrength_ = 1.0f;
+          MyGame::SetPostEffectMode(PostProcessManager::kModeGrayscale);
 
-          MyGame::SetPostEffectMode(PostProcessManager::kModeVignette);
-          MyGame::SetPostEffectStrength(1.0f);
-          PostProcessManager::SetVignetteParams(vignetteScale_,
-                                                vignetteExponent_);
-          projectiles_.clear();
+          // 3回ヒットしたらゲームオーバー演出開始
+          if (hitCount_ >= kMaxHits) {
+            phase_ = Phase::GameOverVignette;
+            phaseTimer_ = 0.0f;
+            vignetteScale_ = 16.0f;
+            vignetteExponent_ = 0.8f;
+            damageEffectStrength_ = 0.0f;
 
-          return; // ここでUpdateを抜けてゲームを一時停止させる
+            MyGame::SetPostEffectMode(PostProcessManager::kModeVignette);
+            MyGame::SetPostEffectStrength(1.0f);
+            PostProcessManager::SetVignetteParams(vignetteScale_,
+                                                  vignetteExponent_);
+            projectiles_.clear();
+
+            return; // ここでUpdateを抜けてゲームを一時停止させる
+          }
         }
+      }
+    }
+  } else {
+    // 遮蔽中の場合、被弾予定位置（遮蔽前の本来のプレイヤー位置）を通過した弾を消去する
+    Vector3 targetPos = CalculateRailPosition(cameraProgress_);
+    for (auto &p : projectiles_) {
+      if (p->IsDead())
+        continue;
+      Vector3 toProjectile = Subtract(p->GetPosition(), targetPos);
+      if (Dot(toProjectile, p->GetVelocity()) >= 0.0f) {
+        p->Kill();
       }
     }
   }
@@ -794,9 +861,11 @@ void ShootingScene::Update() {
   camera_->Update();
 
   // 射撃（クリック）処理
-  if (!isCovering_ && ammo_ > 0 &&
+  if (!isCovering_ && (ammo_ > 0 || isDebugInfiniteAmmo_) &&
       Input::GetInstance()->IsMouseButtonTriggered(0)) {
-    ammo_--; // 弾数を減らす
+    if (!isDebugInfiniteAmmo_) {
+      ammo_--; // 弾数を減らす
+    }
 
     // アモUI消費エフェクトをカメラの左下前方に発生させる
     Vector3 camPos = camera_->GetTranslate();
@@ -1051,7 +1120,36 @@ void ShootingScene::UpdateImGui_GlobalSettings() {
       ImGui::ProgressBar(reloadTimer_ / kReloadDuration, ImVec2(0.0f, 0.0f),
                          "Reloading...");
     }
+    ImGui::Checkbox("Debug Pause", &isDebugPaused_);
+    ImGui::Checkbox("Debug Infinite Ammo", &isDebugInfiniteAmmo_);
+    ImGui::Checkbox("Debug Invincible", &isDebugInvincible_);
+    if (sectionJumpInvincibleTimer_ > 0.0f) {
+      ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "Jump Invincible: %.2fs", sectionJumpInvincibleTimer_);
+    }
     ImGui::Separator();
+
+    if (!sectionProgresses_.empty()) {
+      int selIdx = currentSectionIndex_;
+      std::vector<std::string> comboItems;
+      for (size_t i = 0; i < sectionProgresses_.size(); ++i) {
+        if (i == 0) {
+          comboItems.push_back("0: Start (0.0)");
+        } else {
+          comboItems.push_back(std::to_string(i) + ": Battle (" + std::to_string((int)sectionProgresses_[i]) + ")");
+        }
+      }
+      
+      std::vector<const char*> comboChars;
+      for (const auto& item : comboItems) {
+        comboChars.push_back(item.c_str());
+      }
+      
+      if (ImGui::Combo("Jump to Phase/Section", &selIdx, comboChars.data(), static_cast<int>(comboChars.size()))) {
+        JumpToSection(selIdx);
+      }
+      ImGui::Separator();
+    }
+
     // --- シーンを初期化（論理リセット） ---
     if (ImGui::Button("Reset Game")) {
       hitCount_ = 0;
@@ -1146,6 +1244,7 @@ void ShootingScene::UpdateImGui_GameCamera() {
 
 // ImGuiでObject3dのパラメータを調整するための関数
 void ShootingScene::UpdateImGui_Object3d() {
+  // エネミーのパラメータを調整
   if (ImGui::TreeNode("Enemies Status")) {
     ImGui::Text("Movement Paused: %s", isMovementPaused_ ? "True" : "False");
     ImGui::Text("Progress: %.2f / %.2f", cameraProgress_, maxProgress_);
@@ -1154,7 +1253,43 @@ void ShootingScene::UpdateImGui_Object3d() {
       auto &enemy = enemies_[i];
       ImGui::Text("[%zu] Dist: %.1f, Active: %s, Dead: %s", i, enemy.distance,
                   enemy.isActive ? "Yes" : "No", enemy.isDead ? "Yes" : "No");
+      ImGui::DragFloat3(("Enemy " + std::to_string(i) + " Position").c_str(),
+                        &enemy.object->GetTransformDebug().translate.x, 0.1f);
+      ImGui::DragFloat3(("Enemy " + std::to_string(i) + " Rotation").c_str(),
+                        &enemy.object->GetTransformDebug().rotate.x, 0.01f);
+      ImGui::DragFloat3(("Enemy " + std::to_string(i) + " Scale").c_str(),
+                        &enemy.object->GetTransformDebug().scale.x, 0.1f);
     }
+    ImGui::TreePop();
+  }
+  ImGui::Separator();
+  // プロジェクタイルの状態を表示
+  if (ImGui::TreeNode("Projectiles Status")) {
+    ImGui::Text("Active Projectiles: %zu", projectiles_.size());
+    for (size_t i = 0; i < projectiles_.size(); ++i) {
+      auto &p = projectiles_[i];
+      Vector3 pos = p->GetPosition();
+      ImGui::Text("[%zu] Pos: (%.2f, %.2f, %.2f), Dead: %s", i, pos.x, pos.y,
+                  pos.z, p->IsDead() ? "Yes" : "No");
+      ImGui::DragFloat3(("Projectile " + std::to_string(i) + " Position").c_str(),
+          &p->GetObjectDebug().GetTransformDebug().translate.x, 0.1f);
+      ImGui::DragFloat3(("Projectile " + std::to_string(i) + " Rotation").c_str(),
+          &p->GetObjectDebug().GetTransformDebug().rotate.x, 0.01f);
+      ImGui::DragFloat3(("Projectile " + std::to_string(i) + " Scale").c_str(),
+          &p->GetObjectDebug().GetTransformDebug().scale.x, 0.1f);
+      ImGui::DragFloat(("Projectile " + std::to_string(i) + " Speed").c_str(),
+                       &speed_, 0.1f);
+    }
+    ImGui::TreePop();
+  }
+  ImGui::Separator();
+  // フロアオブジェクトのパラメータを調整
+  if (ImGui::TreeNode("Floor Object")) {
+      if (floorObject_) {
+          ImGui::DragFloat3("translate", &floorObject_->GetTransformDebug().translate.x, 0.1f);
+          ImGui::DragFloat3("rotate", &floorObject_->GetTransformDebug().rotate.x, 0.01f);
+          ImGui::DragFloat3("scale", &floorObject_->GetTransformDebug().scale.x, 0.1f);
+      }
     ImGui::TreePop();
   }
 }
@@ -1216,6 +1351,11 @@ void ShootingScene::Draw() {
       static_cast<BlendState>(currentBlendMode_));
 
   // メインカメラ (ViewIndex 0)
+  // 1. 床オブジェクトの描画
+  if (isShowMaterial_ && floorObject_)
+    floorObject_->Draw(0);
+
+  // 2. 敵オブジェクトの描画
   if (isShowMaterial_) {
     for (auto &enemy : enemies_) {
       if (enemy.isActive && !enemy.isDead) {
@@ -1223,8 +1363,12 @@ void ShootingScene::Draw() {
       }
     }
   }
+
+  // 3. 敵弾オブジェクトの描画
   for (auto &p : projectiles_)
     p->Draw(0);
+
+  // 4. 背景スカイボックスの描画（描画状態切り替えによる競合を防ぐため、常に不透明3Dの後に描画する）
   if (isShowSkybox_)
     skybox_->Draw(0);
 
@@ -1281,6 +1425,7 @@ void ShootingScene::Draw() {
 void ShootingScene::Finalize() {
   Object3dCommon::GetInstance()->SetDefaultCamera(nullptr);
   enemies_.clear();
+  floorObject_.reset();
 }
 
 Vector3 ShootingScene::CalculateRailPosition(float progress) {
@@ -1322,4 +1467,99 @@ Vector3 ShootingScene::CalculateRailPosition(float progress) {
   pos.y = uuu * p0.y + 3.0f * uu * t * p1.y + 3.0f * u * tt * p2.y + ttt * p3.y;
   pos.z = uuu * p0.z + 3.0f * uu * t * p1.z + 3.0f * u * tt * p2.z + ttt * p3.z;
   return pos;
+}
+
+void ShootingScene::JumpToSection(int index) {
+  if (index < 0 || index >= static_cast<int>(sectionProgresses_.size()))
+    return;
+
+  float targetProgress = sectionProgresses_[index];
+
+  cameraProgress_ = targetProgress;
+  currentSectionIndex_ = index;
+  isDebugPaused_ = false; // ワープ後はポーズを自動解除
+  sectionJumpInvincibleTimer_ = kSectionJumpInvincibleDuration; // ワープ後の無敵タイマーをセット
+
+  // 状態の復元（論理リセット）
+  hitCount_ = 0;
+  orbitAngle_ = 0.0f;
+  targetTimer_ = 0.0f;
+  cameraYaw_ = 0.0f;
+  hitFeedbackTimer_ = 0.0f;
+  isHit_ = false;
+  damageEffectStrength_ = 0.0f;
+  projectileSpawnTimer_ = 0.0f;
+  projectiles_.clear();
+
+  // 敵の状態復元（移動先より手前の敵は撃破済み、以降の敵は復活・未出現）
+  for (auto &enemy : enemies_) {
+    if (enemy.distance < targetProgress) {
+      enemy.isDead = true;
+      enemy.isActive = false;
+      enemy.shootTimer = 0.0f;
+      enemy.spawnTimer = 1.0f; // 出現完了状態扱い
+      if (enemy.model) {
+        enemy.model->SetDissolveParams(0, 0.0f, 0.05f, Vector3(1.0f, 0.4f, 0.3f));
+      }
+    } else {
+      enemy.isDead = false;
+      enemy.isActive = false;
+      enemy.shootTimer = 0.0f;
+      enemy.spawnTimer = 0.0f;
+      enemy.object->SetTranslate(enemy.basePosition);
+      enemy.object->SetRotation(enemy.baseRotation);
+      if (enemy.model) {
+        enemy.model->SetDissolveParams(1, 1.0f, 0.05f, Vector3(1.0f, 0.4f, 0.3f));
+      }
+    }
+    enemy.object->Update(mainViewIndex_, camera_.get());
+  }
+
+  ammo_ = kMaxAmmo;
+  isCovering_ = false;
+  reloadTimer_ = 0.0f;
+
+  // UIのイージング座標を強制初期化（ちらつき防止）
+  int currentLife = kMaxHits - hitCount_;
+  for (int i = 0; i < kMaxHits; ++i) {
+    float initX = 1214.0f - (kMaxHits - 1 - i) * 24.0f;
+    lifeCurrentX_[i] = initX;
+    lifeTargetX_[i] = initX;
+    if (i < currentLife) {
+      lifeUnits_[i]->SetTranslate({ initX, 37.0f });
+      lifeUnits_[i]->Update();
+    }
+  }
+
+  for (int i = 0; i < kMaxAmmo; ++i) {
+    float initX = 202.0f - i * 20.0f;
+    ammoCurrentX_[i] = initX;
+    ammoTargetX_[i] = initX;
+    ammoUnits_[i]->SetTranslate({ initX, 648.0f });
+    ammoUnits_[i]->SetColor({ 183.0f/255.0f, 132.0f/255.0f, 48.0f/255.0f, 1.0f });
+    ammoUnits_[i]->Update();
+  }
+
+  // カメラを初期位置に戻す
+  Vector3 startCamPos = CalculateRailPosition(cameraProgress_);
+  camera_->SetTranslate(startCamPos);
+  if (levelData_ && !levelData_->players.empty()) {
+    const auto &spawn = levelData_->players[0];
+    camera_->SetRotate(spawn.rotation);
+    cameraYaw_ = spawn.rotation.y;
+  } else {
+    camera_->SetRotate({0.0f, 0.0f, 0.0f});
+    cameraYaw_ = 0.0f;
+  }
+
+  // カメラの一時停止フラグ（スタート地点以外は敵出現ポイントなので停止状態から始める）
+  isMovementPaused_ = (targetProgress > 0.0f);
+
+  // スムージング演出をリスタート用に設定
+  smoothingKernel_ = 31.0f;
+  PostProcessManager::SetMode(PostProcessManager::kModeSmoothing);
+  PostProcessManager::SetSmoothingParams(
+      static_cast<int>(smoothingKernel_));
+  phase_ = Phase::RestartSmoothing;
+  phaseTimer_ = 0.0f;
 }

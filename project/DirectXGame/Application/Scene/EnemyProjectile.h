@@ -12,10 +12,16 @@ public:
     void Draw(uint32_t viewIndex = 0);
 
     const Vector3& GetPosition() const { return position_; }
+    const Vector3& GetVelocity() const { return velocity_; }
     bool IsDead() const { return isDead_; }
     void Kill() { isDead_ = true; }
 
     float GetRadius() const { return radius_; }
+
+#ifdef USE_IMGUI
+    // ImGui用のゲッター
+    Object3d &GetObjectDebug() const { return *object_; }
+#endif // USE_IMGUI
 
 private:
     std::unique_ptr<Object3d> object_;
