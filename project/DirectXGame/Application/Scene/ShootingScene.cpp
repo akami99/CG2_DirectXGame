@@ -676,13 +676,9 @@ void ShootingScene::Update() {
     reloadTimer_ = 0.0f;
   }
 
-  // --- カメラの移動 ---
-  if (!isMovementPaused_) {
-    cameraProgress_ += kCameraSpeed;
-    if (cameraProgress_ > maxProgress_) {
-      cameraProgress_ = maxProgress_;
-    }
-  }
+  // --- レール移動の更新 ---
+  UpdateRailMovement();
+
   Vector3 camPos = CalculateRailPosition(cameraProgress_);
   if (isCovering_) {
     camPos.y -= 1.0f; // 遮蔽に隠れるイメージでカメラの高さを下げる
@@ -700,36 +696,6 @@ void ShootingScene::Update() {
   Vector3 currentRot = camera_->GetRotate();
   camera_->SetRotate({currentRot.x, cameraYaw_, currentRot.z});
 #endif // USE_IMGUI
-
-  // エネミーの出現チェック (進行中のみ)
-  if (!isMovementPaused_) {
-    bool triggered = false;
-    for (auto &enemy : enemies_) {
-      if (!enemy.isActive && !enemy.isDead) {
-        if (cameraProgress_ >= enemy.distance) {
-          enemy.isActive = true;
-          triggered = true;
-        }
-      }
-    }
-    if (triggered) {
-      isMovementPaused_ = true;
-    }
-  }
-
-  // 進行一時停止中なら、画面内の全アクティブエネミーが全滅したかチェック
-  if (isMovementPaused_) {
-    bool allDead = true;
-    for (const auto &enemy : enemies_) {
-      if (enemy.isActive && !enemy.isDead) {
-        allDead = false;
-        break;
-      }
-    }
-    if (allDead) {
-      isMovementPaused_ = false;
-    }
-  }
 
   // ヒットフィードバックのタイマー更新
   if (hitFeedbackTimer_ > 0) {
@@ -1562,4 +1528,51 @@ void ShootingScene::JumpToSection(int index) {
       static_cast<int>(smoothingKernel_));
   phase_ = Phase::RestartSmoothing;
   phaseTimer_ = 0.0f;
+}
+
+void ShootingScene::UpdateRailMovement() {
+  // 進行一時停止中なら、画面内の全アクティブエネミーが全滅したかチェック
+  if (isMovementPaused_) {
+    bool allDead = true;
+    for (const auto &enemy : enemies_) {
+      if (enemy.isActive && !enemy.isDead) {
+        allDead = false;
+        break;
+      }
+    }
+    if (allDead) {
+      isMovementPaused_ = false;
+    }
+  }
+
+  // 自動進行処理および敵出現トリガーチェック
+  if (!isMovementPaused_) {
+    float nextProgress = cameraProgress_ + kCameraSpeed;
+    bool triggered = false;
+    float triggerDistance = nextProgress;
+
+    // 最も近い出現トリガーを検出
+    for (auto &enemy : enemies_) {
+      if (!enemy.isActive && !enemy.isDead) {
+        if (nextProgress >= enemy.distance) {
+          enemy.isActive = true;
+          triggered = true;
+          if (enemy.distance < triggerDistance) {
+            triggerDistance = enemy.distance;
+          }
+        }
+      }
+    }
+
+    if (triggered) {
+      // トリガーを引いたエネミーの出現距離にピッタリ吸着させて停止
+      cameraProgress_ = triggerDistance;
+      isMovementPaused_ = true;
+    } else {
+      cameraProgress_ = nextProgress;
+      if (cameraProgress_ > maxProgress_) {
+        cameraProgress_ = maxProgress_;
+      }
+    }
+  }
 }

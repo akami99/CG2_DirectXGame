@@ -197,4 +197,7 @@ private:
 
   // 区間ジャンプ処理
   void JumpToSection(int index);
+
+  // レール移動の更新
+  void UpdateRailMovement();
 };
