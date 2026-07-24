@@ -112,7 +112,7 @@ private:
 
   // プロジェクタイル管理
   std::vector<std::unique_ptr<EnemyProjectile>> projectiles_;
-  float speed_ = 0.1f;
+  float speed_ = 0.3f;
   float projectileSpawnTimer_ = 0.0f;
   const float kProjectileSpawnInterval = 120.0f; // 2秒おき
 
@@ -159,6 +159,8 @@ private:
   int ammo_ = 9;
   static constexpr int kMaxAmmo = 9;
   bool isCovering_ = false;
+  float coverYOffset_ = 0.0f;
+  float coverYTarget_ = -0.2f;
   float reloadTimer_ = 0.0f;
   static constexpr float kReloadDuration = 1.0f;
 
@@ -200,4 +202,7 @@ private:
 
   // レール移動の更新
   void UpdateRailMovement();
+
+  // プレイヤーが無敵状態か判定
+  bool IsInvincible() const;
 };
