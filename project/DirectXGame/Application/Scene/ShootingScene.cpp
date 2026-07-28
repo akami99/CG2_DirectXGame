@@ -542,12 +542,25 @@ void ShootingScene::Update() {
   // 入力の更新は常に行う
   Input::GetInstance()->Update();
 
+  // ポーズ（TAB）のトグル検出
+  if (Input::GetInstance()->IsKeyTriggered(DIK_TAB)) {
+    if (!isPaused_) {
+      isPaused_ = true;
+      prevPostEffectMode_ = PostProcessManager::GetInstance()->GetCurrentMode();
+      MyGame::SetPostEffectMode(PostProcessManager::kModeGaussianBlur);
+      PostProcessManager::SetGaussianBlurParams(7, 2.0f);
+    } else {
+      isPaused_ = false;
+      MyGame::SetPostEffectMode(prevPostEffectMode_);
+    }
+  }
+
 #ifdef USE_IMGUI
   // UI処理 (ImGuiの定義)
   UpdateImGui();
 #endif // USE_IMGUI
 
-  if (isDebugPaused_) {
+  if (isPaused_ || isDebugPaused_) {
     camera_->Update();
     return;
   }
@@ -635,6 +648,7 @@ void ShootingScene::Update() {
       projectileSpawnTimer_ = 0.0f;
       isCovering_ = false;
       coverYOffset_ = 0.0f;
+      isPaused_ = false;
       projectiles_.clear();
       score_ = 0;
       gameTimer_ = 60.0f;
@@ -1320,6 +1334,7 @@ void ShootingScene::UpdateImGui_GlobalSettings() {
       projectileSpawnTimer_ = 0.0f;
       isCovering_ = false;
       coverYOffset_ = 0.0f;
+      isPaused_ = false;
       projectiles_.clear();
       score_ = 0;
       gameTimer_ = 60.0f;
@@ -1687,6 +1702,7 @@ void ShootingScene::JumpToSection(int index) {
   projectileSpawnTimer_ = 0.0f;
   isCovering_ = false;
   coverYOffset_ = 0.0f;
+  isPaused_ = false;
   projectiles_.clear();
   score_ = 0;
   gameTimer_ = 60.0f;

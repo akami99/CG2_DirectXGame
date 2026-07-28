@@ -197,7 +197,9 @@ private:
   // カバー演出UI
   std::unique_ptr<Sprite> coverOverlay_;
 
-  // デバッグ用ポーズと区間選択
+  // ポーズ機能とデバッグ用ポーズ
+  bool isPaused_ = false;
+  int prevPostEffectMode_ = 0;
   bool isDebugPaused_ = false;
   std::vector<float> sectionProgresses_;
   int currentSectionIndex_ = 0;
