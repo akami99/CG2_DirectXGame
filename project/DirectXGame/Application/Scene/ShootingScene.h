@@ -185,6 +185,15 @@ private:
   std::unique_ptr<Sprite> progressBg_;
   std::unique_ptr<Sprite> progressBar_;
 
+  // スコア・タイマーUI
+  int score_ = 0;
+  float gameTimer_ = 60.0f;
+  std::unique_ptr<Sprite> scoreBg_;
+  std::vector<std::unique_ptr<Sprite>> scoreUnits_;
+  std::unique_ptr<Sprite> timerBg_;
+  std::vector<std::unique_ptr<Sprite>> timerUnits_;
+  std::unique_ptr<Sprite> timerDot_;
+
   // カバー演出UI
   std::unique_ptr<Sprite> coverOverlay_;
 

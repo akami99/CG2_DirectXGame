@@ -471,13 +471,13 @@ void ShootingScene::Initialize() {
   // 3. プログレスバーUI
   progressBg_ = std::make_unique<Sprite>();
   progressBg_->Initialize("white.png");
-  progressBg_->SetTranslate({930.0f, 660.0f});
+  progressBg_->SetTranslate({480.0f, 20.0f});
   progressBg_->SetScale({300.0f, 20.0f});
   progressBg_->SetColor({0.1f, 0.2f, 0.8f, 0.6f}); // 半透明青色
 
   progressBar_ = std::make_unique<Sprite>();
   progressBar_->Initialize("white.png");
-  progressBar_->SetTranslate({930.0f, 660.0f});
+  progressBar_->SetTranslate({480.0f, 20.0f});
   progressBar_->SetScale({0.0f, 20.0f});            // 最初は幅0
   progressBar_->SetColor({1.0f, 0.9f, 0.0f, 1.0f}); // 黄色
 
@@ -487,6 +487,55 @@ void ShootingScene::Initialize() {
   coverOverlay_->SetTranslate({0.0f, 470.0f});
   coverOverlay_->SetScale({1280.0f, 250.0f});
   coverOverlay_->SetColor({0.0f, 0.0f, 0.0f, 0.6f}); // 半透明黒
+
+  // 5. スコアUIの初期化
+  for (int i = 0; i < 10; ++i) {
+    TextureManager::GetInstance()->LoadTexture("numbers/" + std::to_string(i) + ".png");
+  }
+
+  scoreBg_ = std::make_unique<Sprite>();
+  scoreBg_->Initialize("white.png");
+  scoreBg_->SetTranslate({30.0f, 30.0f});
+  scoreBg_->SetScale({160.0f, 45.0f});
+  scoreBg_->SetColor({0.2f, 0.2f, 0.2f, 0.8f}); // 半透明グレー
+
+  scoreUnits_.clear();
+  for (int i = 0; i < 4; ++i) {
+    auto unit = std::make_unique<Sprite>();
+    unit->Initialize("numbers/0.png");
+    unit->SetScale({20.0f, 32.0f});
+    unit->SetTranslate({40.0f + i * 30.0f, 36.5f});
+    scoreUnits_.push_back(std::move(unit));
+  }
+
+  // 6. タイマーUIの初期化
+  timerBg_ = std::make_unique<Sprite>();
+  timerBg_->Initialize("white.png");
+  timerBg_->SetTranslate({1090.0f, 640.0f});
+  timerBg_->SetScale({160.0f, 45.0f});
+  timerBg_->SetColor({0.2f, 0.2f, 0.2f, 0.8f}); // 半透明グレー
+
+  timerUnits_.clear();
+  for (int i = 0; i < 4; ++i) {
+    auto unit = std::make_unique<Sprite>();
+    unit->Initialize("numbers/0.png");
+    unit->SetScale({20.0f, 32.0f});
+    float x = 1100.0f + i * 30.0f;
+    if (i >= 2) {
+      x += 7.0f; // ドット用の隙間
+    }
+    unit->SetTranslate({x, 646.5f});
+    timerUnits_.push_back(std::move(unit));
+  }
+
+  timerDot_ = std::make_unique<Sprite>();
+  timerDot_->Initialize("white.png");
+  timerDot_->SetTranslate({1158.0f, 672.0f});
+  timerDot_->SetScale({4.0f, 4.0f});
+  timerDot_->SetColor({1.0f, 1.0f, 1.0f, 1.0f}); // 白色
+
+  score_ = 0;
+  gameTimer_ = 60.0f;
 }
 
 void ShootingScene::Update() {
@@ -516,6 +565,29 @@ void ShootingScene::Update() {
     sectionJumpInvincibleTimer_ -= kDeltaTime;
     if (sectionJumpInvincibleTimer_ < 0.0f) {
       sectionJumpInvincibleTimer_ = 0.0f;
+    }
+  }
+
+  // 制限時間の更新
+  if (phase_ == Phase::Playing) {
+    gameTimer_ -= kDeltaTime;
+    if (gameTimer_ <= 0.0f) {
+      gameTimer_ = 0.0f;
+
+      // タイムアップによるゲームオーバー遷移
+      phase_ = Phase::GameOverVignette;
+      phaseTimer_ = 0.0f;
+      vignetteScale_ = 16.0f;
+      vignetteExponent_ = 0.8f;
+      damageEffectStrength_ = 0.0f;
+
+      MyGame::SetPostEffectMode(PostProcessManager::kModeVignette);
+      MyGame::SetPostEffectStrength(1.0f);
+      PostProcessManager::SetVignetteParams(vignetteScale_,
+                                            vignetteExponent_);
+      projectiles_.clear();
+
+      return; // ここでUpdateを抜けてゲームを一時停止させる
     }
   }
 
@@ -561,7 +633,11 @@ void ShootingScene::Update() {
       isHit_ = false;
       damageEffectStrength_ = 0.0f;
       projectileSpawnTimer_ = 0.0f;
+      isCovering_ = false;
+      coverYOffset_ = 0.0f;
       projectiles_.clear();
+      score_ = 0;
+      gameTimer_ = 60.0f;
 
       // 敵の論理リセット（モデルのリロードは行わない）
       for (auto &enemy : enemies_) {
@@ -931,6 +1007,7 @@ void ShootingScene::Update() {
           enemy.isActive = false;
           hitAny = true;
           hitPos = enemyPos;
+          score_ += 10;
 
           // 敵のインデックスに応じて再生する撃破エフェクトを決定
           std::string effectName =
@@ -1089,6 +1166,57 @@ void ShootingScene::Update() {
     coverOverlay_->Update();
   }
 
+  // 5. スコアUIの更新
+  {
+    int tempScore = score_;
+    if (tempScore > 9999) tempScore = 9999;
+    if (tempScore < 0) tempScore = 0;
+
+    int digits[4];
+    digits[0] = tempScore / 1000;
+    digits[1] = (tempScore % 1000) / 100;
+    digits[2] = (tempScore % 100) / 10;
+    digits[3] = tempScore % 10;
+
+    for (int i = 0; i < 4; ++i) {
+      if (scoreUnits_[i]) {
+        scoreUnits_[i]->SetTexture("numbers/" + std::to_string(digits[i]) + ".png");
+        scoreUnits_[i]->SetScale({20.0f, 32.0f});
+        scoreUnits_[i]->Update();
+      }
+    }
+    if (scoreBg_) {
+      scoreBg_->Update();
+    }
+  }
+
+  // 6. タイマーUIの更新
+  {
+    int tempTimer = static_cast<int>(std::round(gameTimer_ * 100.0f));
+    if (tempTimer > 9999) tempTimer = 9999;
+    if (tempTimer < 0) tempTimer = 0;
+
+    int tDigits[4];
+    tDigits[0] = tempTimer / 1000;
+    tDigits[1] = (tempTimer % 1000) / 100;
+    tDigits[2] = (tempTimer % 100) / 10;
+    tDigits[3] = tempTimer % 10;
+
+    for (int i = 0; i < 4; ++i) {
+      if (timerUnits_[i]) {
+        timerUnits_[i]->SetTexture("numbers/" + std::to_string(tDigits[i]) + ".png");
+        timerUnits_[i]->SetScale({20.0f, 32.0f});
+        timerUnits_[i]->Update();
+      }
+    }
+    if (timerDot_) {
+      timerDot_->Update();
+    }
+    if (timerBg_) {
+      timerBg_->Update();
+    }
+  }
+
   // パーティクルの更新
   ParticleManager::GetInstance()->SetIsUpdate(true);
   ParticleManager::GetInstance()->SetUseBillboard(false);
@@ -1190,7 +1318,11 @@ void ShootingScene::UpdateImGui_GlobalSettings() {
       isHit_ = false;
       damageEffectStrength_ = 0.0f;
       projectileSpawnTimer_ = 0.0f;
+      isCovering_ = false;
+      coverYOffset_ = 0.0f;
       projectiles_.clear();
+      score_ = 0;
+      gameTimer_ = 60.0f;
 
       // 敵の論理リセット（モデルのリロードは行わない）
       for (auto &enemy : enemies_) {
@@ -1429,6 +1561,10 @@ void ShootingScene::Draw() {
     ammoBg_->Draw();
   if (progressBg_)
     progressBg_->Draw();
+  if (scoreBg_)
+    scoreBg_->Draw();
+  if (timerBg_)
+    timerBg_->Draw();
 
   // 3. UIのゲージ（メモリやバー）
   // ライフメモリ
@@ -1455,6 +1591,23 @@ void ShootingScene::Draw() {
   // プログレスバー
   if (progressBar_) {
     progressBar_->Draw();
+  }
+
+  // スコア表示スプライト
+  for (int i = 0; i < 4; ++i) {
+    if (scoreUnits_[i]) {
+      scoreUnits_[i]->Draw();
+    }
+  }
+
+  // タイマー表示スプライト
+  for (int i = 0; i < 4; ++i) {
+    if (timerUnits_[i]) {
+      timerUnits_[i]->Draw();
+    }
+  }
+  if (timerDot_) {
+    timerDot_->Draw();
   }
 
   // 4. 照準
@@ -1535,6 +1688,8 @@ void ShootingScene::JumpToSection(int index) {
   isCovering_ = false;
   coverYOffset_ = 0.0f;
   projectiles_.clear();
+  score_ = 0;
+  gameTimer_ = 60.0f;
 
   // 敵の状態復元（移動先より手前の敵は撃破済み、以降の敵は復活・未出現）
   for (auto &enemy : enemies_) {
@@ -1543,6 +1698,7 @@ void ShootingScene::JumpToSection(int index) {
       enemy.isActive = false;
       enemy.shootTimer = 0.0f;
       enemy.spawnTimer = 1.0f; // 出現完了状態扱い
+      score_ += 10;
       if (enemy.model) {
         enemy.model->SetDissolveParams(0, 0.0f, 0.05f,
                                        Vector3(1.0f, 0.4f, 0.3f));
