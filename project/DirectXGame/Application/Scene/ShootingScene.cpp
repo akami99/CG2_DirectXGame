@@ -654,6 +654,8 @@ void ShootingScene::Update() {
       gameTimer_ = 60.0f;
       radialBlurStrength_ = 0.0f;
       radialBlurTimer_ = 0.0f;
+      randomNoiseStrength_ = 0.0f;
+      randomNoiseTimer_ = 0.0f;
 
       // 敵の論理リセット（モデルのリロードは行わない）
       for (auto &enemy : enemies_) {
@@ -764,6 +766,11 @@ void ShootingScene::Update() {
         ammo_ = kMaxAmmo;
         reloadTimer_ = 0.0f;
 
+        // リロード完了時のシステム再起動グリッチノイズをトリガー
+        randomNoiseTimer_ = kRandomNoiseReloadDuration;
+        randomNoiseStrength_ = kRandomNoiseReloadStrength;
+        PostProcessManager::SetRandomParams(randomNoiseStrength_);
+
         // リロード完了エフェクトをカメラの目の前に発生させる
         Vector3 camPos = camera_->GetTranslate();
         Vector3 camRot = camera_->GetRotate();
@@ -846,7 +853,7 @@ void ShootingScene::Update() {
         bool isExplosive = (enemy.shootCount % 3 == 0); // 3回に1回爆発弾
         
         auto newProjectile = std::make_unique<EnemyProjectile>();
-        newProjectile->Initialize(startPos, velocity, isExplosive);
+        newProjectile->Initialize(startPos, velocity, static_cast<EnemyProjectile::Type>(isExplosive));
         projectiles_.push_back(std::move(newProjectile));
       }
     }
@@ -901,6 +908,12 @@ void ShootingScene::Update() {
             radialBlurTimer_ = kRadialBlurDuration;
             PostProcessManager::SetRadialBlurParams(0.5f, 0.5f, radialBlurStrength_, 12);
           }
+          // 被弾時のグリッチノイズトリガー（生存時のみ）
+          if (hitCount_ + 1 < kMaxHits) {
+            randomNoiseStrength_ = kRandomNoiseHitStrength;
+            randomNoiseTimer_ = kRandomNoiseHitDuration;
+            PostProcessManager::SetRandomParams(randomNoiseStrength_);
+          }
           p->Kill(); // 当たった弾は必ず消す
           hitCount_++;
           damageEffectStrength_ = 1.0f;
@@ -937,6 +950,12 @@ void ShootingScene::Update() {
           radialBlurTimer_ = kRadialBlurDuration;
           PostProcessManager::SetRadialBlurParams(0.5f, 0.5f, radialBlurStrength_, 12);
         }
+        // 被弾時のグリッチノイズトリガー（生存時のみ）
+        if (!isInvincible && hitCount_ + 1 < kMaxHits) {
+          randomNoiseStrength_ = kRandomNoiseHitStrength;
+          randomNoiseTimer_ = kRandomNoiseHitDuration;
+          PostProcessManager::SetRandomParams(randomNoiseStrength_);
+        }
         p->Kill(); // 当たった弾は必ず消す
 
         // 無敵状態でなければ被弾ダメージ処理を行う
@@ -971,7 +990,8 @@ void ShootingScene::Update() {
     damageEffectStrength_ -= 0.01f;
     if (damageEffectStrength_ < 0.0f) {
       damageEffectStrength_ = 0.0f;
-      if (radialBlurTimer_ <= 0.0f) {
+      // 爆風もノイズも動作していない場合のみ通常画面に戻す
+      if (radialBlurTimer_ <= 0.0f && randomNoiseTimer_ <= 0.0f) {
         MyGame::SetPostEffectMode(PostProcessManager::kModeCopy);
       }
     }
@@ -984,19 +1004,41 @@ void ShootingScene::Update() {
     if (radialBlurTimer_ <= 0.0f) {
       radialBlurTimer_ = 0.0f;
       radialBlurStrength_ = 0.0f;
-      // 爆風が消えた後、まだ被弾中のグレースケールが残っていればそちらに移行、そうでなければ通常(Copy)に戻す
+      // 爆風終了後、ノイズがまだ残っていればノイズに、そうでなければ被弾グレースケール、あるいは通常へ
+      if (randomNoiseTimer_ > 0.0f) {
+        MyGame::SetPostEffectMode(PostProcessManager::kModeRandom);
+      } else if (damageEffectStrength_ > 0.0f) {
+        MyGame::SetPostEffectMode(PostProcessManager::kModeGrayscale);
+      } else {
+        MyGame::SetPostEffectMode(PostProcessManager::kModeCopy);
+      }
+    } else {
+      MyGame::SetPostEffectMode(PostProcessManager::kModeRadialBlur);
+      float t = radialBlurTimer_ / kRadialBlurDuration;
+      float currentStrength = radialBlurStrength_ * (t * t);
+      PostProcessManager::SetRadialBlurParams(0.5f, 0.5f, currentStrength, 12);
+    }
+  }
+
+  // Randomグリッチノイズエフェクトの減衰と更新
+  if (randomNoiseTimer_ > 0.0f) {
+    randomNoiseTimer_ -= kDeltaTime;
+    if (randomNoiseTimer_ <= 0.0f) {
+      randomNoiseTimer_ = 0.0f;
+      randomNoiseStrength_ = 0.0f;
+      // ノイズ終了後、被弾中ならグレースケールに戻し、そうでなければ通常(Copy)に戻す
       if (damageEffectStrength_ > 0.0f) {
         MyGame::SetPostEffectMode(PostProcessManager::kModeGrayscale);
       } else {
         MyGame::SetPostEffectMode(PostProcessManager::kModeCopy);
       }
     } else {
-      // 爆風作動中は毎フレームエフェクトモードをRadialBlurに強制セット
-      MyGame::SetPostEffectMode(PostProcessManager::kModeRadialBlur);
-      // 爆風のイージング減衰（tの2乗で滑らかに弱める）
-      float t = radialBlurTimer_ / kRadialBlurDuration;
-      float currentStrength = radialBlurStrength_ * (t * t);
-      PostProcessManager::SetRadialBlurParams(0.5f, 0.5f, currentStrength, 12);
+      // 爆風作動中でない場合のみ、ノイズモードをバインド（爆風優先）
+      if (radialBlurTimer_ <= 0.0f) {
+        MyGame::SetPostEffectMode(PostProcessManager::kModeRandom);
+        float t = randomNoiseTimer_ / kRandomNoiseReloadDuration; // ノイズ時間比率
+        PostProcessManager::SetRandomParams(randomNoiseStrength_ * t);
+      }
     }
   }
 
@@ -1386,6 +1428,8 @@ void ShootingScene::UpdateImGui_GlobalSettings() {
       gameTimer_ = 60.0f;
       radialBlurStrength_ = 0.0f;
       radialBlurTimer_ = 0.0f;
+      randomNoiseStrength_ = 0.0f;
+      randomNoiseTimer_ = 0.0f;
 
       // 敵の論理リセット（モデルのリロードは行わない）
       for (auto &enemy : enemies_) {
@@ -1757,6 +1801,8 @@ void ShootingScene::JumpToSection(int index) {
   gameTimer_ = 60.0f;
   radialBlurStrength_ = 0.0f;
   radialBlurTimer_ = 0.0f;
+  randomNoiseStrength_ = 0.0f;
+  randomNoiseTimer_ = 0.0f;
 
   // 敵の状態復元（移動先より手前の敵は撃破済み、以降の敵は復活・未出現）
   for (auto &enemy : enemies_) {

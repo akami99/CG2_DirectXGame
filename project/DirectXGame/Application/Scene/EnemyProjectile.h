@@ -4,7 +4,13 @@
 
 class EnemyProjectile {
 public:
-    void Initialize(const Vector3& position, const Vector3& velocity, bool isExplosive = false);
+    enum class Type {
+        Normal,
+        Blast,   // 爆発弾（黄色）
+        Jamming  // ジャミング弾（青色）
+    };
+
+    void Initialize(const Vector3& position, const Vector3& velocity, Type type = Type::Normal);
 	// メインビュー用の更新
     void Update();
 	// 指定したビュー用の更新
@@ -15,7 +21,9 @@ public:
     const Vector3& GetVelocity() const { return velocity_; }
     bool IsDead() const { return isDead_; }
     void Kill() { isDead_ = true; }
-    bool IsExplosive() const { return isExplosive_; }
+    Type GetType() const { return type_; }
+    bool IsExplosive() const { return type_ == Type::Blast; }
+    bool IsJamming() const { return type_ == Type::Jamming; }
 
     float GetRadius() const { return radius_; }
 
@@ -31,5 +39,5 @@ private:
     float radius_ = 0.5f;
     bool isDead_ = false;
     std::unique_ptr<Model> customModel_;
-    bool isExplosive_ = false;
+    Type type_ = Type::Normal;
 };

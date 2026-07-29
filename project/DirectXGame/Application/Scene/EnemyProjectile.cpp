@@ -2,19 +2,25 @@
 #include "ModelManager.h"
 #include "Model.h"
 
-void EnemyProjectile::Initialize(const Vector3& position, const Vector3& velocity, bool isExplosive) {
+void EnemyProjectile::Initialize(const Vector3& position, const Vector3& velocity, Type type) {
     position_ = position;
     velocity_ = velocity;
-    isExplosive_ = isExplosive;
+    type_ = type;
     
     object_ = std::make_unique<Object3d>();
     object_->Initialize();
     
-    if (isExplosive_) {
-        // 爆発弾用に個別のモデルインスタンスを作成
+    if (type_ != Type::Normal) {
+        // 属性弾用に個別のモデルインスタンスを作成
         customModel_ = std::make_unique<Model>();
         customModel_->Initialize("Resources/Assets/Models/bullet", "bullet.obj");
-        customModel_->SetColor({1.0f, 0.8f, 0.0f, 1.0f}); // 黄色
+        
+        if (type_ == Type::Blast) {
+            customModel_->SetColor({1.0f, 0.8f, 0.0f, 1.0f}); // 黄色
+        } else if (type_ == Type::Jamming) {
+            customModel_->SetColor({0.0f, 0.5f, 1.0f, 1.0f}); // 青色
+        }
+        
         object_->SetModel(customModel_.get());
     } else {
         object_->SetModel("bullet.obj");
