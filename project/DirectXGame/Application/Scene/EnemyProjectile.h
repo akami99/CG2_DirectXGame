@@ -4,7 +4,7 @@
 
 class EnemyProjectile {
 public:
-    void Initialize(const Vector3& position, const Vector3& velocity);
+    void Initialize(const Vector3& position, const Vector3& velocity, bool isExplosive = false);
 	// メインビュー用の更新
     void Update();
 	// 指定したビュー用の更新
@@ -15,6 +15,7 @@ public:
     const Vector3& GetVelocity() const { return velocity_; }
     bool IsDead() const { return isDead_; }
     void Kill() { isDead_ = true; }
+    bool IsExplosive() const { return isExplosive_; }
 
     float GetRadius() const { return radius_; }
 
@@ -29,4 +30,6 @@ private:
     Vector3 velocity_;
     float radius_ = 0.5f;
     bool isDead_ = false;
+    std::unique_ptr<Model> customModel_;
+    bool isExplosive_ = false;
 };

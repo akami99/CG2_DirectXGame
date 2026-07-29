@@ -652,12 +652,15 @@ void ShootingScene::Update() {
       projectiles_.clear();
       score_ = 0;
       gameTimer_ = 60.0f;
+      radialBlurStrength_ = 0.0f;
+      radialBlurTimer_ = 0.0f;
 
       // 敵の論理リセット（モデルのリロードは行わない）
       for (auto &enemy : enemies_) {
         enemy.isDead = false;
         enemy.isActive = false;
         enemy.shootTimer = 0.0f;
+        enemy.shootCount = 0;
         enemy.spawnTimer = 0.0f;
         enemy.object->SetTranslate(enemy.basePosition);
         enemy.object->SetRotation(enemy.baseRotation);
@@ -838,8 +841,12 @@ void ShootingScene::Update() {
         Vector3 targetPos = CalculateRailPosition(cameraProgress_);
         Vector3 dir = Normalize(Subtract(targetPos, startPos));
         Vector3 velocity = Multiply(speed_, dir);
+        
+        enemy.shootCount++;
+        bool isExplosive = (enemy.shootCount % 3 == 0); // 3回に1回爆発弾
+        
         auto newProjectile = std::make_unique<EnemyProjectile>();
-        newProjectile->Initialize(startPos, velocity);
+        newProjectile->Initialize(startPos, velocity, isExplosive);
         projectiles_.push_back(std::move(newProjectile));
       }
     }
@@ -871,6 +878,11 @@ void ShootingScene::Update() {
         continue;
       Vector3 toProjectile = Subtract(p->GetPosition(), targetPos);
       if (Dot(toProjectile, p->GetVelocity()) >= 0.0f) {
+        if (p->IsExplosive()) {
+          radialBlurStrength_ = 0.035f; // カバー時爆発
+          radialBlurTimer_ = kRadialBlurDuration;
+          PostProcessManager::SetRadialBlurParams(0.5f, 0.5f, radialBlurStrength_, 12);
+        }
         p->Kill();
       }
     }
@@ -884,6 +896,11 @@ void ShootingScene::Update() {
         float dist =
             Length(Subtract(p->GetPosition(), camera_->GetTranslate()));
         if (dist < 1.0f) {
+          if (p->IsExplosive() && hitCount_ + 1 < kMaxHits) {
+            radialBlurStrength_ = 0.05f; // 被弾時
+            radialBlurTimer_ = kRadialBlurDuration;
+            PostProcessManager::SetRadialBlurParams(0.5f, 0.5f, radialBlurStrength_, 12);
+          }
           p->Kill(); // 当たった弾は必ず消す
           hitCount_++;
           damageEffectStrength_ = 1.0f;
@@ -915,6 +932,11 @@ void ShootingScene::Update() {
         continue;
       float dist = Length(Subtract(p->GetPosition(), camera_->GetTranslate()));
       if (dist < 1.0f) {
+        if (p->IsExplosive() && !isInvincible && hitCount_ + 1 < kMaxHits) {
+          radialBlurStrength_ = 0.05f; // 被弾時
+          radialBlurTimer_ = kRadialBlurDuration;
+          PostProcessManager::SetRadialBlurParams(0.5f, 0.5f, radialBlurStrength_, 12);
+        }
         p->Kill(); // 当たった弾は必ず消す
 
         // 無敵状態でなければ被弾ダメージ処理を行う
@@ -949,10 +971,34 @@ void ShootingScene::Update() {
     damageEffectStrength_ -= 0.01f;
     if (damageEffectStrength_ < 0.0f) {
       damageEffectStrength_ = 0.0f;
-      MyGame::SetPostEffectMode(PostProcessManager::kModeCopy);
+      if (radialBlurTimer_ <= 0.0f) {
+        MyGame::SetPostEffectMode(PostProcessManager::kModeCopy);
+      }
     }
   }
   MyGame::SetPostEffectStrength(damageEffectStrength_);
+
+  // Radial Blur爆風エフェクトの減衰と更新
+  if (radialBlurTimer_ > 0.0f) {
+    radialBlurTimer_ -= kDeltaTime;
+    if (radialBlurTimer_ <= 0.0f) {
+      radialBlurTimer_ = 0.0f;
+      radialBlurStrength_ = 0.0f;
+      // 爆風が消えた後、まだ被弾中のグレースケールが残っていればそちらに移行、そうでなければ通常(Copy)に戻す
+      if (damageEffectStrength_ > 0.0f) {
+        MyGame::SetPostEffectMode(PostProcessManager::kModeGrayscale);
+      } else {
+        MyGame::SetPostEffectMode(PostProcessManager::kModeCopy);
+      }
+    } else {
+      // 爆風作動中は毎フレームエフェクトモードをRadialBlurに強制セット
+      MyGame::SetPostEffectMode(PostProcessManager::kModeRadialBlur);
+      // 爆風のイージング減衰（tの2乗で滑らかに弱める）
+      float t = radialBlurTimer_ / kRadialBlurDuration;
+      float currentStrength = radialBlurStrength_ * (t * t);
+      PostProcessManager::SetRadialBlurParams(0.5f, 0.5f, currentStrength, 12);
+    }
+  }
 
   // 死んだプロジェクタイルを削除
   projectiles_.erase(
@@ -1338,12 +1384,15 @@ void ShootingScene::UpdateImGui_GlobalSettings() {
       projectiles_.clear();
       score_ = 0;
       gameTimer_ = 60.0f;
+      radialBlurStrength_ = 0.0f;
+      radialBlurTimer_ = 0.0f;
 
       // 敵の論理リセット（モデルのリロードは行わない）
       for (auto &enemy : enemies_) {
         enemy.isDead = false;
         enemy.isActive = false;
         enemy.shootTimer = 0.0f;
+        enemy.shootCount = 0;
         enemy.spawnTimer = 0.0f;
         enemy.object->SetTranslate(enemy.basePosition);
         enemy.object->SetRotation(enemy.baseRotation);
@@ -1706,9 +1755,12 @@ void ShootingScene::JumpToSection(int index) {
   projectiles_.clear();
   score_ = 0;
   gameTimer_ = 60.0f;
+  radialBlurStrength_ = 0.0f;
+  radialBlurTimer_ = 0.0f;
 
   // 敵の状態復元（移動先より手前の敵は撃破済み、以降の敵は復活・未出現）
   for (auto &enemy : enemies_) {
+    enemy.shootCount = 0;
     if (enemy.distance < targetProgress) {
       enemy.isDead = true;
       enemy.isActive = false;

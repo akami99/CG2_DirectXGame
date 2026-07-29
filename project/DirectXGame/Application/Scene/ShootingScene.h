@@ -82,6 +82,7 @@ private:
     bool isDead = false;
     float shootTimer = 0.0f;
     float spawnTimer = 0.0f; // 出現タイマー
+    int shootCount = 0; // 射撃回数カウンター
   };
 
   // レベルから読み取った敵オブジェクト群
@@ -207,6 +208,11 @@ private:
   bool isDebugInvincible_ = false;
   float sectionJumpInvincibleTimer_ = 0.0f;
   static constexpr float kSectionJumpInvincibleDuration = 3.0f;
+
+  // Radial Blur爆風演出用
+  float radialBlurStrength_ = 0.0f;
+  float radialBlurTimer_ = 0.0f;
+  static constexpr float kRadialBlurDuration = 0.4f;
 
   // 区間ジャンプ処理
   void JumpToSection(int index);

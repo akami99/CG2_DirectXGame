@@ -1,13 +1,25 @@
 #include "EnemyProjectile.h"
 #include "ModelManager.h"
+#include "Model.h"
 
-void EnemyProjectile::Initialize(const Vector3& position, const Vector3& velocity) {
+void EnemyProjectile::Initialize(const Vector3& position, const Vector3& velocity, bool isExplosive) {
     position_ = position;
     velocity_ = velocity;
+    isExplosive_ = isExplosive;
     
     object_ = std::make_unique<Object3d>();
     object_->Initialize();
-    object_->SetModel("bullet.obj");
+    
+    if (isExplosive_) {
+        // 爆発弾用に個別のモデルインスタンスを作成
+        customModel_ = std::make_unique<Model>();
+        customModel_->Initialize("Resources/Assets/Models/bullet", "bullet.obj");
+        customModel_->SetColor({1.0f, 0.8f, 0.0f, 1.0f}); // 黄色
+        object_->SetModel(customModel_.get());
+    } else {
+        object_->SetModel("bullet.obj");
+    }
+    
     object_->SetTranslate(position_);
     object_->SetScale({radius_, radius_, radius_});
 }
