@@ -217,10 +217,6 @@ private:
   // ランダムノイズ演出用
   float randomNoiseStrength_ = 0.0f;
   float randomNoiseTimer_ = 0.0f;
-  static constexpr float kRandomNoiseReloadDuration = 0.2f;
-  static constexpr float kRandomNoiseReloadStrength = 0.4f;
-  static constexpr float kRandomNoiseHitDuration = 0.4f;
-  static constexpr float kRandomNoiseHitStrength = 0.6f;
 
   // 区間ジャンプ処理
   void JumpToSection(int index);

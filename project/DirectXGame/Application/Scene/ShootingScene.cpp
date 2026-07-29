@@ -766,11 +766,6 @@ void ShootingScene::Update() {
         ammo_ = kMaxAmmo;
         reloadTimer_ = 0.0f;
 
-        // リロード完了時のシステム再起動グリッチノイズをトリガー
-        randomNoiseTimer_ = kRandomNoiseReloadDuration;
-        randomNoiseStrength_ = kRandomNoiseReloadStrength;
-        PostProcessManager::SetRandomParams(randomNoiseStrength_);
-
         // リロード完了エフェクトをカメラの目の前に発生させる
         Vector3 camPos = camera_->GetTranslate();
         Vector3 camRot = camera_->GetRotate();
@@ -850,10 +845,15 @@ void ShootingScene::Update() {
         Vector3 velocity = Multiply(speed_, dir);
         
         enemy.shootCount++;
-        bool isExplosive = (enemy.shootCount % 3 == 0); // 3回に1回爆発弾
+        EnemyProjectile::Type pType = EnemyProjectile::Type::Normal;
+        if (enemy.shootCount % 3 == 2) {
+          pType = EnemyProjectile::Type::Blast;
+        } else if (enemy.shootCount % 3 == 0) {
+          pType = EnemyProjectile::Type::Jamming;
+        }
         
         auto newProjectile = std::make_unique<EnemyProjectile>();
-        newProjectile->Initialize(startPos, velocity, static_cast<EnemyProjectile::Type>(isExplosive));
+        newProjectile->Initialize(startPos, velocity, pType);
         projectiles_.push_back(std::move(newProjectile));
       }
     }
@@ -908,10 +908,10 @@ void ShootingScene::Update() {
             radialBlurTimer_ = kRadialBlurDuration;
             PostProcessManager::SetRadialBlurParams(0.5f, 0.5f, radialBlurStrength_, 12);
           }
-          // 被弾時のグリッチノイズトリガー（生存時のみ）
-          if (hitCount_ + 1 < kMaxHits) {
-            randomNoiseStrength_ = kRandomNoiseHitStrength;
-            randomNoiseTimer_ = kRandomNoiseHitDuration;
+          // ジャミング弾被弾時のノイズトリガー（生存時のみ、通常弾ヒット時はノイズ無し）
+          if (p->IsJamming() && hitCount_ + 1 < kMaxHits) {
+            randomNoiseStrength_ = 0.7f;
+            randomNoiseTimer_ = 5.0f; // 5秒
             PostProcessManager::SetRandomParams(randomNoiseStrength_);
           }
           p->Kill(); // 当たった弾は必ず消す
@@ -950,10 +950,10 @@ void ShootingScene::Update() {
           radialBlurTimer_ = kRadialBlurDuration;
           PostProcessManager::SetRadialBlurParams(0.5f, 0.5f, radialBlurStrength_, 12);
         }
-        // 被弾時のグリッチノイズトリガー（生存時のみ）
-        if (!isInvincible && hitCount_ + 1 < kMaxHits) {
-          randomNoiseStrength_ = kRandomNoiseHitStrength;
-          randomNoiseTimer_ = kRandomNoiseHitDuration;
+        // ジャミング弾被弾時のノイズトリガー（生存時のみ、通常弾ヒット時はノイズ無し）
+        if (p->IsJamming() && !isInvincible && hitCount_ + 1 < kMaxHits) {
+          randomNoiseStrength_ = 0.7f;
+          randomNoiseTimer_ = 5.0f; // 5秒
           PostProcessManager::SetRandomParams(randomNoiseStrength_);
         }
         p->Kill(); // 当たった弾は必ず消す
@@ -1036,8 +1036,10 @@ void ShootingScene::Update() {
       // 爆風作動中でない場合のみ、ノイズモードをバインド（爆風優先）
       if (radialBlurTimer_ <= 0.0f) {
         MyGame::SetPostEffectMode(PostProcessManager::kModeRandom);
-        float t = randomNoiseTimer_ / kRandomNoiseReloadDuration; // ノイズ時間比率
-        PostProcessManager::SetRandomParams(randomNoiseStrength_ * t);
+        float t = randomNoiseTimer_ / 5.0f; // 5秒のジャミングノイズ比率
+        if (t > 1.0f) t = 1.0f;
+        float easeT = t * t; // イージング（時間の2乗）
+        PostProcessManager::SetRandomParams(randomNoiseStrength_ * easeT);
       }
     }
   }
