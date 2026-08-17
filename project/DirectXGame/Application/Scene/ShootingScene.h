@@ -71,6 +71,12 @@ private:
   };
   FloorSettings floorSettings_ = { {0.0f, 0.0f, 100.0f}, {0.0f, 0.0f, 0.0f}, {5.0f, 1.0f, 25.0f} };
 
+  // 敵のタイプ（種類）
+  enum class EnemyType {
+    Normal,   // 通常タイプ (グローバル必中率, Normal/Jamming弾)
+    Engineer  // 工兵タイプ (必中率0.75, Blast爆発弾のみ)
+  };
+
   // 敵情報構造体
   struct EnemyInfo {
     std::unique_ptr<Object3d> object;
@@ -83,6 +89,8 @@ private:
     float shootTimer = 0.0f;
     float spawnTimer = 0.0f; // 出現タイマー
     int shootCount = 0; // 射撃回数カウンター
+    int hitShotCount = 0; // 必中弾カウンター (属性弾ローテーション用)
+    EnemyType type = EnemyType::Normal; // 敵のタイプ
   };
 
   // レベルから読み取った敵オブジェクト群
@@ -113,9 +121,11 @@ private:
 
   // プロジェクタイル管理
   std::vector<std::unique_ptr<EnemyProjectile>> projectiles_;
-  float speed_ = 0.3f;
+  float speed_ = 0.45f;                            // 通常弾の速度 (少し速め)
+  float engineerProjectileSpeed_ = 0.18f;          // 工兵爆発弾の速度 (ロケット弾イメージで遅め)
   float projectileSpawnTimer_ = 0.0f;
-  const float kProjectileSpawnInterval = 120.0f; // 2秒おき
+  const float kProjectileSpawnInterval = 120.0f;   // 通常敵の発射間隔 (約2秒)
+  const float kEngineerSpawnInterval = 200.0f;     // 工兵の発射間隔 (約3.3秒、ロケット弾イメージで遅め)
 
   // ダメージ効果（グレースケール）
   float damageEffectStrength_ = 0.0f;
@@ -217,6 +227,10 @@ private:
   // ランダムノイズ演出用
   float randomNoiseStrength_ = 0.0f;
   float randomNoiseTimer_ = 0.0f;
+
+  // 演出弾・必中弾の撃ち分け設定
+  float hitShotRate_ = 0.35f;      // 必中弾の割合 (0.0f: 全て演出弾 〜 1.0f: 全て必中弾)
+  float missShotSpread_ = 3.0f;    // 演出弾の散布オフセット半径 (プレイヤー周辺を掠める範囲)
 
   // 区間ジャンプ処理
   void JumpToSection(int index);

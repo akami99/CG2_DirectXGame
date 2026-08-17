@@ -10,6 +10,14 @@ void EnemyProjectile::Initialize(const Vector3& position, const Vector3& velocit
     object_ = std::make_unique<Object3d>();
     object_->Initialize();
     
+    if (type_ == Type::Blast) {
+        radius_ = 0.7f; // ロケット弾イメージで少し大きめ
+        hp_ = 5;        // 5回で破壊可能
+    } else {
+        radius_ = 0.5f;
+        hp_ = 1;
+    }
+
     if (type_ != Type::Normal) {
         // 属性弾用に個別のモデルインスタンスを作成
         customModel_ = std::make_unique<Model>();

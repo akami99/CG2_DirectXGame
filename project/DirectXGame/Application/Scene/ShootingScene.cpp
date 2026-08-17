@@ -384,6 +384,15 @@ void ShootingScene::Initialize() {
       enemy.spawnTimer = 0.0f;
       enemies_.push_back(std::move(enemy));
     }
+    
+    // 3体目の敵（インデックス2）を工兵（Engineer）タイプに設定
+    if (enemies_.size() >= 3) {
+      enemies_[2].type = EnemyType::Engineer;
+      // 工兵のモデルカラーを爆発物イメージの黄色系に変更
+      if (enemies_[2].model) {
+        enemies_[2].model->SetColor({1.0f, 0.8f, 0.2f, 1.0f});
+      }
+    }
   }
 
   // --- デバッグ用区間リストの構築 ---
@@ -663,9 +672,18 @@ void ShootingScene::Update() {
         enemy.isActive = false;
         enemy.shootTimer = 0.0f;
         enemy.shootCount = 0;
+        enemy.hitShotCount = 0;
         enemy.spawnTimer = 0.0f;
         enemy.object->SetTranslate(enemy.basePosition);
         enemy.object->SetRotation(enemy.baseRotation);
+        // 敵のタイプに応じたモデルカラーの再適用
+        if (enemy.model) {
+          if (enemy.type == EnemyType::Engineer) {
+            enemy.model->SetColor({1.0f, 0.8f, 0.2f, 1.0f});
+          } else {
+            enemy.model->SetColor({1.0f, 1.0f, 1.0f, 1.0f});
+          }
+        }
         // 初期状態として完全に消去された状態（Threshold = 1.0f）を設定
         enemy.model->SetDissolveParams(1, 1.0f, 0.05f,
                                        Vector3(1.0f, 0.4f, 0.3f));
@@ -837,20 +855,56 @@ void ShootingScene::Update() {
     if (enemy.spawnTimer >= 1.0f) {
       // 射撃処理
       enemy.shootTimer += 1.0f;
-      if (enemy.shootTimer >= kProjectileSpawnInterval) {
+      float spawnInterval = (enemy.type == EnemyType::Engineer) ? kEngineerSpawnInterval : kProjectileSpawnInterval;
+      if (enemy.shootTimer >= spawnInterval) {
         enemy.shootTimer = 0.0f;
         Vector3 startPos = enemy.object->GetTranslate();
-        Vector3 targetPos = CalculateRailPosition(cameraProgress_);
-        Vector3 dir = Normalize(Subtract(targetPos, startPos));
-        Vector3 velocity = Multiply(speed_, dir);
+        Vector3 playerPos = CalculateRailPosition(cameraProgress_);
         
         enemy.shootCount++;
+        
+        // 必中弾か演出弾かの判定 (タイプごとの確率判定)
+        float currentHitShotRate = (enemy.type == EnemyType::Engineer) ? 0.75f : hitShotRate_;
+        float randVal = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+        bool isHitShot = (randVal < currentHitShotRate);
+        
+        Vector3 targetPos = playerPos;
         EnemyProjectile::Type pType = EnemyProjectile::Type::Normal;
-        if (enemy.shootCount % 3 == 2) {
-          pType = EnemyProjectile::Type::Blast;
-        } else if (enemy.shootCount % 3 == 0) {
-          pType = EnemyProjectile::Type::Jamming;
+        
+        if (isHitShot) {
+          // --- 必中弾 (プレイヤーを正確に狙う) ---
+          enemy.hitShotCount++;
+          if (enemy.type == EnemyType::Engineer) {
+            pType = EnemyProjectile::Type::Blast;   // 工兵は必ず爆発弾 (黄)
+          } else {
+            // 通常タイプは爆発弾を撃たず、通常弾(白)とジャミング弾(青)を交互に撃ち分ける
+            if (enemy.hitShotCount % 2 == 0) {
+              pType = EnemyProjectile::Type::Jamming; // ジャミング弾 (青)
+            } else {
+              pType = EnemyProjectile::Type::Normal;  // 通常必中弾 (白)
+            }
+          }
+        } else {
+          // --- 演出弾 (プレイヤーの周囲を掠める当たらない弾) ---
+          // プレイヤーの衝突判定半径(1.0f)より確実に外側の安全距離(1.8f〜missShotSpread_)にオフセット
+          float minOffset = 1.8f;
+          float maxOffset = (missShotSpread_ > minOffset) ? missShotSpread_ : minOffset + 1.0f;
+          float angle = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 6.2831853f;
+          float offsetDist = minOffset + (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * (maxOffset - minOffset);
+          
+          targetPos.x += std::cos(angle) * offsetDist;
+          targetPos.y += std::sin(angle) * offsetDist * 0.7f; // 上下のオフセット
+          
+          if (enemy.type == EnemyType::Engineer) {
+            pType = EnemyProjectile::Type::Blast;   // 工兵は演出弾も爆発弾 (黄)
+          } else {
+            pType = EnemyProjectile::Type::Normal;  // 通常タイプは通常演出弾 (白)
+          }
         }
+        
+        Vector3 dir = Normalize(Subtract(targetPos, startPos));
+        float bulletSpeed = (enemy.type == EnemyType::Engineer) ? engineerProjectileSpeed_ : speed_;
+        Vector3 velocity = Multiply(bulletSpeed, dir);
         
         auto newProjectile = std::make_unique<EnemyProjectile>();
         newProjectile->Initialize(startPos, velocity, pType);
@@ -1093,9 +1147,34 @@ void ShootingScene::Update() {
     Vector3 farPos = TransformPoint({x, y, 1.0f}, invVP);
     Vector3 rayDir = Normalize(Subtract(farPos, nearPos));
 
-    // エネミーへの当たり判定
-    bool hitAny = false;
-    Vector3 hitPos = {0.0f, 0.0f, 0.0f};
+    // 最も手前（tが最小）にあるオブジェクトを判定（貫通防止）
+    float closestT = (std::numeric_limits<float>::max)();
+    enum class HitTargetType { None, Enemy, BlastProjectile };
+    HitTargetType hitType = HitTargetType::None;
+    EnemyInfo* hitEnemy = nullptr;
+    EnemyProjectile* hitProjectile = nullptr;
+
+    // 1. 爆発弾との当たり判定
+    for (auto &p : projectiles_) {
+      if (p->IsDead() || !p->IsExplosive())
+        continue;
+
+      Vector3 projPos = p->GetPosition();
+      Vector3 toProj = Subtract(projPos, nearPos);
+      float t = Dot(toProj, rayDir);
+      if (t > 0.0f && t < closestT) {
+        Vector3 closestPoint = Add(nearPos, Multiply(t, rayDir));
+        float dist = Length(Subtract(projPos, closestPoint));
+        // 弾の当たり判定半径（少し狙いやすく1.2倍）
+        if (dist < p->GetRadius() * 1.2f) {
+          closestT = t;
+          hitType = HitTargetType::BlastProjectile;
+          hitProjectile = p.get();
+        }
+      }
+    }
+
+    // 2. エネミーとの当たり判定
     for (auto &enemy : enemies_) {
       if (!enemy.isActive || enemy.isDead)
         continue;
@@ -1103,37 +1182,59 @@ void ShootingScene::Update() {
       Vector3 enemyPos = enemy.object->GetTranslate();
       Vector3 toEnemy = Subtract(enemyPos, nearPos);
       float t = Dot(toEnemy, rayDir);
-      if (t > 0) {
+      if (t > 0.0f && t < closestT) {
         Vector3 closestPoint = Add(nearPos, Multiply(t, rayDir));
         float dist = Length(Subtract(enemyPos, closestPoint));
         if (dist < 1.0f) {
-          enemy.isDead = true;
-          enemy.isActive = false;
-          hitAny = true;
-          hitPos = enemyPos;
-          score_ += 10;
-
-          // 敵のインデックスに応じて再生する撃破エフェクトを決定
-          std::string effectName =
-              ringParticleGroupName_; // デフォルトは1体目のリング
-          if (!enemies_.empty()) {
-            size_t idx = &enemy - &enemies_[0];
-            if (idx % 3 == 1) {
-              effectName = "CylinderGroup"; // 2体目：シリンダー
-            } else if (idx % 3 == 2) {
-              effectName = "SparkGroup"; // 3体目：火花
-            }
-          }
-
-          // 敵撃破時にパーティクルを放出
-          if (auto *emitter =
-                  ParticleManager::GetInstance()->GetEmitter(effectName)) {
-            emitter->isPlaying = true;
-          }
-          ParticleManager::GetInstance()->Emit(effectName, enemyPos, 32);
-          break; // 1回で1体倒す
+          closestT = t;
+          hitType = HitTargetType::Enemy;
+          hitEnemy = &enemy;
         }
       }
+    }
+
+    // 3. 最も手前のターゲットにのみヒット処理（奥への貫通を防止）
+    if (hitType == HitTargetType::BlastProjectile && hitProjectile) {
+      Vector3 pPos = hitProjectile->GetPosition();
+      bool isDestroyed = hitProjectile->ApplyDamage(1);
+      if (isDestroyed) {
+        // 爆発弾の破壊エフェクト
+        if (auto *emitter = ParticleManager::GetInstance()->GetEmitter("SparkGroup")) {
+          emitter->isPlaying = true;
+        }
+        ParticleManager::GetInstance()->Emit("SparkGroup", pPos, 24);
+        score_ += 5; // 迎撃スコア
+      } else {
+        // 被弾火花エフェクト
+        if (auto *emitter = ParticleManager::GetInstance()->GetEmitter("AmmoSparkGroup")) {
+          emitter->isPlaying = true;
+        }
+        ParticleManager::GetInstance()->Emit("AmmoSparkGroup", pPos, 6);
+      }
+    } else if (hitType == HitTargetType::Enemy && hitEnemy) {
+      hitEnemy->isDead = true;
+      hitEnemy->isActive = false;
+      Vector3 enemyPos = hitEnemy->object->GetTranslate();
+      score_ += 10;
+
+      // 敵のインデックスに応じて再生する撃破エフェクトを決定
+      std::string effectName =
+          ringParticleGroupName_; // デフォルトは1体目のリング
+      if (!enemies_.empty()) {
+        size_t idx = hitEnemy - &enemies_[0];
+        if (idx % 3 == 1) {
+          effectName = "CylinderGroup"; // 2体目：シリンダー
+        } else if (idx % 3 == 2) {
+          effectName = "SparkGroup"; // 3体目：火花
+        }
+      }
+
+      // 敵撃破時にパーティクルを放出
+      if (auto *emitter =
+              ParticleManager::GetInstance()->GetEmitter(effectName)) {
+        emitter->isPlaying = true;
+      }
+      ParticleManager::GetInstance()->Emit(effectName, enemyPos, 32);
     }
   }
 
@@ -1439,9 +1540,18 @@ void ShootingScene::UpdateImGui_GlobalSettings() {
         enemy.isActive = false;
         enemy.shootTimer = 0.0f;
         enemy.shootCount = 0;
+        enemy.hitShotCount = 0;
         enemy.spawnTimer = 0.0f;
         enemy.object->SetTranslate(enemy.basePosition);
         enemy.object->SetRotation(enemy.baseRotation);
+        // 敵のタイプに応じたモデルカラーの再適用
+        if (enemy.model) {
+          if (enemy.type == EnemyType::Engineer) {
+            enemy.model->SetColor({1.0f, 0.8f, 0.2f, 1.0f});
+          } else {
+            enemy.model->SetColor({1.0f, 1.0f, 1.0f, 1.0f});
+          }
+        }
         // 初期状態として完全に消去された状態（Threshold = 1.0f）を設定
         enemy.model->SetDissolveParams(1, 1.0f, 0.05f,
                                        Vector3(1.0f, 0.4f, 0.3f));
@@ -1525,6 +1635,19 @@ void ShootingScene::UpdateImGui_Object3d() {
 
     for (size_t i = 0; i < enemies_.size(); ++i) {
       auto &enemy = enemies_[i];
+      const char* enemyTypeNames[] = { "Normal", "Engineer" };
+      int typeInt = static_cast<int>(enemy.type);
+      ImGui::Separator();
+      if (ImGui::Combo(("Enemy " + std::to_string(i) + " Type").c_str(), &typeInt, enemyTypeNames, IM_ARRAYSIZE(enemyTypeNames))) {
+        enemy.type = static_cast<EnemyType>(typeInt);
+        if (enemy.model) {
+          if (enemy.type == EnemyType::Engineer) {
+            enemy.model->SetColor({1.0f, 0.8f, 0.2f, 1.0f});
+          } else {
+            enemy.model->SetColor({1.0f, 1.0f, 1.0f, 1.0f});
+          }
+        }
+      }
       ImGui::Text("[%zu] Dist: %.1f, Active: %s, Dead: %s", i, enemy.distance,
                   enemy.isActive ? "Yes" : "No", enemy.isDead ? "Yes" : "No");
       ImGui::DragFloat3(("Enemy " + std::to_string(i) + " Position").c_str(),
@@ -1537,8 +1660,12 @@ void ShootingScene::UpdateImGui_Object3d() {
     ImGui::TreePop();
   }
   ImGui::Separator();
-  // プロジェクタイルの状態を表示
   if (ImGui::TreeNode("Projectiles Status")) {
+    ImGui::SliderFloat("Hit Shot Ratio (必中弾割合)", &hitShotRate_, 0.0f, 1.0f, "%.2f");
+    ImGui::SliderFloat("Miss Shot Spread (演出弾の散布半径)", &missShotSpread_, 1.5f, 8.0f, "%.1f");
+    ImGui::DragFloat("Normal Bullet Speed", &speed_, 0.02f, 0.1f, 3.0f);
+    ImGui::DragFloat("Engineer Bullet Speed", &engineerProjectileSpeed_, 0.02f, 0.05f, 2.0f);
+    ImGui::Separator();
     ImGui::Text("Active Projectiles: %zu", projectiles_.size());
     for (size_t i = 0; i < projectiles_.size(); ++i) {
       auto &p = projectiles_[i];
@@ -1809,6 +1936,15 @@ void ShootingScene::JumpToSection(int index) {
   // 敵の状態復元（移動先より手前の敵は撃破済み、以降の敵は復活・未出現）
   for (auto &enemy : enemies_) {
     enemy.shootCount = 0;
+    enemy.hitShotCount = 0;
+    // 敵のタイプに応じたモデルカラーの再適用
+    if (enemy.model) {
+      if (enemy.type == EnemyType::Engineer) {
+        enemy.model->SetColor({1.0f, 0.8f, 0.2f, 1.0f});
+      } else {
+        enemy.model->SetColor({1.0f, 1.0f, 1.0f, 1.0f});
+      }
+    }
     if (enemy.distance < targetProgress) {
       enemy.isDead = true;
       enemy.isActive = false;

@@ -26,6 +26,16 @@ public:
     bool IsJamming() const { return type_ == Type::Jamming; }
 
     float GetRadius() const { return radius_; }
+    int GetHp() const { return hp_; }
+    bool ApplyDamage(int damage = 1) {
+        hp_ -= damage;
+        if (hp_ <= 0) {
+            hp_ = 0;
+            isDead_ = true;
+            return true; // 破壊された
+        }
+        return false; // 耐久値残存
+    }
 
 #ifdef USE_IMGUI
     // ImGui用のゲッター
@@ -37,6 +47,7 @@ private:
     Vector3 position_;
     Vector3 velocity_;
     float radius_ = 0.5f;
+    int hp_ = 1;
     bool isDead_ = false;
     std::unique_ptr<Model> customModel_;
     Type type_ = Type::Normal;
