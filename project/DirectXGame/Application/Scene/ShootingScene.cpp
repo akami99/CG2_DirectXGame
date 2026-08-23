@@ -73,10 +73,14 @@ void ShootingScene::Initialize() {
   if (levelData_ && !levelData_->players.empty()) {
     const auto &spawn = levelData_->players[0];
     camera_->SetRotate(spawn.rotation);
+    cameraBasePitch_ = spawn.rotation.x;
     cameraYaw_ = spawn.rotation.y;
+    cameraBaseRoll_ = spawn.rotation.z;
   } else {
     camera_->SetRotate({0.0f, 0.0f, 0.0f});
+    cameraBasePitch_ = 0.0f;
     cameraYaw_ = 0.0f;
+    cameraBaseRoll_ = 0.0f;
   }
 
   Object3dCommon::GetInstance()->SetDefaultCamera(camera_.get());
@@ -378,6 +382,9 @@ void ShootingScene::Initialize() {
   setupBulletTrailGroup("BulletTrail_Normal", 0.45f, 0.12f, { 0.9f, 0.95f, 1.0f, 0.85f }, { 0.8f, 0.9f, 1.0f, 0.7f });
   setupBulletTrailGroup("BulletTrail_Blast", 0.65f, 0.16f, { 1.0f, 0.75f, 0.1f, 0.9f }, { 1.0f, 0.4f, 0.0f, 0.8f });
   setupBulletTrailGroup("BulletTrail_Jamming", 0.45f, 0.12f, { 0.1f, 0.65f, 1.0f, 0.9f }, { 0.0f, 0.3f, 0.9f, 0.75f });
+
+  // 初期化直後の余分なパーティクル描画を防ぐため全パーティクルをクリア
+  ParticleManager::GetInstance()->ClearAllParticles();
 
   // スカイボックスの初期化
   skybox_ = std::make_unique<Skybox>();
@@ -694,7 +701,6 @@ void ShootingScene::Update() {
       orbitAngle_ = 0.0f;
       targetTimer_ = 0.0f;
       cameraYaw_ = 0.0f;
-      hitFeedbackTimer_ = 0.0f;
       isHit_ = false;
       damageEffectStrength_ = 0.0f;
       projectileSpawnTimer_ = 0.0f;
@@ -761,17 +767,25 @@ void ShootingScene::Update() {
 
       // カメラを初期位置に戻す
       cameraProgress_ = 0.0f;
+      cameraShakeTimer_ = 0.0f;
       isMovementPaused_ = false;
       Vector3 startCamPos = CalculateRailPosition(cameraProgress_);
       camera_->SetTranslate(startCamPos);
       if (levelData_ && !levelData_->players.empty()) {
         const auto &spawn = levelData_->players[0];
         camera_->SetRotate(spawn.rotation);
+        cameraBasePitch_ = spawn.rotation.x;
         cameraYaw_ = spawn.rotation.y;
+        cameraBaseRoll_ = spawn.rotation.z;
       } else {
         camera_->SetRotate({0.0f, 0.0f, 0.0f});
+        cameraBasePitch_ = 0.0f;
         cameraYaw_ = 0.0f;
+        cameraBaseRoll_ = 0.0f;
       }
+
+      // 残留パーティクルを完全にクリア
+      ParticleManager::GetInstance()->ClearAllParticles();
 
       // スムージングを最大限（31）適用してリスタート
       smoothingKernel_ = 31.0f;
@@ -854,8 +868,27 @@ void ShootingScene::Update() {
   float targetOffset = isCovering_ ? -1.0f : 0.0f;
   coverYOffset_ += (targetOffset - coverYOffset_) * 0.15f;
 
+  // カメラシェイクオフセットの計算（被弾時の画面揺れ）
+  Vector3 shakeOffset = {0.0f, 0.0f, 0.0f};
+  Vector3 shakeRotOffset = {0.0f, 0.0f, 0.0f};
+  if (cameraShakeTimer_ > 0.0f) {
+    cameraShakeTimer_ -= kDeltaTime;
+    if (cameraShakeTimer_ < 0.0f) cameraShakeTimer_ = 0.0f;
+    float t = (cameraShakeDuration_ > 0.0f) ? (cameraShakeTimer_ / cameraShakeDuration_) : 0.0f;
+    float currentIntensity = cameraShakeIntensity_ * (t * t); // 二次関数イージング減衰
+
+    float rx = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f);
+    float ry = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f);
+    float rz = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f);
+    float rRot = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f);
+
+    shakeOffset = {rx * currentIntensity, ry * currentIntensity, rz * (currentIntensity * 0.4f)};
+    shakeRotOffset = {rx * currentIntensity * 0.06f, ry * currentIntensity * 0.06f, rRot * currentIntensity * 0.10f};
+  }
+
   Vector3 camPos = CalculateRailPosition(cameraProgress_);
   camPos.y += coverYOffset_;
+  camPos = Add(camPos, shakeOffset);
   camera_->SetTranslate(camPos);
 
 #ifdef USE_IMGUI
@@ -866,14 +899,14 @@ void ShootingScene::Update() {
   if (Input::GetInstance()->IsKeyDown(DIK_D)) {
     cameraYaw_ += kHalfPI / 100.0f;
   }
-  Vector3 currentRot = camera_->GetRotate();
-  camera_->SetRotate({currentRot.x, cameraYaw_, currentRot.z});
 #endif // USE_IMGUI
 
-  // ヒットフィードバックのタイマー更新
-  if (hitFeedbackTimer_ > 0) {
-    hitFeedbackTimer_ -= kDeltaTime;
-  }
+  // 基準回転（basePitch, cameraYaw, baseRoll）にシェイクオフセットを加算（累積せず完全復元）
+  camera_->SetRotate({
+    cameraBasePitch_ + shakeRotOffset.x,
+    cameraYaw_ + shakeRotOffset.y,
+    cameraBaseRoll_ + shakeRotOffset.z
+  });
 
   // 各エネミーの更新と射撃処理
   for (auto &enemy : enemies_) {
@@ -986,6 +1019,9 @@ void ShootingScene::Update() {
           radialBlurStrength_ = 0.035f; // カバー時爆発
           radialBlurTimer_ = kRadialBlurDuration;
           PostProcessManager::SetRadialBlurParams(0.5f, 0.5f, radialBlurStrength_, 12);
+          cameraShakeIntensity_ = 0.20f;
+          cameraShakeDuration_ = 0.30f;
+          cameraShakeTimer_ = 0.30f;
         }
         p->Kill();
       }
@@ -1004,6 +1040,13 @@ void ShootingScene::Update() {
             radialBlurStrength_ = 0.05f; // 被弾時
             radialBlurTimer_ = kRadialBlurDuration;
             PostProcessManager::SetRadialBlurParams(0.5f, 0.5f, radialBlurStrength_, 12);
+            cameraShakeIntensity_ = 0.45f;
+            cameraShakeDuration_ = 0.45f;
+            cameraShakeTimer_ = 0.45f;
+          } else {
+            cameraShakeIntensity_ = 0.20f;
+            cameraShakeDuration_ = 0.25f;
+            cameraShakeTimer_ = 0.25f;
           }
           // ジャミング弾被弾時のノイズトリガー（生存時のみ、通常弾ヒット時はノイズ無し）
           if (p->IsJamming() && hitCount_ + 1 < kMaxHits) {
@@ -1046,6 +1089,13 @@ void ShootingScene::Update() {
           radialBlurStrength_ = 0.05f; // 被弾時
           radialBlurTimer_ = kRadialBlurDuration;
           PostProcessManager::SetRadialBlurParams(0.5f, 0.5f, radialBlurStrength_, 12);
+          cameraShakeIntensity_ = 0.45f;
+          cameraShakeDuration_ = 0.45f;
+          cameraShakeTimer_ = 0.45f;
+        } else if (!isInvincible) {
+          cameraShakeIntensity_ = 0.20f;
+          cameraShakeDuration_ = 0.25f;
+          cameraShakeTimer_ = 0.25f;
         }
         // ジャミング弾被弾時のノイズトリガー（生存時のみ、通常弾ヒット時はノイズ無し）
         if (p->IsJamming() && !isInvincible && hitCount_ + 1 < kMaxHits) {
@@ -1562,7 +1612,6 @@ void ShootingScene::UpdateImGui_GlobalSettings() {
       orbitAngle_ = 0.0f;
       targetTimer_ = 0.0f;
       cameraYaw_ = 0.0f;
-      hitFeedbackTimer_ = 0.0f;
       isHit_ = false;
       damageEffectStrength_ = 0.0f;
       projectileSpawnTimer_ = 0.0f;
@@ -1629,17 +1678,25 @@ void ShootingScene::UpdateImGui_GlobalSettings() {
 
       // カメラを初期位置に戻す
       cameraProgress_ = 0.0f;
+      cameraShakeTimer_ = 0.0f;
       isMovementPaused_ = false;
       Vector3 startCamPos = CalculateRailPosition(cameraProgress_);
       camera_->SetTranslate(startCamPos);
       if (levelData_ && !levelData_->players.empty()) {
         const auto &spawn = levelData_->players[0];
         camera_->SetRotate(spawn.rotation);
+        cameraBasePitch_ = spawn.rotation.x;
         cameraYaw_ = spawn.rotation.y;
+        cameraBaseRoll_ = spawn.rotation.z;
       } else {
         camera_->SetRotate({0.0f, 0.0f, 0.0f});
+        cameraBasePitch_ = 0.0f;
         cameraYaw_ = 0.0f;
+        cameraBaseRoll_ = 0.0f;
       }
+
+      // 残留パーティクルを完全にクリア
+      ParticleManager::GetInstance()->ClearAllParticles();
       // スムージングを最大限（31）適用してリスタート
       smoothingKernel_ = 31.0f;
       PostProcessManager::SetMode(PostProcessManager::kModeSmoothing);
@@ -1664,6 +1721,21 @@ void ShootingScene::UpdateImGui_GameCamera() {
     if (ImGui::DragFloat3("Rotation", &camRot.x, 0.1f)) {
       camera_->SetRotate(camRot);
       cameraYaw_ = camRot.y;
+    }
+    ImGui::Separator();
+    ImGui::Text("Camera Shake");
+    ImGui::SliderFloat("Shake Intensity", &cameraShakeIntensity_, 0.0f, 1.0f, "%.2f");
+    ImGui::SliderFloat("Shake Duration", &cameraShakeDuration_, 0.1f, 1.0f, "%.2f s");
+    if (ImGui::Button("Trigger Normal Shake")) {
+      cameraShakeIntensity_ = 0.20f;
+      cameraShakeDuration_ = 0.25f;
+      cameraShakeTimer_ = 0.25f;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Trigger Blast Shake")) {
+      cameraShakeIntensity_ = 0.45f;
+      cameraShakeDuration_ = 0.45f;
+      cameraShakeTimer_ = 0.45f;
     }
     ImGui::TreePop();
   }
@@ -1960,8 +2032,11 @@ void ShootingScene::JumpToSection(int index) {
   hitCount_ = 0;
   orbitAngle_ = 0.0f;
   targetTimer_ = 0.0f;
+  cameraBasePitch_ = 0.0f;
   cameraYaw_ = 0.0f;
-  hitFeedbackTimer_ = 0.0f;
+  cameraBaseRoll_ = 0.0f;
+  cameraShakeTimer_ = 0.0f;
+  ParticleManager::GetInstance()->ClearAllParticles();
   isHit_ = false;
   damageEffectStrength_ = 0.0f;
   projectileSpawnTimer_ = 0.0f;

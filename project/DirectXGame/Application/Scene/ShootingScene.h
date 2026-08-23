@@ -110,8 +110,9 @@ private:
   const float orbitRadius_ = 15.0f;
   Vector3 targetBasePos_ = {0.0f, 2.0f, 10.0f};
   bool isHit_ = false;
-  float hitFeedbackTimer_ = 0.0f;
-  float cameraYaw_ = 0.0f; // カメラのY軸回転（ラジアン、90度ずつ変化）
+  float cameraBasePitch_ = 0.0f; // カメラの基準X軸回転
+  float cameraYaw_ = 0.0f;       // カメラのY軸回転（ラジアン、90度ずつ変化）
+  float cameraBaseRoll_ = 0.0f;  // カメラの基準Z軸回転
 
   // パーティクル設定など
   int currentBlendMode_ = 1; // NormalBlend
@@ -129,6 +130,11 @@ private:
 
   // ダメージ効果（グレースケール）
   float damageEffectStrength_ = 0.0f;
+
+  // カメラシェイク
+  float cameraShakeTimer_ = 0.0f;
+  float cameraShakeDuration_ = 0.3f;
+  float cameraShakeIntensity_ = 0.0f;
 
   // ヒットポイントとゲームオーバー管理
   int hitCount_ = 0;

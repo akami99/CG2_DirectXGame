@@ -316,8 +316,11 @@ void ParticleManager::CreateParticleGroup(const std::string& name,
 	for (uint32_t index = 0; index < kNumMaxParticle; ++index) {
 		particleData[index].WVP = MakeIdentity4x4();
 		particleData[index].World = MakeIdentity4x4();
-		particleData[index].color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		particleData[index].color = { 0.0f, 0.0f, 0.0f, 0.0f };
+		particleData[index].uvTransform = MakeIdentity4x4();
 	}
+	newGroup.instanceCount = 0;
+	newGroup.emitter.isEmit = false;
 
 	// 1. マテリアルデータ用のCBVリソースを生成
 	const UINT kCbvAlignedSize = 256;
@@ -346,6 +349,21 @@ void ParticleManager::CreateParticleGroup(const std::string& name,
 
 	// グループをマップに追加
 	particleGroups_.emplace(name, std::move(newGroup));
+}
+
+void ParticleManager::ClearParticles(const std::string& name) {
+	auto it = particleGroups_.find(name);
+	if (it != particleGroups_.end()) {
+		it->second.particles.clear();
+		it->second.instanceCount = 0;
+	}
+}
+
+void ParticleManager::ClearAllParticles() {
+	for (auto& pair : particleGroups_) {
+		pair.second.particles.clear();
+		pair.second.instanceCount = 0;
+	}
 }
 
 void ParticleManager::Emit(const std::string& name, const Vector3& translate,

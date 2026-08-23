@@ -47,7 +47,7 @@ private: // メンバ変数
             instanceSrvHandleGPU; // インスタンシングデータ用SRVインデックス
         ComPtr<ID3D12Resource>
             instanceResource;   // インスタンシングリソース (StructuredBuffer)
-        uint32_t instanceCount; // インスタンス数
+        uint32_t instanceCount = 0; // インスタンス数 (初期値0)
         ParticleInstanceData* mappedData =
             nullptr; // インスタンシングデータを書き込むためのポインタ
     };
@@ -127,6 +127,10 @@ public: // メンバ関数
     // パーティクルグループのテクスチャ設定/取得
     void SetGroupTexture(const std::string& name, const std::string& textureFilePath);
     std::string GetGroupTexture(const std::string& name) const;
+
+    // パーティクルのクリア処理
+    void ClearParticles(const std::string& name);
+    void ClearAllParticles();
 
     // 解放処理
     void ReleaseIntermediateResources();
