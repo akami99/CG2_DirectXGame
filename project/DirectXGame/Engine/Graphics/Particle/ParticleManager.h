@@ -99,6 +99,9 @@ public: // メンバ関数
     // パーティクルの発生 (Emit)
     void Emit(const std::string& name, const Vector3& translate, uint32_t count);
 
+    // カスタムパーティクルの発生 (位置・回転・スケール・色・寿命を直接指定)
+    void EmitCustom(const std::string& name, const Vector3& translate, const Vector3& rotate, const Vector3& scale, const Vector4& color, float lifeTime);
+
     // パーティクル生成関数
     Particle MakeNewParticle(const Vector3& translate, const ParticleGenerateSettings& settings);
 

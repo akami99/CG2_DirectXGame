@@ -369,6 +369,26 @@ void ParticleManager::Emit(const std::string& name, const Vector3& translate,
 	}
 }
 
+void ParticleManager::EmitCustom(const std::string& name, const Vector3& translate, const Vector3& rotate, const Vector3& scale, const Vector4& color, float lifeTime) {
+	auto it = particleGroups_.find(name);
+	if (it == particleGroups_.end()) {
+		return;
+	}
+
+	ParticleGroup& group = it->second;
+
+	Particle particle;
+	particle.transform.translate = translate;
+	particle.transform.rotate = rotate;
+	particle.transform.scale = scale;
+	particle.velocity = { 0.0f, 0.0f, 0.0f };
+	particle.color = color;
+	particle.lifeTime = lifeTime;
+	particle.currentTime = 0.0f;
+
+	group.particles.push_back(std::move(particle));
+}
+
 // パーティクル生成関数
 Particle ParticleManager::MakeNewParticle(const Vector3& translate, const ParticleGenerateSettings& settings) {
 

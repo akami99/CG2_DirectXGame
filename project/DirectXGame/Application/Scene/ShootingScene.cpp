@@ -336,6 +336,49 @@ void ShootingScene::Initialize() {
                                                ammoSparkEmitter);
   }
 
+  // 5. 敵弾トレイルエフェクト (半円シリンダーによるライフリング効果)
+  auto setupBulletTrailGroup = [](const std::string& groupName, float radius, float height, const Vector4& topCol, const Vector4& btmCol) {
+    ParticleManager::GetInstance()->CreateParticleGroup(groupName, "white.png");
+    Transform t = { {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
+    ParticleEmitter emitter(t, 1, 0.1f);
+    emitter.isEmit = false;
+    emitter.isEffectMode = false;
+    emitter.generateSettings.isRandomScale = false;
+    emitter.generateSettings.fixedScale = { 1.0f, 1.0f, 1.0f };
+    emitter.generateSettings.isRandomRotate = false;
+    emitter.generateSettings.fixedRotate = { 0.0f, 0.0f, 0.0f };
+    emitter.generateSettings.isRandomVelocity = false;
+    emitter.generateSettings.fixedVelocity = { 0.0f, 0.0f, 0.0f };
+    emitter.generateSettings.isRandomLifeTime = false;
+    emitter.generateSettings.fixedLifeTime = 0.3f;
+    emitter.generateSettings.isRandomColor = false;
+    emitter.generateSettings.fixedColor = topCol;
+    emitter.fieldSettings.isAccelerationFieldActive = false;
+    emitter.fieldSettings.isGravityFieldActive = false;
+    emitter.uvAnimationSettings.isActive = false;
+    emitter.SetShapeType(ParticleShapeType::Cylinder);
+    if (auto* cs = emitter.GetCylinderShape()) {
+      cs->settings.height = height;
+      cs->settings.topRadius = { radius, radius };
+      cs->settings.bottomRadius = { radius, radius };
+      cs->settings.startAngle = 0.0f;
+      cs->settings.endAngle = 180.0f; // 半円状
+      cs->settings.division = 24;
+      cs->settings.verticalDivision = 1;
+      cs->settings.topColor = topCol;
+      cs->settings.bottomColor = btmCol;
+      cs->settings.fadeStartAlpha = 1.0f;
+      cs->settings.fadeEndAlpha = 1.0f;
+      cs->settings.fadeRange = 0.15f; // 両端フェード
+      cs->settings.alphaReference = 0.0f;
+    }
+    ParticleManager::GetInstance()->SetEmitter(groupName, emitter);
+  };
+
+  setupBulletTrailGroup("BulletTrail_Normal", 0.45f, 0.12f, { 0.9f, 0.95f, 1.0f, 0.85f }, { 0.8f, 0.9f, 1.0f, 0.7f });
+  setupBulletTrailGroup("BulletTrail_Blast", 0.65f, 0.16f, { 1.0f, 0.75f, 0.1f, 0.9f }, { 1.0f, 0.4f, 0.0f, 0.8f });
+  setupBulletTrailGroup("BulletTrail_Jamming", 0.45f, 0.12f, { 0.1f, 0.65f, 1.0f, 0.9f }, { 0.0f, 0.3f, 0.9f, 0.75f });
+
   // スカイボックスの初期化
   skybox_ = std::make_unique<Skybox>();
   skybox_->Initialize("skybox.dds");

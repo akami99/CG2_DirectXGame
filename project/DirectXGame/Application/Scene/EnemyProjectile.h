@@ -51,4 +51,5 @@ private:
     bool isDead_ = false;
     std::unique_ptr<Model> customModel_;
     Type type_ = Type::Normal;
+    float trailRotation_ = 0.0f; // ライフリング回転角
 };
