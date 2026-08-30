@@ -11,6 +11,7 @@
 #include "SpriteCommon.h"
 #include "TextureManager.h"
 #include "Win32Window.h"
+#include "SceneManager.h"
 #include <cmath>
 #include <numbers>
 
@@ -681,9 +682,16 @@ void ShootingScene::Update() {
     PostProcessManager::SetVignetteParams(vignetteScale_, vignetteExponent_);
 
     if (phaseTimer_ >= kVignetteInDuration) {
-      // 暗転維持フェーズへ
+#ifndef USE_IMGUI
+      // USE_IMGUIでない場合はGameOverSceneへ遷移
+      PostProcessManager::SetMode(PostProcessManager::kModeCopy);
+      SceneManager::GetInstance()->ChangeScene("GAMEOVER");
+      return;
+#else
+      // USE_IMGUIの場合は暗転維持フェーズを経てその場でリスタート
       phase_ = Phase::GameOverWait;
       phaseTimer_ = 0.0f;
+#endif
     }
 
     return;
@@ -1973,6 +1981,10 @@ void ShootingScene::Finalize() {
   Object3dCommon::GetInstance()->SetDefaultCamera(nullptr);
   enemies_.clear();
   floorObject_.reset();
+  skybox_.reset();
+  projectiles_.clear();
+  ParticleManager::GetInstance()->ClearAllParticles();
+  PostProcessManager::SetMode(PostProcessManager::kModeCopy);
 }
 
 Vector3 ShootingScene::CalculateRailPosition(float progress) {

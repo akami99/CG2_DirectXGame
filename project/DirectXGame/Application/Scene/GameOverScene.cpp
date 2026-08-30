@@ -1,4 +1,4 @@
-#include "TitleScene.h"
+#include "GameOverScene.h"
 #include "DX12Context.h"
 #include "TextureManager.h"
 #include "ImGuiManager.h"
@@ -18,7 +18,8 @@ using namespace MathUtils;
 using namespace MathGenerators;
 using namespace BlendMode;
 
-void TitleScene::Initialize() {
+void GameOverScene::Initialize()
+{
     // カメラ生成
     camera_ = std::make_unique<Camera>(); // メモリ確保と同時にスマートポインタ化
     camera_->Initialize();
@@ -49,7 +50,8 @@ void TitleScene::Initialize() {
     }
 }
 
-void TitleScene::Update() {
+void GameOverScene::Update()
+{
     // 入力の更新
     Input::GetInstance()->Update();
     // 3. UI処理 (ImGuiの定義)
@@ -59,7 +61,7 @@ void TitleScene::Update() {
     UpdateGameCamera();
 
     if (Input::GetInstance()->IsKeyTriggered(DIK_RETURN) || Input::GetInstance()->IsKeyTriggered(DIK_SPACE)) {
-        SceneManager::GetInstance()->ChangeScene("SHOOTING");
+        SceneManager::GetInstance()->ChangeScene("TITLE");
     }
 
     // --- スプライトの更新 ---
@@ -69,7 +71,8 @@ void TitleScene::Update() {
     }
 }
 
-void TitleScene::Draw() {
+void GameOverScene::Draw()
+{
 
     // スプライトの描画
     // 描画設定
@@ -84,14 +87,16 @@ void TitleScene::Draw() {
     }
 }
 
-void TitleScene::Finalize() {
+void GameOverScene::Finalize()
+{
     // Object3dCommonの参照をクリア（次のシーン切り替え前に）
     Object3dCommon::GetInstance()->SetDefaultCamera(nullptr);
 
     sprites_.clear();
 }
 
-void TitleScene::UpdateGameCamera() {
+void GameOverScene::UpdateGameCamera()
+{
 
     if (Input::GetInstance()->IsKeyTriggered(DIK_F1)) {
         useDebugCamera_ = !useDebugCamera_;
@@ -117,7 +122,8 @@ void TitleScene::UpdateGameCamera() {
         }
 
         camera_->SetTranslate(gameCameraTranslate_);
-    } else {
+    }
+    else {
         debugCamera_.Update();
         camera_->SetRotate(debugCamera_.GetRotation());
         camera_->SetTranslate(debugCamera_.GetTranslate());
@@ -125,15 +131,21 @@ void TitleScene::UpdateGameCamera() {
     camera_->Update();
 }
 
-void TitleScene::UpdateImGui() {
+void GameOverScene::UpdateImGui()
+{
 #ifdef USE_IMGUI
     // シーンの表示
     ImGui::Begin("Scene");
-    ImGui::Text("Title Scene");
-    ImGui::Text("Press ENTER or SPACE to start");
-    if (ImGui::Button("Start Shooting")) {
+    ImGui::Text("Game Over Scene");
+    ImGui::Text("Press ENTER or SPACE to return to Title");
+    if (ImGui::Button("Return to Title")) {
+        SceneManager::GetInstance()->ChangeScene("TITLE");
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Retry Shooting")) {
         SceneManager::GetInstance()->ChangeScene("SHOOTING");
     }
     ImGui::End();
+
 #endif
 }
