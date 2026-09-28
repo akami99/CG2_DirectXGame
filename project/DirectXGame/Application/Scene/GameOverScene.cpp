@@ -32,22 +32,21 @@ void GameOverScene::Initialize()
     debugCamera_.Initialize();
 
     // テクスチャ読み込み
-    TextureManager::GetInstance()->LoadTexture(grassPath_);
+    TextureManager::GetInstance()->LoadTexture(backGroundPath_);
+    TextureManager::GetInstance()->LoadTexture(failedTextPath_);
 
-    // --- スプライト生成 ---
-    // 描画サイズ
-    const float spriteScale = 64.0f;
-    // 生成
-    for (uint32_t i = 0; i < 1; ++i) {
-        // 一旦ユニークポインタで作る
-        std::unique_ptr<Sprite> newSprite = std::make_unique<Sprite>();
-        newSprite->Initialize(grassPath_);
-        newSprite->SetAnchorPoint({ 0.5f, 0.5f });
-        newSprite->SetTranslate(
-            { float(i * spriteScale / 3), float(i * spriteScale / 3) });
-        // 配列に「所有権を移動（move）」して追加する
-        sprites_.push_back(std::move(newSprite));
-    }
+    // --- 背景スプライト生成 ---
+    backGroundSprite_ = std::make_unique<Sprite>();
+    backGroundSprite_->Initialize(backGroundPath_);
+    backGroundSprite_->SetAnchorPoint({ 0.0f, 0.0f });
+    backGroundSprite_->SetTranslate({ 0.0f, 0.0f });
+    backGroundSprite_->SetScale({ 1280.0f, 720.0f });
+
+    // --- ゲームオーバー（失敗）テキストスプライト生成 ---
+    failedTextSprite_ = std::make_unique<Sprite>();
+    failedTextSprite_->Initialize(failedTextPath_);
+    failedTextSprite_->SetAnchorPoint({ 0.5f, 0.5f });
+    failedTextSprite_->SetTranslate({ 640.0f, 150.0f });
 }
 
 void GameOverScene::Update()
@@ -64,8 +63,17 @@ void GameOverScene::Update()
         SceneManager::GetInstance()->ChangeScene("TITLE");
     }
 
+    // --- 背景スプライトの更新 ---
+    if (backGroundSprite_) {
+        backGroundSprite_->Update();
+    }
+
+    // --- ゲームオーバーテキストスプライトの更新 ---
+    if (failedTextSprite_) {
+        failedTextSprite_->Update();
+    }
+
     // --- スプライトの更新 ---
-     // unique_ptrが入っている配列を回すときは const auto& を使うと良い
     for (const auto& sprite : sprites_) {
         sprite->Update();
     }
@@ -73,13 +81,22 @@ void GameOverScene::Update()
 
 void GameOverScene::Draw()
 {
-
     // スプライトの描画
     // 描画設定
     SpriteCommon::GetInstance()->SetCommonDrawSettings(
         static_cast<BlendState>(currentBlendMode_));
 
     if (isShowSprite_) {
+        // 背景スプライトを最背面に描画
+        if (backGroundSprite_) {
+            backGroundSprite_->Draw();
+        }
+
+        // ゲームオーバーテキストを描画
+        if (failedTextSprite_) {
+            failedTextSprite_->Draw();
+        }
+
         // Drawも同様
         for (const auto& sprite : sprites_) {
             sprite->Draw();
@@ -92,6 +109,8 @@ void GameOverScene::Finalize()
     // Object3dCommonの参照をクリア（次のシーン切り替え前に）
     Object3dCommon::GetInstance()->SetDefaultCamera(nullptr);
 
+    backGroundSprite_.reset();
+    failedTextSprite_.reset();
     sprites_.clear();
 }
 

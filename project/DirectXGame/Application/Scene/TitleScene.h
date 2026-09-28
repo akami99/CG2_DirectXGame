@@ -35,6 +35,8 @@ private:
     Vector3 gameCameraTranslate_{};
 
     // ゲームオブジェクト(必ずスマートポインタにすること)
+    std::unique_ptr<Sprite> backGroundSprite_;
+    std::unique_ptr<Sprite> titleTextSprite_;
     std::vector<std::unique_ptr<Sprite>> sprites_;
 
     // パーティクル設定など
@@ -43,5 +45,6 @@ private:
 
     // パス定数
     // テクスチャファイルパスを保持
-    const std::string grassPath_ = "grass.png";
+    const std::string backGroundPath_ = "floor.png";
+    const std::string titleTextPath_ = "title/titleText.png";
 };

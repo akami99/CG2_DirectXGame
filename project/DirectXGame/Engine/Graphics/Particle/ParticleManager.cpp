@@ -273,8 +273,19 @@ void ParticleManager::Initialize() {
 
 void ParticleManager::CreateParticleGroup(const std::string& name,
 	const std::string& textureFilePath, Model* model) {
-	// 登録済みの名前かチェックしてassert
-	assert(particleGroups_.find(name) == particleGroups_.end());
+	// すでに登録済みのグループが存在する場合はリセットして再利用（シーン再遷移時の多重確保とアサートを防止）
+	auto it = particleGroups_.find(name);
+	if (it != particleGroups_.end()) {
+		ParticleGroup& group = it->second;
+		group.particles.clear();
+		group.instanceCount = 0;
+		group.defaultModel = model;
+		group.model = model;
+		group.materialData.textureFilePath = textureFilePath;
+		group.emitter.isEmit = false;
+		TextureManager::GetInstance()->LoadTexture(textureFilePath);
+		return;
+	}
 
 	// 新たな空のパーティクルグループを作成し、コンテナに登録
 	ParticleGroup newGroup;

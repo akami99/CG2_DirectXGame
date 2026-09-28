@@ -25,12 +25,13 @@ public:
   void Draw() override;
   void Finalize() override;
 
-  // ゲームオーバー演出フェーズ
+  // ゲームオーバー/クリア演出フェーズ
   enum class Phase {
     Playing,          // 通常プレイ
-    GameOverVignette, // ビネットで覆っていく
+    GameOverVignette, // ビネットで覆っていく（ゲームオーバー）
     GameOverWait,     // 暗転維持
     RestartSmoothing, // リセット後スムージングを徐々に消す
+    ClearVignette,    // クリア時ビネット暗転
   };
 
 private:

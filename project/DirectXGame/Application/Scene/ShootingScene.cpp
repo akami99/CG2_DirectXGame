@@ -12,6 +12,7 @@
 #include "TextureManager.h"
 #include "Win32Window.h"
 #include "SceneManager.h"
+#include "ClearScene.h"
 #include <cmath>
 #include <numbers>
 
@@ -670,6 +671,36 @@ void ShootingScene::Update() {
   // フェーズ: ゲームオーバービネット（更新停止・ビネット強化）
   // =====================================================
   if (phase_ == Phase::GameOverVignette) {
+      phaseTimer_ += kDeltaTime;
+      float t = phaseTimer_ / kVignetteInDuration; // 0.0 → 1.0
+      if (t > 1.0f)
+          t = 1.0f;
+
+      // ビネットを徐々に強化: scale 16→0.5, exponent 0.8→6.0
+      vignetteScale_ = 16.0f + (0.5f - 16.0f) * t;
+      vignetteExponent_ = 0.8f + (6.0f - 0.8f) * t;
+      PostProcessManager::SetMode(PostProcessManager::kModeVignette);
+      PostProcessManager::SetVignetteParams(vignetteScale_, vignetteExponent_);
+
+      if (phaseTimer_ >= kVignetteInDuration) {
+#ifndef USE_IMGUI
+          // USE_IMGUIでない場合はGameOverSceneへ遷移
+          PostProcessManager::SetMode(PostProcessManager::kModeCopy);
+          SceneManager::GetInstance()->ChangeScene("GAMEOVER");
+          return;
+#else
+          // USE_IMGUIの場合は暗転維持フェーズを経てその場でリスタート
+          phase_ = Phase::GameOverWait;
+          phaseTimer_ = 0.0f;
+#endif
+          return;
+      }
+  }
+
+  // =====================================================
+  // フェーズ: クリア暗転（ビネットで覆っていきClearSceneへ遷移）
+  // =====================================================
+  if (phase_ == Phase::ClearVignette) {
     phaseTimer_ += kDeltaTime;
     float t = phaseTimer_ / kVignetteInDuration; // 0.0 → 1.0
     if (t > 1.0f)
@@ -682,16 +713,10 @@ void ShootingScene::Update() {
     PostProcessManager::SetVignetteParams(vignetteScale_, vignetteExponent_);
 
     if (phaseTimer_ >= kVignetteInDuration) {
-#ifndef USE_IMGUI
-      // USE_IMGUIでない場合はGameOverSceneへ遷移
       PostProcessManager::SetMode(PostProcessManager::kModeCopy);
-      SceneManager::GetInstance()->ChangeScene("GAMEOVER");
+      ClearScene::SetResultData(score_, gameTimer_);
+      SceneManager::GetInstance()->ChangeScene("CLEAR");
       return;
-#else
-      // USE_IMGUIの場合は暗転維持フェーズを経てその場でリスタート
-      phase_ = Phase::GameOverWait;
-      phaseTimer_ = 0.0f;
-#endif
     }
 
     return;
@@ -1364,7 +1389,7 @@ void ShootingScene::Update() {
     }
 
     if (allEnemiesDead && isEffectFinished) {
-      phase_ = Phase::GameOverVignette;
+      phase_ = Phase::ClearVignette;
       phaseTimer_ = 0.0f;
       vignetteScale_ = 16.0f;
       vignetteExponent_ = 0.8f;
@@ -1712,6 +1737,11 @@ void ShootingScene::UpdateImGui_GlobalSettings() {
           static_cast<int>(smoothingKernel_));
       phase_ = Phase::RestartSmoothing;
       phaseTimer_ = 0.0f;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Go to Clear Scene")) {
+      ClearScene::SetResultData(score_, gameTimer_);
+      SceneManager::GetInstance()->ChangeScene("CLEAR");
     }
     ImGui::TreePop();
   }
